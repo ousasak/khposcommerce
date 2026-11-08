@@ -4,8 +4,7 @@ export type { SearchInputProps } from './SearchInput'
 export { default as ColumnSettingsPopover, ColumnSettingsPopover as SharedColumnSettingsPopover } from './ColumnSettingsPopover'
 export type { ColumnOption } from './ColumnSettingsPopover'
 
-export { default as ResetButton } from './ResetButton'
-export type { ResetButtonProps } from './ResetButton'
+export { ResetButton, type ResetButtonProps, EmptyState, type EmptyStateProps, type EmptyStateAction, TableEmptyState } from '@/components/common'
 
 export {
   default as TableToolbar,
@@ -13,16 +12,16 @@ export {
   TableFilterToolbar,
   DataTableToolbar,
   SearchFilterToolbar,
-} from '../common/TableToolbar'
-export type { TableToolbarProps } from '../common/TableToolbar'
+} from '@/components/common/TableToolbar'
+export type { TableToolbarProps } from '@/components/common/TableToolbar'
 
 export { default as Pagination } from './Pagination'
 export { default as WorkspaceTabs } from './WorkspaceTabs'
 export { default as BulkSelectionBanner } from './BulkSelectionBanner'
 export { default as ConfirmDialog } from './ConfirmDialog'
-export { default as ConfirmModal } from '@/components/common/modals/ConfirmModal'
+export { default as ConfirmModal } from '@/components/common/ConfirmModal'
 export { default as FilterDrawerShell } from './FilterDrawerShell'
-export { default as DetailSheet } from './DetailSheet'
+export { default as DetailSheet, DetailDrawer } from '@/components/common/DetailDrawer'
 export { default as TableActionMenu } from './TableActionMenu'
 export { usePageTab } from '@/hooks/usePageTab'
 export type { UsePageTabOptions } from '@/hooks/usePageTab'

@@ -7,12 +7,7 @@ import {
 } from 'lucide-react'
 import { supplierService } from '@/services/supplierService'
 import { useToast } from '@/hooks/useToast'
-import {
-  FormFooter,
-  LoadingSpinner,
-  FieldError,
-  getFieldClass
-} from '@/components/common'
+import { FormFooter, LoadingSpinner, FieldError, getFieldClass } from '@/components/common'
 import CustomErrorMessage from '@/components/ui/CustomErrorMessage'
 import { focusFirstInvalidField } from '@/utils/formValidation'
 

@@ -1,11 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Ticket, Percent, Coins, TrendingUp, Users, Clock } from 'lucide-react'
-import {
-  EnterpriseStatsCard,
-  EnterpriseMiniStatsCard,
-  EnterpriseStatsGrid,
-} from '@/components/common'
+import { EnterpriseStatsCard, EnterpriseMiniStatsCard, EnterpriseStatsGrid } from '@/components/common'
 import { AnimatedCounter } from '@/components/shared/AnimatedCounter'
 
 export { AnimatedCounter, CircularProgressRing } from '@/components/common'

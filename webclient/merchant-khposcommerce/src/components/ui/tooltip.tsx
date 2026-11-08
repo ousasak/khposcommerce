@@ -1,30 +1,124 @@
 import * as React from "react"
-import * as TooltipPrimitive from "@radix-ui/react-tooltip"
-
 import { cn } from "@/lib/utils"
 
-const TooltipProvider = TooltipPrimitive.Provider
+interface TooltipContextType {
+  open: boolean
+  setOpen: (open: boolean) => void
+}
 
-const Tooltip = TooltipPrimitive.Root
+const TooltipContext = React.createContext<TooltipContextType | undefined>(undefined)
 
-const TooltipTrigger = TooltipPrimitive.Trigger
+const TooltipProvider: React.FC<{ children: React.ReactNode; delayDuration?: number }> = ({
+  children,
+}) => {
+  return <>{children}</>
+}
+
+const Tooltip: React.FC<{
+  children: React.ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}> = ({ children, open: controlledOpen, onOpenChange }) => {
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen : uncontrolledOpen
+
+  const setOpen = React.useCallback(
+    (newOpen: boolean) => {
+      if (!isControlled) {
+        setUncontrolledOpen(newOpen)
+      }
+      onOpenChange?.(newOpen)
+    },
+    [isControlled, onOpenChange]
+  )
+
+  return (
+    <TooltipContext.Provider value={{ open, setOpen }}>
+      <div className="relative inline-flex">{children}</div>
+    </TooltipContext.Provider>
+  )
+}
+
+const TooltipTrigger = React.forwardRef<
+  HTMLElement,
+  React.HTMLAttributes<HTMLElement> & { asChild?: boolean }
+>(({ children, asChild, className, ...props }, ref) => {
+  const context = React.useContext(TooltipContext)
+  if (!context) return <>{children}</>
+
+  const triggerProps = {
+    ref: ref as any,
+    onMouseEnter: () => context.setOpen(true),
+    onMouseLeave: () => context.setOpen(false),
+    onFocus: () => context.setOpen(true),
+    onBlur: () => context.setOpen(false),
+    ...props,
+  }
+
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children as React.ReactElement<any>, {
+      ...triggerProps,
+      className: cn((children.props as any)?.className, className),
+      onMouseEnter: (e: any) => {
+        ;(children.props as any)?.onMouseEnter?.(e)
+        context.setOpen(true)
+      },
+      onMouseLeave: (e: any) => {
+        ;(children.props as any)?.onMouseLeave?.(e)
+        context.setOpen(false)
+      },
+      onFocus: (e: any) => {
+        ;(children.props as any)?.onFocus?.(e)
+        context.setOpen(true)
+      },
+      onBlur: (e: any) => {
+        ;(children.props as any)?.onBlur?.(e)
+        context.setOpen(false)
+      },
+    })
+  }
+
+  return (
+    <span {...triggerProps} className={className}>
+      {children}
+    </span>
+  )
+})
+TooltipTrigger.displayName = "TooltipTrigger"
 
 const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Portal>
-    <TooltipPrimitive.Content
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & {
+    side?: "top" | "bottom" | "left" | "right"
+    sideOffset?: number
+  }
+>(({ className, side = "top", children, ...props }, ref) => {
+  const context = React.useContext(TooltipContext)
+  if (!context || !context.open) return null
+
+  const sideClasses = {
+    top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
+    bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
+    left: "right-full top-1/2 -translate-y-1/2 mr-2",
+    right: "left-full top-1/2 -translate-y-1/2 ml-2",
+  }
+
+  return (
+    <div
       ref={ref}
-      sideOffset={sideOffset}
+      role="tooltip"
       className={cn(
-        "z-50 overflow-hidden rounded-md border border-border/80 bg-popover px-3 py-1.5 text-xs text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "absolute z-50 pointer-events-none whitespace-nowrap rounded-lg border border-border/80 bg-popover px-2.5 py-1 text-xs text-popover-foreground shadow-md transition-all animate-in fade-in-0 zoom-in-95",
+        sideClasses[side] || sideClasses.top,
         className
       )}
       {...props}
-    />
-  </TooltipPrimitive.Portal>
-))
-TooltipContent.displayName = TooltipPrimitive.Content.displayName
+    >
+      {children}
+    </div>
+  )
+})
+TooltipContent.displayName = "TooltipContent"
 
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }

@@ -18,6 +18,7 @@ const PlaceholderPage = React.lazy(() => import('@/pages/PlaceholderPage').then(
 // ─── 3. Users, Roles & Permissions ───────────────────────────────────────────
 const UsersPage = React.lazy(() => import('@/pages/users/UsersPage'))
 const RolesPage = React.lazy(() => import('@/pages/roles/RolesPage'))
+const RoleMatrixPage = React.lazy(() => import('@/pages/roles/RoleMatrixPage'))
 const PermissionsPage = React.lazy(() => import('@/pages/permissions/PermissionsPage'))
 
 // ─── 4. Operations, Audit & Notifications ────────────────────────────────────
@@ -37,6 +38,7 @@ export const AppRoutes: React.FC = () => {
       <Routes>
         {/* ── Public Auth Routes ────────────────────────────────────────────── */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/error" element={<HttpErrorPage code={404} />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         {/* ── Protected SaaS Platform Routes ─────────────────────────────────── */}
@@ -79,6 +81,9 @@ export const AppRoutes: React.FC = () => {
 
           {/* 7. Roles & Permissions */}
           <Route path="/roles" element={<RolesPage />} />
+          <Route path="/roles/matrix" element={<Navigate to="/permissions" replace />} />
+          <Route path="/roles/create" element={<RolesPage />} />
+          <Route path="/roles/:id/edit" element={<RolesPage />} />
           <Route path="/permissions" element={<PermissionsPage />} />
 
           {/* 8. System Health & Backup */}
@@ -109,7 +114,8 @@ export const AppRoutes: React.FC = () => {
           {/* Super Admin Profile */}
           <Route path="/profile" element={<ProfilePage />} />
 
-          {/* Fallback */}
+          {/* Error & Fallback */}
+          <Route path="/error" element={<HttpErrorPage code={404} />} />
           <Route path="*" element={<HttpErrorPage code={404} />} />
         </Route>
       </Routes>

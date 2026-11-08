@@ -20,7 +20,7 @@ import { getDeviceId } from '../../api/client'
 import { securityService } from '@/services/securityService'
 import { showToast } from '../../utils/toast'
 import { SensitiveActionModal } from './components/SensitiveActionModal'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import { HeaderActionsGroup } from '@/components/common'
 
 interface DeviceItem {

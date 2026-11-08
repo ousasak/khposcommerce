@@ -13,12 +13,10 @@ import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import { FieldError, getFieldClass, TableToolbar, EnterpriseDatePicker } from '@/components/common'
+import { FieldError, getFieldClass, TableToolbar, EnterpriseDatePicker, EmptyState, ResetButton } from '@/components/common'
 import { usePermission } from '@/hooks/usePermission'
 
 interface Expense {
@@ -277,13 +275,14 @@ const ExpensesPage: React.FC = () => {
                   ))
               }
               {!isLoading && expenses.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-16 text-center">
-                    <DollarSign size={40} className="mx-auto mb-3 text-muted-foreground/30" />
-                    <p className="text-muted-foreground">No expenses recorded</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">Click "Record Expense" to add one</p>
-                  </td>
-                </tr>
+                <EmptyState
+                  cols={5}
+                  icon={<DollarSign size={32} />}
+                  title="No expenses recorded"
+                  description='Click "Record Expense" to add one'
+                  actionLabel={canCreateExpense ? "Record Expense" : undefined}
+                  onAction={canCreateExpense ? openCreateModal : undefined}
+                />
               )}
             </tbody>
           </table>

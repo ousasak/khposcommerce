@@ -10,12 +10,18 @@ import {
 import { useTranslation } from 'react-i18next'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
-import TableActionMenu, { type TableActionItem } from '@/components/shared/TableActionMenu'
+import {
+  EmptyState,
+  RowActionGroup,
+  RowActionButton,
+  ViewRowButton,
+  EditRowButton,
+  DeleteRowButton,
+} from '@/components/common'
 import { formatCurrency, formatShortDate } from '@/utils/formatters'
 import { getStorageFileUrl } from '@/utils/image'
 import { useToast } from '@/hooks/useToast'
-import ExpenseDetailModal from './ExpenseDetailModal'
+import ExpensesSpendingDetailModal from './ExpensesSpendingDetailModal'
 
 export interface ExpensesSpendingTableProps {
   expenses: any[]
@@ -60,6 +66,7 @@ export const ExpensesSpendingTable: React.FC<ExpensesSpendingTableProps> = ({
 }) => {
   const { t, i18n } = useTranslation(['finance', 'common'])
   const currentLocale = i18n.language === 'km' ? 'km-KH' : i18n.language
+  const isKhmer = i18n.language === 'km' || i18n.language?.startsWith('km')
   const toast = useToast()
 
   const [viewExpense, setViewExpense] = useState<any | null>(null)
@@ -97,52 +104,6 @@ export const ExpensesSpendingTable: React.FC<ExpensesSpendingTableProps> = ({
 
   return (
     <div className="space-y-4 print:p-0">
-      {/* ─── Interactive Quick Category Filter Strip ─── */}
-      {categories.length > 0 && setActiveCategoryFilter && (() => {
-        const baseExpensesForCounts = allExpenses && allExpenses.length > 0 ? allExpenses : expenses
-        return (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-            <button
-              onClick={() => setActiveCategoryFilter('')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer select-none ${
-                activeCategoryFilter === ''
-                  ? 'bg-primary text-white shadow-xs'
-                  : 'bg-card dark:bg-slate-900/80 border border-border dark:border-slate-800 text-muted-foreground dark:text-slate-300 hover:text-foreground dark:hover:text-white hover:bg-muted/60 dark:hover:bg-slate-800 shadow-2xs'
-              }`}
-            >
-              <span>{t('finance.all_categories', 'All Categories')}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 font-bold rounded-md ${activeCategoryFilter === '' ? 'bg-white/20 text-white' : 'bg-muted dark:bg-slate-800 text-muted-foreground dark:text-slate-300'}`}>
-                {baseExpensesForCounts.length}
-              </span>
-            </button>
-
-            {categories.map((cat: any) => {
-              const isSelected = String(activeCategoryFilter) === String(cat.id)
-              const count = baseExpensesForCounts.filter((e: any) => String(e.expense_category_id || e.category?.id) === String(cat.id)).length
-
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategoryFilter(isSelected ? '' : String(cat.id))}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer select-none ${
-                    isSelected
-                      ? 'bg-foreground text-background dark:bg-slate-100 dark:text-slate-900 shadow-xs font-bold'
-                      : 'bg-card dark:bg-slate-900/80 border border-border dark:border-slate-800 text-muted-foreground dark:text-slate-300 hover:text-foreground dark:hover:text-white hover:bg-muted/60 dark:hover:bg-slate-800 shadow-2xs'
-                  }`}
-                >
-                  <span>{cat.name}</span>
-                  {count > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 font-bold rounded-md ${isSelected ? 'bg-background/20 dark:bg-slate-900/20 text-background dark:text-slate-900' : 'bg-muted dark:bg-slate-800 text-muted-foreground dark:text-slate-300'}`}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        )
-      })()}
-
       {/* ─── Main Expenses Table Wrapper ─── */}
       <TableWrapper isFetching={isFetching}>
         <table className="w-full data-table border-collapse">
@@ -224,33 +185,8 @@ export const ExpensesSpendingTable: React.FC<ExpensesSpendingTableProps> = ({
                     const isSelected = selectedRows.includes(row.id) || selectedRows.includes(Number(row.id))
                     const amountVal = Number(row.amount || 0)
 
-                    // Build contextual actions for each expense row
-                    const customActions: TableActionItem[] = []
-                    if (onPrintVoucher) {
-                      customActions.push({
-                        label: t('finance.print_voucher', 'Print Voucher'),
-                        icon: Printer,
-                        onClick: () => onPrintVoucher(row),
-                      })
-                    }
-                    if (row.status === 'pending') {
-                      if (onApprove) {
-                        customActions.push({
-                          label: t('finance.approve_btn', 'Approve Expense'),
-                          icon: CheckCircle2,
-                          onClick: () => onApprove(row.id),
-                          variant: 'success',
-                        })
-                      }
-                      if (onReject) {
-                        customActions.push({
-                          label: t('finance.reject_btn', 'Reject Expense'),
-                          icon: XCircle,
-                          onClick: () => onReject(row.id),
-                          variant: 'danger',
-                        })
-                      }
-                    }
+                    const isPending = row.status === 'pending'
+                    const isProtectedStatus = row.status === 'approved' || row.status === 'paid'
 
                     return (
                       <tr
@@ -378,26 +314,50 @@ export const ExpensesSpendingTable: React.FC<ExpensesSpendingTableProps> = ({
                           </td>
                         )}
 
-                        {/* Actions Column */}
-                        <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1">
+                        {/* Actions Column (SmartHR RowActionGroup with Soft Drop Shadow) */}
+                        <td className="py-3 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <RowActionGroup align="right">
                             {onPrintVoucher && (
-                              <button
-                                type="button"
+                              <RowActionButton
+                                icon={<Printer size={14} className="stroke-[1.9]" />}
                                 onClick={() => onPrintVoucher(row)}
-                                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors cursor-pointer"
-                                title={t('finance.print_voucher', 'Print Voucher')}
-                              >
-                                <Printer size={15} />
-                              </button>
+                                title={t('finance.print_disbursement_voucher', 'Print Disbursement Voucher')}
+                                variant="default"
+                              />
                             )}
-                            <TableActionMenu
-                              items={customActions}
-                              onView={() => setViewExpense(row)}
-                              onEdit={openEditDrawer ? () => openEditDrawer(row) : undefined}
-                              onDelete={row.status === 'approved' || row.status === 'paid' || !handleDelete ? undefined : () => handleDelete(row.id, row.title)}
+                            {isPending && onApprove && (
+                              <RowActionButton
+                                icon={<CheckCircle2 size={14} className="stroke-[2]" />}
+                                onClick={() => onApprove(row.id)}
+                                title={t('finance.approve_claim', 'Approve Claim')}
+                                variant="success"
+                              />
+                            )}
+                            {isPending && onReject && (
+                              <RowActionButton
+                                icon={<XCircle size={14} className="stroke-[2]" />}
+                                onClick={() => onReject(row.id)}
+                                title={t('finance.reject_claim', 'Reject Claim')}
+                                variant="danger"
+                              />
+                            )}
+                            <ViewRowButton
+                              onClick={() => setViewExpense(row)}
+                              title={t('finance.view_claim_details', 'View Claim Details')}
                             />
-                          </div>
+                            {openEditDrawer && (
+                              <EditRowButton
+                                onClick={() => openEditDrawer(row)}
+                                title={t('finance.edit_expense_claim', 'Edit Expense')}
+                              />
+                            )}
+                            {handleDelete && !isProtectedStatus && (
+                              <DeleteRowButton
+                                onClick={() => handleDelete(row.id, row.title)}
+                                title={t('finance.delete_expense_claim', 'Delete Expense')}
+                              />
+                            )}
+                          </RowActionGroup>
                         </td>
                       </tr>
                     )
@@ -408,7 +368,7 @@ export const ExpensesSpendingTable: React.FC<ExpensesSpendingTableProps> = ({
         </TableWrapper>
 
       {/* ─── Detail Modal ─── */}
-      <ExpenseDetailModal
+      <ExpensesSpendingDetailModal
         isOpen={Boolean(viewExpense)}
         expense={viewExpense}
         onClose={() => setViewExpense(null)}

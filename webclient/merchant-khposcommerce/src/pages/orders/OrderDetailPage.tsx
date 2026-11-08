@@ -21,16 +21,8 @@ import { orderService } from '@/services/orderService'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'
 import { useThemeStore } from '@/stores/themeStore'
-import {
-  Breadcrumb,
-  StatusBadge,
-  ProductThumbnail,
-  AvatarImage,
-  LoadingSpinner,
-  FormHeader,
-  FormHeaderButton,
-  UpdateOrderStatusModal,
-} from '@/components/common'
+import { Breadcrumb, StatusBadge, ProductThumbnail, AvatarImage, LoadingSpinner, FormHeader, FormHeaderButton } from '@/components/common'
+import { UpdateOrderStatusModal } from './components/UpdateOrderStatusModal'
 import { SalesReceiptModal } from '@/pages/sales/components/SalesReceiptModal'
 import { ShippingWaybillModal } from './components/ShippingWaybillModal'
 import { formatCurrency, GlobalFormat } from '@/utils/formatters'

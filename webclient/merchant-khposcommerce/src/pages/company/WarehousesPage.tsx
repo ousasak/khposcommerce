@@ -4,9 +4,7 @@ import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -16,18 +14,12 @@ import {
 import { companyService } from '@/services/companyService'
 import { useToast } from '@/hooks/useToast'
 import { focusFirstInvalidField } from '@/utils/formValidation'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import StatusBadge from '@/components/common/StatusBadge'
-import {
-  FieldError,
-  getFieldClass,
-  TableToolbar,
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-} from '@/components/common'
+import { Breadcrumb, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter } from '@/components/common'
+import { StatusBadge } from '@/components/common'
+import { FieldError, getFieldClass, TableToolbar, HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { WarehouseStatsCards } from './components/WarehouseStatsCards'
+import { BranchSearchBar } from './components/BranchSearchBar'
 import { downloadCsv } from '@/utils/export'
 
 interface WarehouseItem {
@@ -60,7 +52,20 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
     reset,
     adjustAfterDelete,
   } = useServerPagination({ storageKey: 'warehouses' })
-    const [modalOpen, setModalOpen] = useState(false)
+    // Filter states
+  const [statusFilter, setStatusFilter] = useState('')
+  const [provinceFilter, setProvinceFilter] = useState('')
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    warehouse: true,
+    code: true,
+    branch: true,
+    pic: true,
+    main: true,
+    status: true,
+    actions: true,
+  })
+
+  const [modalOpen, setModalOpen] = useState(false)
   const [editingWarehouse, setEditingWarehouse] = useState<WarehouseItem | null>(null)
   const [viewWarehouse, setViewWarehouse] = useState<WarehouseItem | null>(null)
 
@@ -91,8 +96,14 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
   })
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['warehouses', page, debouncedSearch, perPage],
-    queryFn: () => companyService.getWarehouses({ page, search: debouncedSearch, per_page: perPage }),
+    queryKey: ['warehouses', page, debouncedSearch, perPage, statusFilter, provinceFilter],
+    queryFn: () => companyService.getWarehouses({ 
+      page, 
+      search: debouncedSearch, 
+      per_page: perPage,
+      status: statusFilter || undefined,
+      province: provinceFilter || undefined,
+    }),
     placeholderData: (prev) => prev,
   })
 
@@ -284,15 +295,31 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
         </>
       )}
 
-      {/* Global Standard Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-style Unified Filter Bar */}
+      <BranchSearchBar
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
         searchPlaceholder={t('warehouses.searchPlaceholder', 'Search warehouses...')}
-        onReset={reset}
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['warehouses'] })}
-        refreshLoading={isFetching}
-        rightActions={
+        statusFilter={statusFilter}
+        onStatusChange={(val) => { setStatusFilter(val); setPage(1); }}
+        provinceFilter={provinceFilter}
+        onProvinceChange={(val) => { setProvinceFilter(val); setPage(1); }}
+        onReset={() => {
+          reset()
+          setStatusFilter('')
+          setProvinceFilter('')
+        }}
+        columns={[
+          { key: 'warehouse', label: t('warehouses.colWarehouse', 'Warehouse') },
+          { key: 'code', label: t('warehouses.colCode', 'Code') },
+          { key: 'branch', label: t('warehouses.colBranch', 'Branch') },
+          { key: 'pic', label: t('warehouses.colPic', 'PIC') },
+          { key: 'main', label: t('warehouses.colMain', 'Main Depot') },
+          { key: 'status', label: t('warehouses.colStatus', 'Status') },
+        ]}
+        visibleColumns={visibleColumns}
+        onColumnChange={setVisibleColumns}
+        rightAction={
           isTab ? (
             <AddButton
               onClick={openCreateModal}
@@ -308,270 +335,301 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
         <table className="w-full data-table">
             <thead>
               <tr>
-                <th className="text-left">Warehouse</th>
-                <th className="text-left">Code</th>
-                <th className="text-left">Branch</th>
-                <th className="text-left">PIC</th>
-                <th className="text-left">Main Depot</th>
-                <th className="text-left">Status</th>
-                <th className="text-right">Actions</th>
+                {visibleColumns.warehouse !== false && <th className="text-left">Warehouse</th>}
+                {visibleColumns.code !== false && <th className="text-left">Code</th>}
+                {visibleColumns.branch !== false && <th className="text-left">Branch</th>}
+                {visibleColumns.pic !== false && <th className="text-left">PIC</th>}
+                {visibleColumns.main !== false && <th className="text-left">Main Depot</th>}
+                {visibleColumns.status !== false && <th className="text-left">Status</th>}
+                {visibleColumns.actions !== false && <th className="text-right">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
-                      <td><div className="skeleton h-4 w-32 rounded" /></td>
-                      <td><div className="skeleton h-4 w-16 rounded" /></td>
-                      <td><div className="skeleton h-4 w-28 rounded" /></td>
-                      <td><div className="skeleton h-4 w-24 rounded" /></td>
-                      <td><div className="skeleton h-4 w-10 rounded" /></td>
-                      <td><div className="skeleton h-4 w-16 rounded" /></td>
-                      <td><div className="skeleton h-4 w-12 rounded ml-auto" /></td>
+                      {visibleColumns.warehouse !== false && <td><div className="skeleton h-4 w-32 rounded" /></td>}
+                      {visibleColumns.code !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
+                      {visibleColumns.branch !== false && <td><div className="skeleton h-4 w-28 rounded" /></td>}
+                      {visibleColumns.pic !== false && <td><div className="skeleton h-4 w-24 rounded" /></td>}
+                      {visibleColumns.main !== false && <td><div className="skeleton h-4 w-10 rounded" /></td>}
+                      {visibleColumns.status !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
+                      {visibleColumns.actions !== false && <td><div className="skeleton h-4 w-12 rounded ml-auto" /></td>}
                     </tr>
                   ))
                 : warehouses.map((w) => (
                     <tr key={w.id} className="group hover:bg-muted/25 transition-colors">
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <Warehouse size={16} className="text-primary flex-shrink-0" />
-                          <div>
-                            <span className="font-medium text-foreground text-sm">{w.name}</span>
-                            {w.is_main && (
-                              <span className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-amber-500 font-medium">
-                                <Star size={10} fill="currentColor" /> Main
-                              </span>
-                            )}
+                      {visibleColumns.warehouse !== false && (
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <Warehouse size={16} className="text-primary flex-shrink-0" />
+                            <div>
+                              <span className="font-medium text-foreground text-sm">{w.name}</span>
+                              {w.is_main && (
+                                <span className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-amber-500 font-medium">
+                                  <Star size={10} fill="currentColor" /> Main
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="font-mono text-xs text-muted-foreground">{w.code}</td>
-                      <td className="text-muted-foreground text-sm">{w.branch?.name ?? '—'}</td>
-                      <td>
-                        <div className="text-xs space-y-0.5 text-muted-foreground">
-                          {w.pic_name && <div className="flex items-center gap-1 font-medium text-foreground"><User size={10} /> {w.pic_name}</div>}
-                          {w.phone && <div className="flex items-center gap-1"><Phone size={10} /> {w.phone}</div>}
-                        </div>
-                      </td>
-                      <td>
-                        {w.is_main ? (
-                          <span className="text-green-500 flex items-center gap-0.5 text-xs font-semibold">
-                            <Check size={14} /> Yes
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No</span>
-                        )}
-                      </td>
-                      <td>
-                        <StatusBadge status={w.is_active} />
-                      </td>
-                      <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <TableActionMenu
-                          variant="inline"
-                          onView={() => setViewWarehouse(w)}
-                          onEdit={() => openEditModal(w)}
-                          onDelete={() => {
-                            if (confirm('Are you sure you want to delete this warehouse?')) deleteMutation.mutate(w.id)
-                          }}
-                        />
-                      </td>
+                        </td>
+                      )}
+                      {visibleColumns.code !== false && (
+                        <td className="font-mono text-xs text-muted-foreground">{w.code}</td>
+                      )}
+                      {visibleColumns.branch !== false && (
+                        <td className="text-muted-foreground text-sm">{w.branch?.name ?? '—'}</td>
+                      )}
+                      {visibleColumns.pic !== false && (
+                        <td>
+                          <div className="text-xs space-y-0.5 text-muted-foreground">
+                            {w.pic_name && <div className="flex items-center gap-1 font-medium text-foreground"><User size={10} /> {w.pic_name}</div>}
+                            {w.phone && <div className="flex items-center gap-1"><Phone size={10} /> {w.phone}</div>}
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.main !== false && (
+                        <td>
+                          {w.is_main ? (
+                            <span className="text-green-500 flex items-center gap-0.5 text-xs font-semibold">
+                              <Check size={14} /> Yes
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No</span>
+                          )}
+                        </td>
+                      )}
+                      {visibleColumns.status !== false && (
+                        <td>
+                          <StatusBadge status={w.is_active} />
+                        </td>
+                      )}
+                      {visibleColumns.actions !== false && (
+                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <TableActionMenu
+                            variant="inline"
+                            onView={() => setViewWarehouse(w)}
+                            onEdit={() => openEditModal(w)}
+                            onDelete={() => {
+                              if (confirm('Are you sure you want to delete this warehouse?')) deleteMutation.mutate(w.id)
+                            }}
+                          />
+                        </td>
+                      )}
                     </tr>
-                  ))
-              }
+                  ))}
               {!isLoading && warehouses.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <Warehouse size={40} className="mx-auto mb-3 text-muted-foreground/30" />
-                    <p className="text-muted-foreground">No warehouses found</p>
-                  </td>
-                </tr>
+                <EmptyState
+                  cols={7}
+                  icon={<Warehouse size={24} className="stroke-1.5" />}
+                  title={t('settings.noWarehouses', 'No Warehouses Found')}
+                  description={t('settings.noWarehousesDesc', 'Register storage depots to manage inventory logistics and branch transfers.')}
+                  actionLabel={t('settings.addWarehouse', 'Add Warehouse')}
+                  onAction={openCreateModal}
+                />
               )}
             </tbody>
           </table>
       </TableWrapper>
       </div>
 
-      {/* Modal Dialog */}
-      <AnimatePresence>
-        {modalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border rounded-xl w-full max-w-lg overflow-hidden shadow-2xl"
+      {/* Warehouse Create/Edit Modal */}
+      <EnterpriseModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={editingWarehouse ? t('settings.editWarehouse', 'Edit Warehouse') : t('settings.addWarehouse', 'Add Warehouse')}
+        subtitle={
+          editingWarehouse
+            ? t('settings.editWarehouseDesc', 'Update depot storage facilities and logistical point of contact')
+            : t('settings.addWarehouseDesc', 'Register a new storage depot or distribution center')
+        }
+        icon={<Warehouse size={20} />}
+        iconVariant="blue"
+        size="lg"
+        footer={
+          <ModalFooter
+            onCancel={closeModal}
+            isSubmitting={createMutation.isPending || updateMutation.isPending}
+            isEdit={Boolean(editingWarehouse)}
+            submitLabel={editingWarehouse ? t('common.saveChanges', 'Save Changes') : t('common.create', 'Save')}
+            onSubmit={handleSubmit}
+          />
+        }
+      >
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('settings.branch', 'Branch')} <span className="text-rose-500 font-bold">*</span>
+            </label>
+            <select
+              id="branchId"
+              name="branchId"
+              value={branchId}
+              onChange={(e) => {
+                setBranchId(e.target.value)
+                handleClearError('branchId')
+              }}
+              className={getFieldClass(
+                formErrors.branchId,
+                'w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium'
+              )}
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <h3 className="font-semibold text-lg text-foreground">
-                  {editingWarehouse ? 'Edit Warehouse' : 'Add Warehouse'}
-                </h3>
-                <button onClick={closeModal} className="text-muted-foreground hover:text-foreground">
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">
-                    Branch <span className="text-rose-500 font-bold">*</span>
-                  </label>
-                  <select
-                    id="branchId"
-                    name="branchId"
-                    value={branchId}
-                    onChange={(e) => {
-                      setBranchId(e.target.value)
-                      handleClearError('branchId')
-                    }}
-                    className={getFieldClass(formErrors.branchId, 'form-input w-full')}
-                  >
-                    <option value="">Select Branch</option>
-                    {(branches ?? []).map((b: any) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                  <FieldError error={formErrors.branchId} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">
-                      Code <span className="text-rose-500 font-bold">*</span>
-                    </label>
-                    <input
-                      id="code"
-                      name="code"
-                      value={code}
-                      onChange={(e) => {
-                        setCode(e.target.value)
-                        handleClearError('code')
-                      }}
-                      placeholder="WH001"
-                      className={getFieldClass(formErrors.code, 'form-input w-full')}
-                    />
-                    <FieldError error={formErrors.code} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">
-                      Name <span className="text-rose-500 font-bold">*</span>
-                    </label>
-                    <input
-                      id="name"
-                      name="name"
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value)
-                        handleClearError('name')
-                      }}
-                      placeholder="Warehouse Name"
-                      className={getFieldClass(formErrors.name, 'form-input w-full')}
-                    />
-                    <FieldError error={formErrors.name} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">PIC Name</label>
-                    <input
-                      value={picName}
-                      onChange={(e) => setPicName(e.target.value)}
-                      placeholder="Person in Charge"
-                      className="form-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">PIC Phone</label>
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/[^\d+ -]/g, ''))}
-                      placeholder="012 345 678"
-                      className="form-input font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Address</label>
-                  <textarea
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Physical depot address"
-                    rows={2}
-                    className="form-input resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">City</label>
-                    <input
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="City"
-                      className="form-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Province</label>
-                    <input
-                      value={province}
-                      onChange={(e) => setProvince(e.target.value)}
-                      placeholder="Province"
-                      className="form-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="isMainWh"
-                      checked={isMain}
-                      onChange={(e) => setIsMain(e.target.checked)}
-                      className="w-4 h-4 rounded border-border"
-                    />
-                    <label htmlFor="isMainWh" className="text-sm font-medium text-muted-foreground cursor-pointer">
-                      Mark as Main Depot
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground">Active Status</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsActive(!isActive)}
-                      className="text-primary hover:opacity-80 transition-opacity"
-                    >
-                      {isActive ? <ToggleRight size={32} /> : <ToggleLeft size={32} className="text-muted-foreground" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-primary rounded-lg hover:opacity-90 shadow-sm flex items-center gap-1.5"
-                  >
-                    {(createMutation.isPending || updateMutation.isPending) && <Loader2 size={14} className="animate-spin" />}
-                    {editingWarehouse ? 'Save Changes' : 'Create'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+              <option value="">{t('settings.selectBranch', 'Select Branch')}</option>
+              {(branches ?? []).map((b: any) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <FieldError error={formErrors.branchId} />
           </div>
-        )}
-      </AnimatePresence>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.warehouseCode', 'Warehouse Code')} <span className="text-rose-500 font-bold">*</span>
+              </label>
+              <input
+                id="code"
+                name="code"
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value)
+                  handleClearError('code')
+                }}
+                placeholder="WH001"
+                className={getFieldClass(
+                  formErrors.code,
+                  'w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium'
+                )}
+              />
+              <FieldError error={formErrors.code} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.warehouseName', 'Warehouse Name')} <span className="text-rose-500 font-bold">*</span>
+              </label>
+              <input
+                id="name"
+                name="name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  handleClearError('name')
+                }}
+                placeholder={t('settings.warehouseNamePlaceholder', 'Warehouse Name')}
+                className={getFieldClass(
+                  formErrors.name,
+                  'w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium'
+                )}
+              />
+              <FieldError error={formErrors.name} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.picName', 'PIC Name')}
+              </label>
+              <input
+                value={picName}
+                onChange={(e) => setPicName(e.target.value)}
+                placeholder={t('settings.picNamePlaceholder', 'Person in Charge')}
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.picPhone', 'PIC Phone')}
+              </label>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/[^\d+ -]/g, ''))}
+                placeholder="012 345 678"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('settings.address', 'Address')}
+            </label>
+            <textarea
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={t('settings.addressPlaceholder', 'Physical depot address')}
+              rows={2}
+              className="w-full min-h-[64px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/70 dark:placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.city', 'City')}
+              </label>
+              <input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="City"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.province', 'Province')}
+              </label>
+              <input
+                value={province}
+                onChange={(e) => setProvince(e.target.value)}
+                placeholder="Province"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          {/* Main Depot Option Card */}
+          <div className="p-3.5 sm:p-4 bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5 pr-2">
+              <label htmlFor="isMainWarehouse" className="text-xs sm:text-[13px] font-bold text-foreground dark:text-slate-100 cursor-pointer select-none block">
+                {t('settings.mainWarehouse', 'Mark as Main Depot')}
+              </label>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                {t('settings.mainWarehouseDesc', 'Designate this warehouse as the central primary inventory depot')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isMainWarehouse"
+              checked={isMain}
+              onChange={(e) => setIsMain(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded border-border focus:ring-primary cursor-pointer"
+            />
+          </div>
+
+          {/* Status Card */}
+          <div className="p-3.5 sm:p-4 bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5 pr-2">
+              <label htmlFor="isWarehouseActive" className="text-xs sm:text-[13px] font-bold text-foreground dark:text-slate-100 cursor-pointer select-none block">
+                {t('settings.warehouseActiveStatus', 'Active Warehouse Status')}
+              </label>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                {t('settings.warehouseActiveStatusDesc', 'Active warehouses can receive stock and fulfill store transfer orders')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isWarehouseActive"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded border-border focus:ring-primary cursor-pointer"
+            />
+          </div>
+        </form>
+      </EnterpriseModal>
 
       {/* Detail Drawer */}
       <AnimatePresence>

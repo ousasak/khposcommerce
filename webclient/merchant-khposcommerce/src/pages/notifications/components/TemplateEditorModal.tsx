@@ -10,11 +10,9 @@ import notificationService from '@/services/notificationService'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'
 import ModernSelect from '@/components/shared/ModernSelect'
-import { Input } from '@/components/common/forms/Input'
+import { Input, FieldLabel, FieldError } from '@/components/common'
 import { Textarea } from '@/components/ui/textarea'
-import { FieldLabel, FieldError } from '@/components/common/forms/FormField'
-import ToggleSwitch from '@/components/common/ToggleSwitch'
-
+import { ToggleSwitch } from '@/components/common'
 interface TemplateEditorModalProps {
   open: boolean
   template: NotificationTemplateItem | null

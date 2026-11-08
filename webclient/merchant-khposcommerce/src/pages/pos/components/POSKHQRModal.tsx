@@ -7,7 +7,7 @@ import {
   RefreshCw,
   Clock,
 } from 'lucide-react'
-import { QRCode } from 'antd'
+import { QRCode } from '@/components/ui/qr-code'
 import { useTranslation } from 'react-i18next'
 import { sound } from '@/utils/sound'
 import { useToast } from '@/hooks/useToast'

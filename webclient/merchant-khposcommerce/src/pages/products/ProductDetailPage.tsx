@@ -13,13 +13,7 @@ import { useToast } from '@/hooks/useToast'
 import { useThemeStore } from '@/stores/themeStore'
 import { formatCurrency } from '@/utils/formatters'
 import { getAbsoluteImageUrl, DEFAULT_PRODUCT_IMAGE } from '@/utils/image'
-import {
-  FormHeader,
-  FormHeaderButton,
-  StatusBadge,
-  LoadingSpinner,
-  DeleteConfirmDialog,
-} from '@/components/common'
+import { FormHeader, FormHeaderButton, StatusBadge, LoadingSpinner, DeleteConfirmDialog } from '@/components/common'
 import CustomErrorMessage from '@/components/ui/CustomErrorMessage'
 import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
 import { usePageTab } from '@/hooks/usePageTab'

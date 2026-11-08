@@ -13,13 +13,12 @@ import notificationService from '@/services/notificationService'
 import type { NotificationItem, NotificationPriority, NotificationStats } from './types/notification.types'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb, ResetButton, EmptyState } from '@/components/common'
 import { HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
-import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog'
+import { DeleteConfirmDialog } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
 import CreateNotificationModal from './components/CreateNotificationModal'
 import NotificationDetailDrawer from './components/NotificationDetailDrawer'
 import NotificationFilterDrawer from './components/NotificationFilterDrawer'
@@ -573,19 +572,14 @@ const NotificationListPage: React.FC = () => {
                   </tr>
                 ))
               ) : notifications.length === 0 ? (
-                <tr>
-                  <td colSpan={visibleColumnCount} className="py-16 text-center">
-                    <div className="max-w-xs mx-auto space-y-3">
-                      <div className="p-4 rounded-full bg-muted/40 w-fit mx-auto text-muted-foreground/40">
-                        <Bell size={40} />
-                      </div>
-                      <h3 className="text-base font-bold text-foreground">No notifications found.</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Try adjusting your search criteria or create a new notification broadcast.
-                      </p>
-                    </div>
-                  </td>
-                </tr>
+                <EmptyState
+                  cols={visibleColumnCount}
+                  icon={<Bell size={32} />}
+                  title="No notifications found."
+                  description="Try adjusting your search criteria or create a new notification broadcast."
+                  actionLabel="Broadcast Notification"
+                  onAction={() => setShowCreateModal(true)}
+                />
               ) : (
                 notifications.map((n) => {
                   const isSelected = selectedRows.includes(n.id)

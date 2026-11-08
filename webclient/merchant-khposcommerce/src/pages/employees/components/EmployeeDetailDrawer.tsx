@@ -31,17 +31,8 @@ import { useTranslation } from 'react-i18next'
 import { employeeService } from '@/services/employeeService'
 import { useToast } from '@/hooks/useToast'
 import { EmployeeAvatar } from './EmployeeAvatar'
-import {
-  StatusBadge,
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerTabNav,
-  DetailDrawerBody,
-  DetailDrawerFooter,
-  ActionButton,
-  EmptyState,
-} from '@/components/common'
-import type { DetailDrawerTabItem } from '@/components/common/DetailDrawer'
+import { StatusBadge, DetailDrawer, DetailDrawerHeader, DetailDrawerTabNav, DetailDrawerBody, DetailDrawerFooter, ActionButton, EmptyState } from '@/components/common'
+import type { DetailDrawerTabItem } from '@/components/common'
 import { formatCurrency, GlobalFormat } from '@/utils/formatters'
 
 export interface EmployeeDetailDrawerProps {

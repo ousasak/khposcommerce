@@ -23,7 +23,7 @@ import {
   Download,
   Info,
 } from 'lucide-react'
-import { QRCode } from 'antd'
+import { QRCode } from '@/components/ui/qr-code'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'

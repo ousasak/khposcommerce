@@ -15,19 +15,9 @@ import { sound } from '@/utils/sound'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { useThemeStore } from '@/stores/themeStore'
 import { usePermission } from '@/hooks/usePermission'
-import {
-  Breadcrumb,
-  TableToolbar,
-  ExportButton,
-  AddButton,
-  SecondaryButton,
-  HeaderActionsGroup,
-  UpdateOrderStatusModal,
-  EnterpriseStatsCard,
-  EnterpriseStatsGrid,
-  InlineFilterSelect,
-} from '@/components/common'
-import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
+import { Breadcrumb, ExportButton, AddButton, SecondaryButton, HeaderActionsGroup, EnterpriseStatsCard, EnterpriseStatsGrid } from '@/components/common'
+import { UpdateOrderStatusModal } from './components/UpdateOrderStatusModal'
+import { OrderSearchBar } from './components/OrderSearchBar'
 import { usePageTab } from '@/hooks/usePageTab'
 import Pagination from '@/components/shared/Pagination'
 import { OrdersTableSection, type Order } from './components/OrdersTableSection'
@@ -563,64 +553,33 @@ const OrdersPage: React.FC = () => {
         />
       </EnterpriseStatsGrid>
 
-      {/* ── 3. WORKSPACE TABS NAVIGATION ──────────────────────────────────────── */}
-      <WorkspaceTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={handleTabChange}
-        variant="underline"
-      />
-
-      {/* ── 4. GLOBAL TABLE TOOLBAR (SEARCH, FILTER, RESET, REFRESH, COLS) ────── */}
-      <TableToolbar
+      {/* ── 3. SMART-HR STYLE ORDER SEARCH & FILTER BAR (MATCHING PRODUCTS STANDARD) ── */}
+      <OrderSearchBar
         search={search}
-        onSearchChange={(searchQuery) => {
-          setSearch(searchQuery)
+        onSearchChange={(val) => {
+          setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('searchByOrderNumber', 'Search by order number or customer...')}
-        onFilterClick={() => setFilterDrawerOpen(true)}
-        isFilterActive={activeFiltersCount > 0}
-        filterActiveCount={activeFiltersCount}
+        statusFilter={activeTab}
+        onStatusChange={(val) => {
+          setActiveTab(val)
+          setPage(1)
+        }}
+        paymentStatusFilter={paymentStatusFilter || ''}
+        onPaymentStatusChange={(val) => {
+          setPaymentStatusFilter(val || undefined)
+          setPage(1)
+        }}
+        fulfillmentStatusFilter={fulfillmentStatusFilter || ''}
+        onFulfillmentStatusChange={(val) => {
+          setFulfillmentStatusFilter(val || undefined)
+          setPage(1)
+        }}
         onReset={handleResetAllFilters}
-        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['orders'] })}
-        refreshLoading={isFetching}
         columns={columnOptions}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
-        filters={
-          <>
-            <InlineFilterSelect
-              label={t('paymentStatus', 'Payment')}
-              value={paymentStatusFilter || ''}
-              onChange={(val) => {
-                setPaymentStatusFilter(val || undefined)
-                setPage(1)
-              }}
-              allLabel={t('allPaymentStatuses', 'All Payment Statuses')}
-              options={[
-                { label: t('paid', 'Paid'), value: 'paid' },
-                { label: t('unpaid', 'Unpaid'), value: 'unpaid' },
-                { label: t('partially_paid', 'Partially Paid'), value: 'partially_paid' },
-                { label: t('refunded', 'Refunded'), value: 'refunded' },
-              ]}
-            />
-            <InlineFilterSelect
-              label={t('fulfillmentStatus', 'Fulfillment')}
-              value={fulfillmentStatusFilter || ''}
-              onChange={(val) => {
-                setFulfillmentStatusFilter(val || undefined)
-                setPage(1)
-              }}
-              allLabel={t('allFulfillmentStatuses', 'All Fulfillment')}
-              options={[
-                { label: t('fulfilled', 'Fulfilled'), value: 'fulfilled' },
-                { label: t('unfulfilled', 'Unfulfilled'), value: 'unfulfilled' },
-                { label: t('partial', 'Partial'), value: 'partial' },
-              ]}
-            />
-          </>
-        }
+        columnSettingsTitle={t('manageTable', 'Manage Table')}
       />
 
       {/* ── 5. ORDERS TABLE VIEW ────────────────────────────────────────────── */}

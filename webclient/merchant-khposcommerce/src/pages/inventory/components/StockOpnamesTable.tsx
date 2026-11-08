@@ -4,7 +4,7 @@ import { CheckCircle2 } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import Pagination from '@/components/shared/Pagination'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import { EmptyState } from '@/components/common'
 import { formatShortDate } from '@/utils/formatters'
 
@@ -114,8 +114,8 @@ export const StockOpnamesTable: React.FC<StockOpnamesTableProps> = ({
               <EmptyState
                 cols={activeColCount || 9}
                 icon={CheckCircle2}
-                title={t('noOpnameRecordsYet', 'រកមិនឃើញទិន្នន័យសវនកម្មស្តុកទេ')}
-                description={t('empty.noOpnamesDesc', 'មិនមានកំណត់ត្រាសវនកម្មស្តុកត្រូវគ្នានឹងលក្ខខណ្ឌតម្រងដែលបានកំណត់ទេ។')}
+                title={t('noOpnameRecordsYet', 'No stock audit records found')}
+                description={t('empty.noOpnamesDesc', 'No stock audit records match the selected filter criteria.')}
               />
             ) : (
               items.map((item) => {

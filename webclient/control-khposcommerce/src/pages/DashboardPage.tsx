@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
@@ -36,10 +36,23 @@ import {
 } from 'recharts'
 import { platformService, type PlatformStatsResponse } from '@/services/platformService'
 import { toast } from '@/stores/toastStore'
+import { useAuthStore } from '@/stores/authStore'
 import { Link } from 'react-router-dom'
 
 export const PlatformDashboardPage: React.FC = () => {
   const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+  const isDashboardTransitioning = useAuthStore((s) => s.isDashboardTransitioning)
+  const endDashboardTransition = useAuthStore((s) => s.endDashboardTransition)
+
+  // Smoothly conclude login transition after deliberate duration (2s) giving user a calm, premium UX experience
+  useEffect(() => {
+    if (isDashboardTransitioning) {
+      const timer = setTimeout(() => {
+        endDashboardTransition()
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [isDashboardTransitioning, endDashboardTransition])
 
   const {
     data: statsData,
@@ -61,6 +74,105 @@ export const PlatformDashboardPage: React.FC = () => {
     } finally {
       setIsManualRefreshing(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 pb-12 animate-pulse">
+        {/* Top Header Skeleton */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              <div className="h-5 w-28 bg-slate-200 dark:bg-slate-800 rounded-full" />
+            </div>
+            <div className="h-4 w-72 bg-slate-200 dark:bg-slate-800 rounded-md mt-2" />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-28 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+            <div className="h-9 w-36 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Top 6 Stat Cards Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4.5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-slate-800/90 rounded-2xl p-5 border border-slate-100 dark:border-slate-700/60 shadow-sm flex items-center justify-between"
+            >
+              <div className="space-y-2 flex-1">
+                <div className="h-3 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="h-8 w-24 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+                <div className="h-3.5 w-40 bg-slate-200 dark:bg-slate-700/60 rounded" />
+              </div>
+              <div className="size-13 rounded-2xl bg-slate-200 dark:bg-slate-700 shrink-0 ml-4" />
+            </div>
+          ))}
+        </div>
+
+        {/* 2 Primary Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Revenue Chart Skeleton */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-6 border border-slate-100 dark:border-slate-700/60 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1.5">
+                <div className="h-4.5 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="h-3 w-64 bg-slate-200 dark:bg-slate-700/60 rounded" />
+              </div>
+              <div className="h-6 w-14 bg-slate-200 dark:bg-slate-700 rounded-md" />
+            </div>
+            <div className="h-72 w-full flex items-end justify-between gap-3 px-2 pt-6 pb-2 border-b border-slate-200 dark:border-slate-700/60">
+              {[30, 55, 40, 75, 60, 85, 50, 90, 65, 80].map((h, idx) => (
+                <div
+                  key={idx}
+                  className="flex-1 bg-slate-200 dark:bg-slate-700/50 rounded-t-lg"
+                  style={{ height: `${h}%` }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Donut Chart Skeleton */}
+          <div className="bg-white dark:bg-slate-800/90 rounded-2xl p-6 border border-slate-100 dark:border-slate-700/60 shadow-sm space-y-4">
+            <div className="space-y-1.5">
+              <div className="h-4.5 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="h-3 w-56 bg-slate-200 dark:bg-slate-700/60 rounded" />
+            </div>
+            <div className="h-72 w-full flex items-center justify-center">
+              <div className="size-44 rounded-full border-8 border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                <div className="size-24 rounded-full bg-slate-100 dark:bg-slate-800" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tenants Table Skeleton */}
+        <div className="bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-100 dark:border-slate-700/60 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="h-4.5 w-52 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="h-3 w-72 bg-slate-200 dark:bg-slate-700/60 rounded" />
+            </div>
+            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+          </div>
+          <div className="p-5 space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                <div className="space-y-1 w-1/4">
+                  <div className="h-3.5 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-2.5 w-20 bg-slate-200 dark:bg-slate-700/60 rounded" />
+                </div>
+                <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+                <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+                <div className="h-5 w-16 bg-slate-200 dark:bg-slate-700 rounded-full" />
+                <div className="h-7 w-20 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const summary = statsData?.summary ?? {

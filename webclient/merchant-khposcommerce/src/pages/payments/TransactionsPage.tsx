@@ -13,15 +13,13 @@ import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import { EnterpriseModal } from '@/components/common/Modal'
-import { ModalFooter } from '@/components/common/ModalFooter'
+import { EnterpriseModal, EmptyState, ResetButton } from '@/components/common'
+import { ModalFooter } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import PageHeader from '@/components/common/PageHeader'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { PageHeader } from '@/components/common'
+import { Breadcrumb } from '@/components/common'
 import { FieldError, getFieldClass } from '@/components/common'
 import { focusFirstInvalidField } from '@/utils/formValidation'
 import { useTranslation } from 'react-i18next'
@@ -394,14 +392,12 @@ const TransactionsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ 
                   </tr>
                 ))
               ) : transactions.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center text-muted-foreground py-12">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <Landmark className="text-muted-foreground/40" size={40} />
-                      <span>{t('finance.no_data_transactions', 'No transactions logged in this period.')}</span>
-                    </div>
-                  </td>
-                </tr>
+                <EmptyState
+                  cols={8}
+                  icon={<Landmark size={32} />}
+                  title={t('finance.no_data_transactions', 'No transactions found')}
+                  description="No transactions logged in this period."
+                />
               ) : (
                 transactions.map((item) => (
                   <tr key={item.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">

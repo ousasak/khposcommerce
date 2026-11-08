@@ -20,23 +20,8 @@ import {
 import { orderReturnService } from '@/services/orderReturnService'
 import type { OrderReturn, ReturnStatus, ReturnFault, ConditionGrade, InventoryAction } from './types'
 import { useToast } from '@/hooks/useToast'
-import {
-  Breadcrumb,
-  RibbonStatsCard,
-  RibbonStatsGrid,
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-  TableToolbar,
-  TableWrapper,
-  TableEmptyState,
-  EnterpriseModal,
-  ModalFooter,
-  TableActionMenu,
-  FormField,
-  ProductThumbnail,
-} from '@/components/common'
-import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
+import { Breadcrumb, RibbonStatsCard, RibbonStatsGrid, HeaderActionsGroup, AddButton, ExportButton, TableWrapper, TableEmptyState, EnterpriseModal, ModalFooter, TableActionMenu, FormField, ProductThumbnail } from '@/components/common'
+import { OrderReturnSearchBar } from './components/OrderReturnSearchBar'
 import { usePageTab } from '@/hooks/usePageTab'
 import Pagination from '@/components/shared/Pagination'
 import { downloadCsv } from '@/utils/export'
@@ -405,45 +390,28 @@ export const OrderReturnsPage: React.FC = () => {
         />
       </RibbonStatsGrid>
 
-      {/* ── 3. WORKSPACE TABS NAVIGATION ──────────────────────────────── */}
-      <WorkspaceTabs
-        tabs={tabs}
-        activeTab={statusFilter}
-        onChange={handleTabChange}
-        variant="underline"
-      />
-
-      {/* ── 4. GLOBAL TABLE TOOLBAR ───────────────────────────────────── */}
-      <TableToolbar
+      {/* ── 3. SMART-HR STYLE RETURNS SEARCH & FILTER BAR (MATCHING PRODUCTS STANDARD) ── */}
+      <OrderReturnSearchBar
         search={search}
-        onSearchChange={(searchQuery) => {
-          setSearch(searchQuery)
+        onSearchChange={(val) => {
+          setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('searchPlaceholder', 'Search by RMA number, customer name, phone, or order #...')}
+        statusFilter={statusFilter}
+        onStatusChange={(val) => {
+          setStatusFilter(val)
+          setPage(1)
+        }}
+        faultFilter={faultFilter}
+        onFaultChange={(val) => {
+          setFaultFilter(val)
+          setPage(1)
+        }}
         onReset={handleResetAllFilters}
-        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['order-returns'] })}
-        refreshLoading={isFetching}
         columns={columnOptions}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
-        rightActions={
-          <div className="flex items-center gap-2">
-            <select
-              value={faultFilter}
-              onChange={(e) => {
-                setFaultFilter(e.target.value)
-                setPage(1)
-              }}
-              className="h-9 px-3 rounded-xl border border-border/80 bg-card text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary shadow-2xs"
-            >
-              <option value="all">{t('allFaults', 'All Faults')}</option>
-              <option value="customer">{t('customerFault', 'Customer Fault (Fee applies)')}</option>
-              <option value="store">{t('storeFault', 'Store Fault (Free return)')}</option>
-              <option value="courier">{t('courierFault', 'Courier Fault')}</option>
-            </select>
-          </div>
-        }
+        columnSettingsTitle={t('manageTable', 'Manage Table')}
       />
 
       {/* ── 5. MAIN RMA DATA TABLE ────────────────────────────────────── */}

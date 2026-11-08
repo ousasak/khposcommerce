@@ -2,9 +2,8 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge, EmptyState } from '@/components/common'
 import { PercentBadge } from '@/components/common'
 
 export interface TaxRulesRatesTableProps {

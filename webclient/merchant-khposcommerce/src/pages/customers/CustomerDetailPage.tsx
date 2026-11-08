@@ -47,16 +47,7 @@ import { customerService } from '@/services/customerService'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'
 import { getAbsoluteImageUrl, getCustomerAvatarUrl } from '@/utils/image'
-import {
-  Breadcrumb,
-  FormHeader,
-  FormHeaderButton,
-  StatusBadge,
-  UserAvatar,
-  LoadingSpinner,
-  EnterpriseModal,
-  ModalFooter,
-} from '@/components/common'
+import { Breadcrumb, FormHeader, FormHeaderButton, StatusBadge, UserAvatar, LoadingSpinner, EnterpriseModal, ModalFooter } from '@/components/common'
 import { CustomerDebtModal } from './components/CustomerDebtModal'
 import { CustomerStatementPrintModal } from './components/CustomerStatementPrintModal'
 import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'

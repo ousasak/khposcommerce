@@ -94,10 +94,10 @@ export const ColumnSettingsPopover: React.FC<ColumnSettingsPopoverProps> = ({
     }
   }
 
-  // Exact Shadcn standard: h-10 (40px), rounded-lg, text-sm, border-input
+  // Exact standard: h-10 (40px), rounded-lg, text-sm font-medium, border-slate-300
   const sizeClasses = {
-    sm: variant === 'button' ? 'h-8 min-h-[32px] max-h-[32px] px-2.5 text-xs rounded-md gap-1.5' : 'h-8 w-8 min-h-[32px] max-h-[32px] rounded-md',
-    md: variant === 'button' ? 'h-10 min-h-[40px] max-h-[40px] px-3.5 text-sm font-medium rounded-lg gap-2' : 'h-10 w-10 min-h-[40px] max-h-[40px] rounded-lg',
+    sm: variant === 'button' ? 'h-8 min-h-[32px] max-h-[32px] px-2.5 text-xs font-medium rounded-md gap-1.5' : 'h-8 w-8 min-h-[32px] max-h-[32px] rounded-md',
+    md: variant === 'button' ? 'h-10 min-h-[40px] max-h-[40px] px-3.5 sm:px-4 text-sm font-medium rounded-lg gap-2' : 'h-10 w-10 min-h-[40px] max-h-[40px] rounded-lg',
     lg: variant === 'button' ? 'h-12 min-h-[48px] max-h-[48px] px-4.5 text-base font-medium rounded-xl gap-2.5' : 'h-12 w-12 min-h-[48px] max-h-[48px] rounded-xl',
   }
 
@@ -116,7 +116,7 @@ export const ColumnSettingsPopover: React.FC<ColumnSettingsPopoverProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`inline-flex items-center justify-center font-medium border border-border/80 dark:border-slate-700/80 bg-card dark:bg-slate-800/80 hover:bg-muted/80 dark:hover:bg-slate-700 text-foreground dark:text-slate-200 dark:hover:text-white transition-all duration-200 shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer select-none shrink-0 box-border leading-normal ${currentSizeClass} ${
+        className={`inline-flex items-center justify-center font-medium border border-slate-300 dark:border-slate-700 bg-card dark:bg-slate-900 hover:bg-muted/80 dark:hover:bg-slate-800 text-foreground dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 transition-all duration-200 shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer select-none shrink-0 box-border leading-normal ${currentSizeClass} ${
           isOpen ? 'bg-accent dark:bg-slate-700 text-accent-foreground dark:text-white ring-1 ring-ring/30' : ''
         } ${buttonClassName}`}
         title={buttonText}

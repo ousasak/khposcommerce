@@ -1,10 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Package, DollarSign, Award, Layers } from 'lucide-react'
-import {
-  StatsCard,
-  StatsGrid,
-} from '@/components/common'
+import { StatsCard, StatsGrid } from '@/components/common'
 
 export interface ProductAnalyticsData {
   totalProducts: number

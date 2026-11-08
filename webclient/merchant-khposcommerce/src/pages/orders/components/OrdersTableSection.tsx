@@ -9,14 +9,7 @@ import {
   FileText,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
-import {
-  DataTable,
-  type Column,
-  StatusBadge,
-  ProductThumbnail,
-  AvatarImage,
-  TableActionMenu,
-} from '@/components/common'
+import { DataTable, type Column, StatusBadge, ProductThumbnail, AvatarImage, TableActionMenu } from '@/components/common'
 import { formatCurrency, GlobalFormat } from '@/utils/formatters'
 
 const KHR_RATE = 4100
@@ -504,8 +497,7 @@ export const OrdersTableSection: React.FC<OrdersTableSectionProps> = ({
               onClick={(e) => e.stopPropagation()}
             >
               <TableActionMenu
-                variant="hybrid"
-                maxInline={2}
+                variant="inline"
                 buttonSize="sm"
                 align="right"
                 onView={onView ? () => onView(order) : undefined}

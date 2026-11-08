@@ -4,7 +4,7 @@ import { Package, Eye, Sliders, ArrowLeftRight } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import Pagination from '@/components/shared/Pagination'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import { EmptyState } from '@/components/common'
 import { getAbsoluteImageUrl, resolveProductPhoto, DEFAULT_PRODUCT_IMAGE } from '@/utils/image'
 import { ProductThumbnail } from '@/pages/products/components/ProductThumbnail'
@@ -108,8 +108,8 @@ export const InventoryStockLevelsTable: React.FC<InventoryStockLevelsTableProps>
               <EmptyState
                 cols={activeColCount || 8}
                 icon={Package}
-                title={t('noStockFound', 'រកមិនឃើញទិន្នន័យស្តុកទេ')}
-                description={t('empty.noInventoryDesc', 'មិនមានទិន្នន័យស្តុកត្រូវគ្នានឹងលក្ខខណ្ឌតម្រងដែលបានកំណត់ទេ។')}
+                title={t('noStockFound', 'No stock data found')}
+                description={t('empty.noInventoryDesc', 'No inventory records match the selected filter criteria.')}
               />
             ) : (
               items.map((item) => {

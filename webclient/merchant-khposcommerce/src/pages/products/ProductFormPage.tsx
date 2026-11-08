@@ -31,10 +31,10 @@ import { ProductAuditLogModal } from './components/ProductAuditLogModal'
 import { ProductLivePreviewDrawer } from './components/ProductLivePreviewDrawer'
 
 // Shared Form Sub-sections
-import { FlexiblePricingSection } from './components/FlexiblePricingSection'
-import { FlexibleInventorySection } from './components/FlexibleInventorySection'
-import { FlexibleDimensionsSection } from './components/FlexibleDimensionsSection'
-import { FlexibleSEOSection } from './components/FlexibleSEOSection'
+import { FlexiblePricingSection } from './components/PricingSection'
+import { FlexibleInventorySection } from './components/InventorySection'
+import { FlexibleDimensionsSection } from './components/DimensionsSection'
+import { FlexibleSEOSection } from './components/SEOSection'
 
 // Types & Helpers
 import { BLANK_FORM, type ProductForm, type CreateImagePreview, type CustomColorItem } from './types/productForm.types'

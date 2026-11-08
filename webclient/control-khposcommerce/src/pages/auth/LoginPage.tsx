@@ -44,7 +44,7 @@ type LoginForm = z.infer<typeof loginSchema>
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const { t } = useTranslation(['auth', 'common'])
-  const { setAuth } = useAuthStore()
+  const { setAuth, startDashboardTransition } = useAuthStore()
   const { themeMode, updateThemeMode } = useThemeStore()
 
   const [showPassword, setShowPassword] = useState(false)
@@ -115,15 +115,61 @@ export const LoginPage: React.FC = () => {
       const { user, access_token, token, refresh_token } = res.data.data
       const effectiveToken = access_token || token
 
+      if (!effectiveToken || !user) {
+        throw new Error(t('auth.errors.401', 'Authentication failed: Invalid credentials received.'))
+      }
+
+      if (user.is_active === false || user.status === 'inactive') {
+        throw new Error(t('auth.errors.403', 'Your account has been deactivated. Please contact your administrator.'))
+      }
+
       setIsSuccessState(true)
+
+      // Start modern full-screen transition overlay before navigating (allows dynamic UX steps progression)
+      startDashboardTransition(
+        t('auth.preparingDashboard', 'Preparing your dashboard...')
+      )
+
+      // Preload dashboard code chunk in background
+      import('@/pages/DashboardPage').catch(() => {})
+
+      // Save auth state cleanly
       setAuth(user, effectiveToken, refresh_token)
-      setTimeout(() => navigate('/dashboard'), 400)
+
+      // Seamlessly navigate to dashboard
+      navigate('/dashboard', { replace: true })
     } catch (apiErr: any) {
       setIsSuccessState(false)
-      const msg =
-        apiErr.response?.data?.message ||
-        t('Invalid super admin credentials', 'Invalid super admin credentials')
-      setServerError(msg)
+      const status = apiErr.response?.status
+      const backendMsg = apiErr.response?.data?.message
+
+      let errorMessage = backendMsg || t('auth.errors.unknown', 'An unexpected error occurred. Please try again.')
+
+      if (!apiErr.response) {
+        if (!navigator.onLine) {
+          errorMessage = t('auth.errors.offline', 'No Internet connection. Please check your network.')
+        } else if (apiErr.code === 'ECONNABORTED') {
+          errorMessage = t('auth.errors.timeout', 'Connection timed out. Please try again.')
+        } else {
+          errorMessage = t('auth.errors.networkError', 'Network error. Unable to reach server.')
+        }
+      } else if (status === 401) {
+        errorMessage = backendMsg || t('auth.errors.401', 'Invalid super admin username or password.')
+      } else if (status === 403) {
+        errorMessage = backendMsg || t('auth.errors.403', 'Access denied. You do not have super admin privileges.')
+      } else if (status === 404) {
+        errorMessage = backendMsg || t('auth.errors.404', 'Super admin account not found.')
+      } else if (status === 419) {
+        errorMessage = t('auth.errors.419', 'Session expired. Please refresh.')
+      } else if (status === 422) {
+        errorMessage = backendMsg || t('auth.errors.422', 'Validation error. Please check your credentials.')
+      } else if (status === 429) {
+        errorMessage = t('auth.errors.429', 'Too many attempts. Please try again later.')
+      } else if (status >= 500) {
+        errorMessage = t('auth.errors.500', 'Internal server error. Please try again shortly.')
+      }
+
+      setServerError(errorMessage)
     }
   }
 
@@ -480,8 +526,8 @@ export const LoginPage: React.FC = () => {
                   </>
                 ) : isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white dark:text-slate-900" />
-                    <span>{t('Verifying clearance...', 'Verifying clearance...')}</span>
+                    <Loader2 className="w-4 h-4 animate-spin text-white dark:text-slate-900 shrink-0" />
+                    <span>{t('Signing in...', 'Signing in...')}</span>
                   </>
                 ) : (
                   <span>{t('Sign in', 'Sign in')}</span>

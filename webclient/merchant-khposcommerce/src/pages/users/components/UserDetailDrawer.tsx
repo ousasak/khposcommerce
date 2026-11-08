@@ -1,14 +1,6 @@
 import React from 'react'
 import { Shield, Key, Lock } from 'lucide-react'
-import { 
-  StatusBadge, 
-  UserAvatar, 
-  DetailDrawer, 
-  DetailDrawerHeader, 
-  DetailDrawerBody, 
-  DetailDrawerFooter,
-  ActionButton,
-} from '@/components/common'
+import { StatusBadge, UserAvatar, DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, ActionButton } from '@/components/common'
 import type { User } from '../types/user.types'
 
 interface UserDetailDrawerProps {

@@ -53,8 +53,13 @@ class RoleController extends BaseApiController
         $data = $request->validated();
 
         $role = Role::create([
-            'name'       => $data['name'],
-            'guard_name' => $data['guard_name'] ?? 'api',
+            'name'            => $data['name'],
+            'display_name'    => $data['display_name'] ?? null,
+            'display_name_km' => $data['display_name_km'] ?? null,
+            'description'     => $data['description'] ?? null,
+            'description_km'  => $data['description_km'] ?? null,
+            'guard_name'      => $data['guard_name'] ?? 'api',
+            'is_system'       => false,
         ]);
 
         if (!empty($data['permissions'])) {
@@ -90,8 +95,23 @@ class RoleController extends BaseApiController
 
         if (isset($data['name'])) {
             $role->name = $data['name'];
-            $role->save();
         }
+        if (array_key_exists('display_name', $data)) {
+            $role->display_name = $data['display_name'];
+        }
+        if (array_key_exists('display_name_km', $data)) {
+            $role->display_name_km = $data['display_name_km'];
+        }
+        if (array_key_exists('description', $data)) {
+            $role->description = $data['description'];
+        }
+        if (array_key_exists('description_km', $data)) {
+            $role->description_km = $data['description_km'];
+        }
+        if (array_key_exists('guard_name', $data) && $role->name !== 'super_admin') {
+            $role->guard_name = $data['guard_name'];
+        }
+        $role->save();
 
         if (isset($data['permissions'])) {
             if ($role->name === 'super_admin') {
@@ -125,8 +145,7 @@ class RoleController extends BaseApiController
 
         $role = Role::findOrFail($id);
 
-        $presetRoles = ['super_admin', 'owner', 'admin', 'manager', 'cashier', 'warehouse_staff', 'staff', 'customer'];
-        if (in_array($role->name, $presetRoles)) {
+        if ($role->is_system) {
             return $this->errorResponse(__('Cannot delete protected system role :role.', ['role' => $role->name]), null, 422);
         }
 
@@ -204,7 +223,7 @@ class RoleController extends BaseApiController
             'total_roles'           => $totalRoles,
             'active_roles'          => $totalRoles,
             'inactive_roles'        => 0,
-            'system_roles'          => 6,
+            'system_roles'          => Role::where('is_system', true)->count(),
 
             'total_permissions'     => $totalPermissions,
             'assigned_permissions'  => $assignedPermissionsCount,

@@ -1,6 +1,6 @@
 import React from 'react'
-import ConfirmModal from '@/components/common/modals/ConfirmModal'
-import type { ConfirmVariant } from '@/components/common/modals/ConfirmModal'
+import { ConfirmModal } from '@/components/common'
+import type { ConfirmVariant } from '@/components/common'
 
 export interface ConfirmDialogProps {
   open?: boolean

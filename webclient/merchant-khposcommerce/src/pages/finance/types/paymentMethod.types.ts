@@ -7,6 +7,9 @@ export interface PaymentMethodForm {
   available_pos: boolean
   available_online: boolean
   is_active: boolean
+  description?: string
+  logo?: string
+  config?: Record<string, any>
 }
 
 export interface PaymentMethodItem {
@@ -19,6 +22,9 @@ export interface PaymentMethodItem {
   available_pos: boolean
   available_online: boolean
   is_active: boolean
+  description?: string
+  logo?: string
+  config?: Record<string, any>
   created_at?: string
   updated_at?: string
 }

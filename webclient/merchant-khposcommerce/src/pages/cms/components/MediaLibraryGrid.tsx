@@ -13,10 +13,9 @@ import {
   ArrowUpDown,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { AppImage } from '@/components/common'
+import { AppImage, EmptyState } from '@/components/common'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import { useToast } from '@/hooks/useToast'
 import { getAbsoluteImageUrl } from '@/utils/image'
 import type { MediaItem } from '../types/cms.types'

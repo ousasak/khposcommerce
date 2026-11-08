@@ -3,7 +3,7 @@ import HttpErrorPage from './HttpErrorPage'
 
 /**
  * 403 Access Denied page — rendered by ProtectedRoute when permission check fails.
- * Uses the unified HttpErrorPage with Ant Design (antd) Result component.
+ * Uses the unified HttpErrorPage with shadcn/ui components.
  */
 const AccessDeniedPage: React.FC = () => (
   <HttpErrorPage

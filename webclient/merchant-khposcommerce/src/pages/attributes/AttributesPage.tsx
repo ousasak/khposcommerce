@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ModalHeader } from '@/components/common/ModalHeader'
+import { ModalHeader, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter } from '@/components/common'
 import { 
   Plus, Edit2, Trash2, X, Tag, ToggleLeft, ToggleRight, Loader2, 
   ChevronUp, ChevronDown, Download, Upload, Trash, RefreshCw, AlertCircle, 
@@ -16,13 +16,11 @@ import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
-import EmptyState from '@/components/shared/EmptyState'
-import PageHeader from '@/components/common/PageHeader'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog'
+import { PageHeader } from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { DeleteConfirmDialog } from '@/components/common'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import { FieldError, getFieldClass } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { useTranslation } from 'react-i18next'
@@ -30,6 +28,7 @@ import { ModernSelect } from '@/components/shared/ModernSelect'
 import { ColumnSettingsPopover } from '@/components/shared/ColumnSettingsPopover'
 import { TableToolbar, AddButton, ExportButton, ImportButton, HeaderActionsGroup } from '@/components/common'
 import AttributeStatsCards from './components/AttributeStatsCards'
+import { AttributeSearchBar } from './components/AttributeSearchBar'
 import { useThemeStore } from '@/stores/themeStore'
 
 interface AttributeValue {
@@ -78,10 +77,10 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
 
   // UI state
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [typeFilter, setTypeFilter] = useState<string>('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingAttr, setEditingAttr] = useState<Attribute | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Attribute | null>(null)
-  const [recycleBinMode, setRecycleBinMode] = useState(false)
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -137,14 +136,15 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
 
   // Query
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['attributes', page, debouncedSearch, perPage, sortBy, sortOrder, recycleBinMode, statusFilter],
+    queryKey: ['attributes', page, debouncedSearch, perPage, sortBy, sortOrder, statusFilter, typeFilter],
     queryFn: () => attributeService.list({ 
       page, 
       search: debouncedSearch, 
       per_page: perPage, 
       sort_by: sortBy, 
       sort_order: sortOrder,
-      status: recycleBinMode ? 'deleted' : (statusFilter !== 'all' ? statusFilter : undefined)
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      type: typeFilter || undefined,
     }),
     placeholderData: (prev) => prev,
   })
@@ -190,30 +190,6 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
     }
   })
 
-  const restoreMutation = useMutation({
-    mutationFn: (id: number) => attributeService.restore(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['attributes'] })
-      toast.success(t('toast.restored'))
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const forceDeleteMutation = useMutation({
-    mutationFn: (id: number) => attributeService.forceDelete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['attributes'] })
-      toast.success(t('toast.deleted'))
-      setDeleteTarget(null)
-      adjustAfterDelete(attributes.length)
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids: number[]) => attributeService.bulkDelete(ids),
     onSuccess: () => {
@@ -221,18 +197,6 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
       toast.success(t('toast.deleted'))
       setSelectedRows([])
       setBulkDeleteConfirmOpen(false)
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const bulkRestoreMutation = useMutation({
-    mutationFn: (ids: number[]) => attributeService.bulkRestore(ids),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['attributes'] })
-      toast.success(t('toast.restored'))
-      setSelectedRows([])
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? t('toast.error'))
@@ -305,8 +269,8 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
     return errors
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault()
     const errors = validate()
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors)
@@ -341,8 +305,8 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
     }
   }
 
-  const handleImport = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleImport = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault()
     if (!importFile) return
     setImporting(true)
     const fd = new FormData()
@@ -447,37 +411,29 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
         </div>
       )}
 
-      {/* Global Standard Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-style Unified Filter Bar */}
+      <AttributeSearchBar
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder={t('products.searchAttributes', 'Search attributes...')}
+        typeFilter={typeFilter}
+        onTypeChange={(val) => {
+          setTypeFilter(val)
+          setPage(1)
+        }}
+        statusFilter={statusFilter}
+        onStatusChange={(val) => {
+          setStatusFilter(val)
+          setPage(1)
+        }}
         onReset={() => {
           setSearch('')
+          setTypeFilter('')
           setStatusFilter('all')
           setSortBy('created_at')
           setSortOrder('desc')
           setPage(1)
-          setRecycleBinMode(false)
           setSelectedRows([])
         }}
-        leftActions={
-          <ModernSelect
-            value={statusFilter}
-            onChange={(val) => {
-              setStatusFilter(val as 'all' | 'active' | 'inactive')
-              setPage(1)
-            }}
-            options={[
-              { value: 'all', label: `${t('common.status', 'Status')}: ${t('common.allStatus', 'All')}` },
-              { value: 'active', label: t('common.active', 'Active') },
-              { value: 'inactive', label: t('common.inactive', 'Inactive') },
-            ]}
-            className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-          />
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['attributes'] })}
-        refreshLoading={isFetching}
         columns={[
           { key: 'name', label: t('products.colAttributeName', 'Attribute Name') },
           { key: 'type', label: t('products.colDisplayType', 'Display Type') },
@@ -486,6 +442,8 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
+        selectedCount={selectedRows.length}
+        onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
       />
 
       {/* Table */}
@@ -616,6 +574,16 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
                   </tr>
                 ))
               )}
+              {!isLoading && attributes.length === 0 && (
+                <EmptyState
+                  cols={6}
+                  icon={<Sliders size={24} className="stroke-1.5" />}
+                  title={t('products.noAttributes', 'No Attributes Found')}
+                  description={t('products.noAttributesDesc', 'Create custom variant attributes like Size, Color, or Material to get started.')}
+                  actionLabel={t('products.addAttribute', 'Add Attribute')}
+                  onAction={openCreateModal}
+                />
+              )}
             </tbody>
           </table>
         </TableWrapper>
@@ -634,289 +602,235 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
       </div>
 
       {/* Create / Edit Modal */}
-      {modalOpen && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fade-in">
-          <div className="relative w-full max-w-lg bg-card rounded-3xl border border-border shadow-2xl overflow-hidden animate-scale-in">
-            {/* Modal Header */}
-            <ModalHeader
-              title={editingAttr ? t('products.editAttribute', 'Edit Attribute') : t('products.addAttribute', 'Add Attribute')}
-              subtitle={editingAttr ? t('products.editAttributeDesc', 'Modify display type and customizable variant options') : t('products.addAttributeDesc', 'Create a new product variation dimension (e.g. Size, Color, Storage...)')}
-              icon={<Sliders size={20} />}
-              iconVariant="blue"
-              onClose={closeModal}
+      <EnterpriseModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={editingAttr ? t('products.editAttribute', 'Edit Attribute') : t('products.addAttribute', 'Add Attribute')}
+        subtitle={
+          editingAttr
+            ? t('products.editAttributeDesc', 'Modify display type and customizable variant options')
+            : t('products.addAttributeDesc', 'Create a new product variation dimension (e.g. Size, Color, Storage...)')
+        }
+        icon={<Sliders size={20} />}
+        iconVariant="blue"
+        size="lg"
+        footer={
+          <ModalFooter
+            onCancel={closeModal}
+            isSubmitting={isSaving}
+            isEdit={Boolean(editingAttr)}
+            submitLabel={editingAttr ? t('common.saveChanges', 'Save Changes') : t('products.addAttribute', 'Create Attribute')}
+            onSubmit={handleSubmit}
+          />
+        }
+      >
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+          {/* Attribute Name */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('products.colAttributeName', 'Attribute Name')} <span className="text-rose-500 font-bold">*</span>
+            </label>
+            <input
+              id="name"
+              name="name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                handleClearError('name')
+              }}
+              placeholder={t('products.attributeNamePlaceholder', 'e.g. Color, Size, Storage, RAM, Material...')}
+              className={getFieldClass(
+                formErrors.name,
+                'w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium'
+              )}
             />
+            <FieldError error={formErrors.name} />
+          </div>
 
-            {/* Modal Body Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4.5 max-h-[calc(85vh-130px)] overflow-y-auto">
-              {/* Attribute Name */}
-              <div>
-                <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                  {t('products.colAttributeName', 'Attribute Name')} <span className="text-rose-500 font-bold">*</span>
-                </label>
+          {/* Display Type */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('products.colDisplayType', 'Display Type')}
+            </label>
+            <ModernSelect
+              value={type}
+              onChange={(val) => setType(String(val) as any)}
+              options={[
+                { value: 'select', label: t('products.dropdownSelect', 'Dropdown Select') },
+                { value: 'color', label: t('products.colorSwatches', 'Color Swatches') },
+                { value: 'button', label: t('products.productButtons', 'Pill Buttons') },
+                { value: 'text', label: t('products.plainTextField', 'Text Input') },
+              ]}
+              placeholder={t('products.colDisplayType')}
+              size="lg"
+              className="w-full"
+              buttonClassName="font-medium text-xs sm:text-[13px] border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 rounded-lg h-10 px-3.5 cursor-pointer w-full text-foreground dark:text-slate-100"
+            />
+          </div>
+
+          {/* Nested Values Builder */}
+          <div className="pt-3 border-t border-border/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-xs text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <ListPlus size={14} className="text-primary" />
+                {t('products.colValuesConfigured', 'Configured Values')}
+              </h4>
+              <span className="text-[11px] text-muted-foreground font-semibold">
+                {valuesList.length} {t('products.optionsCount', 'Options')}
+              </span>
+            </div>
+
+            {/* Builder Input Strip */}
+            <div className="grid grid-cols-12 gap-2 items-center bg-muted/20 p-2.5 rounded-2xl border border-border/60">
+              <div className={type === 'color' ? 'col-span-5' : 'col-span-8'}>
                 <input
-                  id="name"
-                  name="name"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value)
-                    handleClearError('name')
+                  value={newValueText}
+                  onChange={(e) => setNewValueText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleAddValue()
+                    }
                   }}
-                  placeholder={t('products.attributeNamePlaceholder', 'e.g. Color, Size, Storage, RAM, Material...')}
-                  className={getFieldClass(
-                    formErrors.name,
-                    'form-input text-sm h-11 px-3.5 rounded-xl bg-background border border-border/80 transition-all font-medium w-full'
-                  )}
+                  placeholder={type === 'color' ? t('products.attributeColorPlaceholder', 'e.g. Midnight Black') : t('products.attributeValuePlaceholder', 'e.g. Medium, 256GB, Red...')}
+                  className="w-full h-10 min-h-[40px] px-3 py-2 text-xs rounded-xl border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 font-medium"
                 />
-                <FieldError error={formErrors.name} />
               </div>
 
-              {/* Display Type + Status Toggle */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-end">
-                <div>
-                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    {t('products.colDisplayType', 'Display Type')}
-                  </label>
-                  <ModernSelect
-                    value={type}
-                    onChange={(val) => setType(String(val) as any)}
-                    options={[
-                      { value: 'select', label: t('products.dropdownSelect', 'Dropdown Select') },
-                      { value: 'color', label: t('products.colorSwatches', 'Color Swatches') },
-                      { value: 'button', label: t('products.productButtons', 'Pill Buttons') },
-                      { value: 'text', label: t('products.plainTextField', 'Text Input') },
-                    ]}
-                    placeholder={t('products.colDisplayType')}
-                    size="lg"
-                    className="w-full"
-                    buttonClassName="font-medium text-sm border-border/80 bg-background rounded-xl h-11 px-3.5 cursor-pointer w-full"
+              {type === 'color' && (
+                <div className="col-span-4 flex items-center gap-1.5">
+                  <input
+                    type="color"
+                    value={newColorCode}
+                    onChange={(e) => setNewColorCode(e.target.value)}
+                    className="w-8 h-8 rounded-lg border border-border/80 p-0 cursor-pointer flex-shrink-0"
+                  />
+                  <input
+                    value={newColorCode}
+                    onChange={(e) => setNewColorCode(e.target.value)}
+                    className="w-full h-10 py-1.5 px-2 text-[11px] font-mono rounded-lg border border-border/80 bg-background dark:bg-slate-900 text-foreground dark:text-slate-100 uppercase"
                   />
                 </div>
+              )}
 
-                {/* Status Toggle Card */}
-                <div>
-                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    {t('products.colStatus', 'Status')}
-                  </label>
-                  <div className="flex items-center justify-between px-3.5 rounded-xl bg-muted/30 border border-border/80 h-11 w-full box-border">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} />
-                      <span className="text-xs font-semibold text-foreground">
-                        {isActive ? t('products.active', 'Active') : t('products.inactive', 'Inactive')}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsActive(!isActive)}
-                      className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        isActive ? 'bg-primary' : 'bg-muted-foreground/30'
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          isActive ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Nested Values Builder */}
-              <div className="pt-3 border-t border-border/60 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <ListPlus size={14} className="text-primary" />
-                    {t('products.colValuesConfigured', 'Configured Values')}
-                  </h4>
-                  <span className="text-[11px] text-muted-foreground font-semibold">
-                    {valuesList.length} {t('products.optionsCount', 'Options')}
-                  </span>
-                </div>
-
-                {/* Builder Input Strip */}
-                <div className="grid grid-cols-12 gap-2 items-center bg-muted/20 p-2.5 rounded-2xl border border-border/60">
-                  <div className={type === 'color' ? 'col-span-5' : 'col-span-8'}>
-                    <input
-                      value={newValueText}
-                      onChange={(e) => setNewValueText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleAddValue()
-                        }
-                      }}
-                      placeholder={type === 'color' ? t('products.attributeColorPlaceholder', 'e.g. Midnight Black') : t('products.attributeValuePlaceholder', 'e.g. Medium, 256GB, Red...')}
-                      className="form-input text-xs h-10 py-2 px-3 rounded-xl bg-background border-border/80 font-medium w-full"
-                    />
-                  </div>
-
-                  {type === 'color' && (
-                    <div className="col-span-4 flex items-center gap-1.5">
-                      <input
-                        type="color"
-                        value={newColorCode}
-                        onChange={(e) => setNewColorCode(e.target.value)}
-                        className="w-8 h-8 rounded-lg border border-border/80 p-0 cursor-pointer flex-shrink-0"
-                      />
-                      <input
-                        value={newColorCode}
-                        onChange={(e) => setNewColorCode(e.target.value)}
-                        className="form-input h-10 py-1.5 px-2 text-[11px] font-mono rounded-lg bg-background border-border/80 w-full uppercase"
-                      />
-                    </div>
-                  )}
-
-                  <div className={type === 'color' ? 'col-span-3' : 'col-span-4'}>
-                    <button
-                      type="button"
-                      onClick={handleAddValue}
-                      className="w-full h-10 text-xs bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
-                    >
-                      <Plus size={13} />
-                      <span>{t('products.addOption', 'Add')}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* List of current values */}
-                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
-                  {valuesList.map((val, idx) => (
-                    <div 
-                      key={idx} 
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-border/70 bg-card hover:border-primary/40 transition-colors text-xs"
-                    >
-                      <div className="flex items-center gap-2">
-                        {type === 'color' && val.color_code && (
-                          <span 
-                            className="w-4 h-4 rounded-full border border-border/80 flex-shrink-0 shadow-2xs" 
-                            style={{ backgroundColor: val.color_code }} 
-                          />
-                        )}
-                        <span className="font-semibold text-foreground">{val.value}</span>
-                        {val.color_code && <span className="text-[10px] text-muted-foreground font-mono">({val.color_code})</span>}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveValue(idx)}
-                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  ))}
-                  {valuesList.length === 0 && (
-                    <div className="text-center py-4 text-xs text-muted-foreground bg-muted/10 rounded-2xl border border-dashed border-border/80">
-                      {t('products.noValuesConfigured', 'No values added yet. Enter a value name above and click Add')}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Footer Buttons */}
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border/60">
+              <div className={type === 'color' ? 'col-span-3' : 'col-span-4'}>
                 <button
                   type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all cursor-pointer"
+                  onClick={handleAddValue}
+                  className="w-full h-10 text-xs bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 shadow-xs flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
                 >
-                  {t('common.cancel', 'Cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-5 py-2.5 text-xs font-bold text-white bg-gradient-primary rounded-xl hover:opacity-90 shadow-md hover:shadow-primary/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                >
-                  {isSaving ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Save size={14} />
-                  )}
-                  <span>{editingAttr ? t('common.save', 'Save Changes') : t('products.addAttribute', 'Create Attribute')}</span>
+                  <Plus size={13} />
+                  <span>{t('products.addOption', 'Add')}</span>
                 </button>
               </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
+            </div>
 
-      {/* CSV Import Modal */}
-      {importOpen && createPortal(
-        <AnimatePresence>
-          <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
-            >
-              <ModalHeader
-                title={t('products.importCSV', 'Import CSV')}
-                subtitle={t('products.attributesImportInstruction', 'Upload CSV file to import attributes in bulk')}
-                icon={<Upload size={18} />}
-                iconVariant="blue"
-                onClose={() => setImportOpen(false)}
-              />
-
-              <form onSubmit={handleImport} className="p-6 space-y-4">
-                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:bg-muted/10 transition-colors">
-                  <Upload className="mx-auto text-primary mb-2 opacity-80" size={32} />
-                  <input
-                    type="file"
-                    accept=".csv,.txt"
-                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="csv-attribute-upload"
-                    required
-                  />
-                  <label htmlFor="csv-attribute-upload" className="cursor-pointer font-bold text-xs text-primary hover:underline block">
-                    {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to browse CSV / TXT file')}
-                  </label>
-                  <p className="text-[11px] text-muted-foreground mt-1">UTF-8 CSV format (name, type, values)</p>
-                </div>
-
-                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
+            {/* List of current values */}
+            <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+              {valuesList.map((val, idx) => (
+                <div 
+                  key={idx} 
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-border/70 bg-card hover:border-primary/40 transition-colors text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    {type === 'color' && val.color_code && (
+                      <span 
+                        className="w-4 h-4 rounded-full border border-border/80 flex-shrink-0 shadow-2xs" 
+                        style={{ backgroundColor: val.color_code }} 
+                      />
+                    )}
+                    <span className="font-semibold text-foreground">{val.value}</span>
+                    {val.color_code && <span className="text-[10px] text-muted-foreground font-mono">({val.color_code})</span>}
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setImportOpen(false)}
-                    className="px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all cursor-pointer"
+                    onClick={() => handleRemoveValue(idx)}
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors cursor-pointer"
                   >
-                    {t('common.cancel', 'Cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={importing || !importFile}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-primary rounded-xl hover:opacity-90 shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                    {t('products.importCSV', 'Import CSV')}
+                    <Trash2 size={13} />
                   </button>
                 </div>
-              </form>
-            </motion.div>
+              ))}
+              {valuesList.length === 0 && (
+                <div className="text-center py-4 text-xs text-muted-foreground bg-muted/10 rounded-2xl border border-dashed border-border/80">
+                  {t('products.noValuesConfigured', 'No values added yet. Enter a value name above and click Add')}
+                </div>
+              )}
+            </div>
           </div>
-        </AnimatePresence>,
-        document.body
-      )}
+
+          {/* Active Status Card */}
+          <div className="p-3.5 sm:p-4 bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5 pr-2">
+              <label htmlFor="isAttrActive" className="text-xs sm:text-[13px] font-bold text-foreground dark:text-slate-100 cursor-pointer select-none block">
+                {t('products.activeAttributeStatus', 'Active Attribute Status')}
+              </label>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                {t('products.activeAttributeStatusDesc', 'Active attributes are available when configuring product variants')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isAttrActive"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded border-border focus:ring-primary cursor-pointer"
+            />
+          </div>
+        </form>
+      </EnterpriseModal>
+
+      {/* CSV Import Modal */}
+      <EnterpriseModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        title={t('products.importCSV', 'Import CSV')}
+        subtitle={t('products.attributesImportInstruction', 'Upload CSV file to import attributes in bulk')}
+        icon={<Upload size={20} />}
+        iconVariant="blue"
+        size="md"
+        footer={
+          <ModalFooter
+            onCancel={() => setImportOpen(false)}
+            isSubmitting={importing}
+            submitLabel={t('products.importCSV', 'Import CSV')}
+            onSubmit={handleImport}
+          />
+        }
+      >
+        <form onSubmit={handleImport} className="p-5 sm:p-6 space-y-4">
+          <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:bg-muted/10 transition-colors">
+            <Upload className="mx-auto text-primary mb-2 opacity-80" size={32} />
+            <input
+              type="file"
+              accept=".csv,.txt"
+              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              className="hidden"
+              id="csv-attribute-upload"
+              required
+            />
+            <label htmlFor="csv-attribute-upload" className="cursor-pointer font-bold text-xs text-primary hover:underline block">
+              {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to browse CSV / TXT file')}
+            </label>
+            <p className="text-[11px] text-muted-foreground mt-1">UTF-8 CSV format (name, type, values)</p>
+          </div>
+        </form>
+      </EnterpriseModal>
 
       {/* Unified Delete Confirmation Dialog */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title="attributes.deleteTitle"
+        title={t('attributes.deleteTitle', 'Delete Attribute')}
         itemName={deleteTarget?.name}
-        confirmText="common.confirmDelete"
-        cancelText="common.cancel"
+        confirmText={t('common.confirmDelete', 'Confirm Delete')}
+        cancelText={t('common.cancel', 'Cancel')}
         onConfirm={() => {
           if (deleteTarget) {
-            if (recycleBinMode) {
-              forceDeleteMutation.mutate(deleteTarget.id)
-            } else {
-              deleteMutation.mutate(deleteTarget.id)
-            }
+            deleteMutation.mutate(deleteTarget.id)
           }
         }}
         onCancel={() => setDeleteTarget(null)}
-        loading={deleteMutation.isPending || forceDeleteMutation.isPending}
+        loading={deleteMutation.isPending}
       />
 
       {/* Bulk Delete Confirmation Dialog */}

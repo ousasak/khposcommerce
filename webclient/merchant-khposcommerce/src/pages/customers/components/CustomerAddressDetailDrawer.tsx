@@ -5,16 +5,9 @@ import {
   Edit2
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Image as AntImage } from 'antd'
+import { Image } from '@/components/ui/image'
 import { getCustomerAvatarUrl, DEFAULT_AVATAR_IMAGE } from '@/utils/image'
-import { 
-  DetailDrawer, 
-  DetailDrawerHeader, 
-  DetailDrawerBody, 
-  DetailDrawerFooter,
-  ActionButton,
-  type CustomerAddress 
-} from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, ActionButton, type CustomerAddress } from '@/components/common'
 
 interface CustomerAddressDetailDrawerProps {
   address: CustomerAddress | null
@@ -144,11 +137,11 @@ export const CustomerAddressDetailDrawer: React.FC<CustomerAddressDetailDrawerPr
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center border border-primary/20 shrink-0 overflow-hidden shadow-2xs">
-                        <AntImage
+                        <Image
                           src={getCustomerAvatarUrl(address.customer?.photo || address.customer?.avatar, address.customer?.id || address.customer_id || address.customer?.name)}
                           alt={address.customer?.name || 'Customer'}
                           className="w-full h-full object-cover"
-                          {...({ wrapperClassName: 'w-full h-full !flex items-center justify-center cursor-pointer' } as any)}
+                          rootClassName="w-full h-full !flex items-center justify-center cursor-pointer"
                           preview={{ mask: null }}
                           fallback={DEFAULT_AVATAR_IMAGE}
                         />

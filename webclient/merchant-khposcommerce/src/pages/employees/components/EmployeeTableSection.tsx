@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next'
 import { EmployeeAvatar } from './EmployeeAvatar'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import TableWrapper from '@/components/shared/TableWrapper'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import { EmptyState } from '@/components/common'
 import { formatCurrency, GlobalFormat } from '@/utils/formatters'
 import { useAuthStore } from '@/stores/authStore'
@@ -594,11 +594,11 @@ export const EmployeeTableSection: React.FC<EmployeeTableSectionProps> = ({
                             <button
                               type="button"
                               onClick={() => onOpenPayslip(r.id)}
-                              className="h-7 w-7 rounded-lg border border-primary/20 bg-primary/10 hover:bg-primary/20 text-primary flex items-center justify-center transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
+                              className="h-7 w-7 min-w-[28px] min-h-[28px] rounded-md border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 hover:text-teal-700 hover:border-teal-300 dark:hover:border-teal-700 hover:bg-teal-50/50 flex items-center justify-center transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_1px_1px_rgba(0,0,0,0.03)] hover:shadow-[0_3px_6px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95 cursor-pointer shrink-0"
                               title={t('employees.view_payslip', 'View Payslip')}
                               aria-label={t('employees.view_payslip', 'View Payslip')}
                             >
-                              <FileText size={13} />
+                              <FileText size={13} className="stroke-[1.9]" />
                             </button>
                           )}
                           <TableActionMenu

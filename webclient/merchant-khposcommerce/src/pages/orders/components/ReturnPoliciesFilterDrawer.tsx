@@ -72,7 +72,7 @@ export const ReturnPoliciesFilterDrawer: React.FC<ReturnPoliciesFilterDrawerProp
   windowDaysFilter,
   setWindowDaysFilter,
 }) => {
-  const { t } = useTranslation(['returns', 'orders', 'common'])
+  const { t } = useTranslation(['policies', 'returns', 'orders', 'common'])
 
   // Category Options
   const categoryOptions = [

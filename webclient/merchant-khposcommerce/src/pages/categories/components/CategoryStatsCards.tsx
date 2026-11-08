@@ -80,3 +80,4 @@ export const CategoryStatsCards: React.FC<CategoryStatsCardsProps> = ({
 }
 
 export default CategoryStatsCards
+

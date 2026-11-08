@@ -9,11 +9,9 @@ import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge, EmptyState, ResetButton } from '@/components/common'
 import { TableToolbar, InlineFilterSelect } from '@/components/common'
 import { useTranslation } from 'react-i18next'
 import TableActionMenu from '@/components/shared/TableActionMenu'
@@ -240,12 +238,12 @@ const ReviewsPage: React.FC = () => {
                 ))
               )}
               {!isLoading && reviews.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <MessageSquare size={40} className="mx-auto mb-3 text-muted-foreground/30" />
-                    <p className="text-muted-foreground">{t('common.noData')}</p>
-                  </td>
-                </tr>
+                <EmptyState
+                  cols={7}
+                  icon={<MessageSquare size={32} />}
+                  title={t('common.noData', 'No reviews found')}
+                  description="There are no product reviews to display."
+                />
               )}
             </tbody>
           </table>

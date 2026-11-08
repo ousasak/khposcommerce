@@ -4,16 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { marketingService } from '@/services/marketingService'
 import { useToast } from '@/hooks/useToast'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import PageHeader from '@/components/common/PageHeader'
-import {
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-  ImportButton,
-  TableToolbar,
-  InlineFilterSelect,
-} from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { PageHeader } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, ImportButton, TableToolbar, InlineFilterSelect } from '@/components/common'
 import { downloadCsv } from '@/utils/export'
 import { useTranslation } from 'react-i18next'
 

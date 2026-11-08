@@ -9,25 +9,19 @@ import { useToast } from '@/hooks/useToast'
 import { usePermission } from '@/hooks/usePermission'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import {
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-  ImportButton,
-  TableToolbar,
-  ConfirmModal,
-  BulkSelectionBanner,
-} from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, ConfirmModal, BulkSelectionBanner } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 
 import {
-  ExpenseStatsCards,
-  ExpenseFilterDrawer,
-  ExpenseVoucherPrintModal,
+  ExpensesSpendingStatsCards,
+  ExpensesSpendingFilterDrawer,
+  ExpensesSpendingVoucherPrintModal,
   ExpensesSpendingTable,
   FinanceImportModal,
-  FinanceTrendsChart,
+  ExpenseSettlementCycleBanner,
+  ExpenseCategoriesDonutChart,
+  ExpenseSearchBar,
 } from './components'
 
 export const ExpensesSpendingPage: React.FC = () => {
@@ -65,11 +59,38 @@ export const ExpensesSpendingPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('')
+  const [filterTimeframe, setFilterTimeframe] = useState('all')
   const [filterDateStart, setFilterDateStart] = useState('')
   const [filterDateEnd, setFilterDateEnd] = useState('')
   const [filterAmountMin, setFilterAmountMin] = useState('')
   const [filterAmountMax, setFilterAmountMax] = useState('')
   const [filterCreatedBy, setFilterCreatedBy] = useState('')
+
+  const handleTimeframeChange = (val: string) => {
+    setFilterTimeframe(val)
+    const now = new Date()
+    if (val === 'today') {
+      const todayStr = now.toISOString().split('T')[0]
+      setFilterDateStart(todayStr)
+      setFilterDateEnd(todayStr)
+    } else if (val === 'month') {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+      setFilterDateStart(firstDay)
+      setFilterDateEnd(lastDay)
+    } else if (val === 'quarter') {
+      const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      setFilterDateStart(threeMonthsAgo)
+      setFilterDateEnd(now.toISOString().split('T')[0])
+    } else if (val === '30d') {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      setFilterDateStart(thirtyDaysAgo)
+      setFilterDateEnd(now.toISOString().split('T')[0])
+    } else {
+      setFilterDateStart('')
+      setFilterDateEnd('')
+    }
+  }
 
   const effectiveCategory = activeCategoryFilter || filterCategory
 
@@ -256,6 +277,7 @@ export const ExpensesSpendingPage: React.FC = () => {
     setFilterStatus('')
     setFilterCategory('')
     setActiveCategoryFilter('')
+    setFilterTimeframe('all')
     setFilterDateStart('')
     setFilterDateEnd('')
     setFilterAmountMin('')
@@ -308,63 +330,84 @@ export const ExpensesSpendingPage: React.FC = () => {
         ]}
       />
 
-      {/* Header */}
+      {/* Header (SmartHR Expense Management & Auditing) */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 py-1 print:hidden">
         <div className="space-y-1 min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
-            {t('finance.expenses_title', 'Operating Expenses')}
-          </h1>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
+              {t('finance.expense_management_auditing', 'Expense Management & Auditing')}
+            </h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>{t('finance.live_audit_active', 'Live Audit Active')}</span>
+            </span>
+          </div>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-            {t('finance.expenses_subtitle', 'Track and manage operating expense records, disbursement vouchers, and receipts across the enterprise.')}
+            {t(
+              'finance.expense_management_subtitle',
+              'Review, audit, and disburse corporate expense claims, travel per diems, and digital receipts across all regional entities.'
+            )}
           </p>
         </div>
         <HeaderActionsGroup>
-          {canCreateExpense && (
-            <ImportButton
-              onClick={() => setImportOpen(true)}
-              label={t('finance.import_csv', 'Import CSV')}
-            />
-          )}
           {canExportExpense && (
             <ExportButton
               onClick={handleExportCsv}
-              label={t('finance.export_csv', 'Export CSV')}
+              label={t('finance.export_ledger', 'Export Ledger')}
             />
           )}
           {canCreateExpense && (
             <AddButton
               onClick={() => navigate('/finance/expenses/create')}
-              label={t('finance.add_expense', 'Record Expense')}
+              label={t('finance.add_expense', 'បន្ថែមការចំណាយ')}
             />
           )}
         </HeaderActionsGroup>
       </div>
 
-      {/* Stats Cards */}
-      <ExpenseStatsCards
+      {/* Q3 Global Expense Settlement Cycle Progress Banner */}
+      <ExpenseSettlementCycleBanner allExpenses={allExpenses} />
+
+      {/* 5 SmartHR Summary Metric Cards */}
+      <ExpensesSpendingStatsCards
         analytics={financeAnalytics}
         allSales={allSales}
         allExpenses={allExpenses}
         allRegisters={allRegisters}
       />
 
-      {/* Trends Chart */}
-      <FinanceTrendsChart allSales={allSales} allExpenses={allExpenses} />
+      {/* Expense Categories & Regional Spend Donut Chart */}
+      <ExpenseCategoriesDonutChart
+        allExpenses={allExpenses}
+        categories={categories}
+      />
 
-      {/* Toolbar */}
-      <TableToolbar
+      {/* SmartHR Clean Inline Filter Bar */}
+      <ExpenseSearchBar
         search={search}
         onSearchChange={(val) => {
           setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('finance.search_expenses', 'Search expenses (title, category, reference)...')}
-        onFilterToggle={() => setFilterDrawerOpen(true)}
-        isFilterActive={Boolean(filterStatus || filterCategory || activeCategoryFilter || filterDateStart || filterDateEnd || filterAmountMin || filterAmountMax)}
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['expenses-tab'] })}
-        refreshLoading={fetchingExpenses}
+        categoryFilter={filterCategory}
+        onCategoryChange={(val) => {
+          setFilterCategory(val)
+          setPage(1)
+        }}
+        categories={categories}
+        statusFilter={filterStatus}
+        onStatusChange={(val) => {
+          setFilterStatus(val)
+          setPage(1)
+        }}
+        timeframeFilter={filterTimeframe}
+        onTimeframeChange={handleTimeframeChange}
+        onApply={() => {
+          qc.invalidateQueries({ queryKey: ['expenses-tab'] })
+        }}
+        onReset={handleResetFilters}
         columns={[
-          { key: 'expense_title', label: t('finance.title_col', 'Title') },
+          { key: 'expense_title', label: t('finance.title_col', 'Title & Ref') },
           { key: 'expense_category', label: t('finance.category_col', 'Category') },
           { key: 'expense_amount', label: t('finance.amount_col', 'Amount') },
           { key: 'expense_status', label: t('finance.status_col', 'Status') },
@@ -373,6 +416,8 @@ export const ExpensesSpendingPage: React.FC = () => {
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
+        selectedCount={selectedExpenseIds.length}
+        onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
       />
 
       {/* Bulk Delete Banner */}
@@ -420,7 +465,7 @@ export const ExpensesSpendingPage: React.FC = () => {
       />
 
       {/* Filter Drawer */}
-      <ExpenseFilterDrawer
+      <ExpensesSpendingFilterDrawer
         isOpen={filterDrawerOpen}
         onClose={() => setFilterDrawerOpen(false)}
         categories={categories}
@@ -492,7 +537,7 @@ export const ExpensesSpendingPage: React.FC = () => {
       />
 
       {/* Print Voucher Modal */}
-      <ExpenseVoucherPrintModal
+      <ExpensesSpendingVoucherPrintModal
         expense={printExpenseModalItem}
         isOpen={Boolean(printExpenseModalItem)}
         onClose={() => setPrintExpenseModalItem(null)}

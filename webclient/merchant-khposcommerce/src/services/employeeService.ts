@@ -141,6 +141,18 @@ export const employeeService = {
   payrolls: (params: Record<string, any> = {}) =>
     api.get('/payrolls', { params }).then((r) => r.data),
 
+  createPayroll: (payload: any) =>
+    api.post('/payrolls', payload).then((r) => r.data.data ?? r.data),
+
+  updatePayroll: (id: number | string, payload: any) =>
+    api.put(`/payrolls/${id}`, payload).then((r) => r.data.data ?? r.data),
+
+  deletePayroll: (id: number | string) =>
+    api.delete(`/payrolls/${id}`).then((r) => r.data),
+
+  bulkDeletePayrolls: (ids: (number | string)[]) =>
+    api.post('/payrolls/bulk-delete', { ids }).then((r) => r.data),
+
   autoGeneratePayroll: (payload: { period_month: string; company_id?: number; branch_id?: number }) =>
     api.post('/payrolls/auto-generate', payload).then((r) => r.data.data ?? r.data),
 

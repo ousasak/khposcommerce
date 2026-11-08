@@ -9,21 +9,14 @@ import { useToast } from '@/hooks/useToast'
 import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import {
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-  ImportButton,
-  TableToolbar,
-  InlineFilterSelect,
-} from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, ImportButton, TableToolbar, InlineFilterSelect } from '@/components/common'
 import { usePermission } from '@/hooks/usePermission'
 import { useTranslation } from 'react-i18next'
 import { formatCurrency } from '@/utils/formatters'
 
 import { ProductStatsCards } from './components/ProductStatsCards'
-import { ProductFilterDrawer } from './components/ProductFilterDrawer'
+import { ProductSearchBar } from './components/ProductSearchBar'
 import { ProductDetailDrawer } from './components/ProductDetailDrawer'
 import { ProductImportModal } from './components/ProductImportModal'
 import { ProductTableSection } from './components/ProductTableSection'
@@ -69,7 +62,6 @@ const ProductsPage: React.FC = () => {
   const [stockLevelFilter, setStockLevelFilter] = useState('')
   const [priceMinFilter, setPriceMinFilter] = useState('')
   const [priceMaxFilter, setPriceMaxFilter] = useState('')
-  const [recycleBinMode, setRecycleBinMode] = useState(false)
   const [sortBy, setSortBy] = useState('id')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
@@ -116,7 +108,7 @@ const ProductsPage: React.FC = () => {
     queryKey: [
       'products', page, debouncedSearch, perPage, sortBy, sortOrder,
       statusFilter, categoryFilter, brandFilter, stockLevelFilter,
-      priceMinFilter, priceMaxFilter, recycleBinMode
+      priceMinFilter, priceMaxFilter
     ],
     queryFn: () => productService.list({
       page,
@@ -124,7 +116,7 @@ const ProductsPage: React.FC = () => {
       per_page: perPage,
       sort: sortBy,
       order: sortOrder,
-      status: recycleBinMode ? 'deleted' : statusFilter,
+      status: statusFilter,
       category_id: categoryFilter || undefined,
       brand_id: brandFilter || undefined,
       ...((stockLevelFilter || priceMinFilter || priceMaxFilter) ? {
@@ -380,97 +372,36 @@ const ProductsPage: React.FC = () => {
 
       {/* KPI Overview Cards */}
       <ProductStatsCards analytics={analytics} formatCurrency={formatMoney} />
-          {/* Global Standard Table Toolbar with Shadcn Inline Filters & Manage Table */}
-          <TableToolbar
-            search={search}
-            onSearchChange={(val) => { setSearch(val); setPage(1); }}
-            searchPlaceholder={t('searchPlaceholder', 'Search products')}
-            hideFilterButton={true}
-            hideRefreshButton={true}
-            isFilterActive={Boolean(categoryFilter || brandFilter || stockLevelFilter || search)}
-            onReset={resetAllFilters}
-            filters={
-              <>
-                <InlineFilterSelect
-                  label={t('colCategory', 'Category')}
-                  value={categoryFilter}
-                  onChange={(val) => { setCategoryFilter(val); setPage(1); }}
-                  allLabel={t('allCategories', 'All categories')}
-                  options={(categories || []).map((c: any) => ({
-                    label: c.name,
-                    value: c.id,
-                  }))}
-                />
-                <InlineFilterSelect
-                  label={t('colBrand', 'Brand')}
-                  value={brandFilter}
-                  onChange={(val) => { setBrandFilter(val); setPage(1); }}
-                  allLabel={t('allBrands', 'All brands')}
-                  options={(brands || []).map((b: any) => ({
-                    label: b.name,
-                    value: b.id,
-                  }))}
-                />
-                <InlineFilterSelect
-                  label={t('colStock', 'Stock level')}
-                  value={stockLevelFilter}
-                  onChange={(val) => { setStockLevelFilter(val); setPage(1); }}
-                  allLabel={t('allStockLevels', 'All stock levels')}
-                  options={[
-                    { label: t('stockHigh', 'High stock'), value: 'high' },
-                    { label: t('stockLow', 'Low stock'), value: 'low' },
-                    { label: t('stockOut', 'Out of stock'), value: 'out' },
-                  ]}
-                />
-              </>
-            }
-            leftActions={
-              selectedRows.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setBulkDeleteConfirmOpen(true)}
-                  className="inline-flex items-center gap-1.5 h-10 min-h-[40px] max-h-[40px] px-3.5 text-xs sm:text-[13px] font-semibold bg-rose-500/10 text-rose-600 rounded-lg border border-rose-500/20 hover:bg-rose-500/20 active:scale-[0.98] transition-all cursor-pointer shrink-0 box-border leading-normal"
-                >
-                  <Trash2 size={14} />
-                  <span>{t('products.deleteSelected', t('common.deleteSelected', 'Delete Selected'))} ({selectedRows.length})</span>
-                </button>
-              ) : null
-            }
-            onRefresh={() => qc.invalidateQueries({ queryKey: ['products'] })}
-            refreshLoading={isFetching}
-            manageTableLabel={t('manageTable', 'Manage Table')}
-            columns={[
-              { key: 'name', label: t('products.colName', 'Product name') },
-              { key: 'sku', label: t('products.sku', 'SKU') },
-              { key: 'category', label: t('products.colCategory', 'Category') },
-              { key: 'supplier', label: t('colBrand', 'Brand') },
-              { key: 'stock', label: t('products.colStock', 'Current stock') },
-              { key: 'price', label: t('products.colPrice', 'Unit price') },
-            ]}
-            visibleColumns={visibleColumns}
-            onColumnChange={setVisibleColumns}
-          />
-
-          {/* Filter Drawer */}
-          <ProductFilterDrawer
-            isOpen={filterDrawerOpen}
-            onClose={() => setFilterDrawerOpen(false)}
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            categoryFilter={categoryFilter}
-            setCategoryFilter={setCategoryFilter}
-            brandFilter={brandFilter}
-            setBrandFilter={setBrandFilter}
-            stockLevelFilter={stockLevelFilter}
-            setStockLevelFilter={setStockLevelFilter}
-            priceMinFilter={priceMinFilter}
-            setPriceMinFilter={setPriceMinFilter}
-            priceMaxFilter={priceMaxFilter}
-            setPriceMaxFilter={setPriceMaxFilter}
-            categories={categories || []}
-            brands={brands || []}
-            onReset={resetAllFilters}
-          />
+      {/* ─── SmartHR-Style Product Search & Filter Bar ─── */}
+      <ProductSearchBar
+        search={search}
+        onSearchChange={(val) => { setSearch(val); setPage(1); }}
+        categoryFilter={categoryFilter}
+        onCategoryChange={(val) => { setCategoryFilter(val); setPage(1); }}
+        categories={categories || []}
+        brandFilter={brandFilter}
+        onBrandChange={(val) => { setBrandFilter(val); setPage(1); }}
+        brands={brands || []}
+        stockLevelFilter={stockLevelFilter}
+        onStockLevelChange={(val) => { setStockLevelFilter(val); setPage(1); }}
+        statusFilter={statusFilter}
+        onStatusChange={(val) => { setStatusFilter(val); setPage(1); }}
+        onReset={resetAllFilters}
+        columns={[
+          { key: 'name', label: t('products.colName', 'Product name') },
+          { key: 'sku', label: t('products.sku', 'SKU') },
+          { key: 'category', label: t('products.colCategory', 'Category') },
+          { key: 'supplier', label: t('colBrand', 'Brand') },
+          { key: 'stock', label: t('products.colStock', 'Current stock') },
+          { key: 'price', label: t('products.colPrice', 'Unit price') },
+          { key: 'status', label: t('products.colStatus', 'Status') },
+        ]}
+        visibleColumns={visibleColumns}
+        onColumnChange={setVisibleColumns}
+        selectedCount={selectedRows.length}
+        onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
+        columnSettingsTitle={t('manageTable', 'Manage Table')}
+      />
 
           {/* Table */}
           <ProductTableSection
@@ -478,7 +409,6 @@ const ProductsPage: React.FC = () => {
             isLoading={isLoading}
             isFetching={isFetching}
             visibleColumns={visibleColumns}
-            recycleBinMode={recycleBinMode}
             selectedRows={selectedRows}
             setSelectedRows={setSelectedRows}
             sortBy={sortBy}
@@ -490,8 +420,6 @@ const ProductsPage: React.FC = () => {
             onDuplicate={canCreate ? (p) => duplicateMutation.mutate(p) : undefined}
             onPrintBarcode={(p) => setBarcodePrintProduct(p)}
             onQuickStockAdjust={canAdjust ? (p) => setQuickAdjustProduct(p) : undefined}
-            onRestore={() => {}}
-            onForceDelete={() => {}}
             formatCurrency={formatMoney}
           />
 
@@ -544,10 +472,10 @@ const ProductsPage: React.FC = () => {
           {/* Delete Dialog */}
           <ConfirmDialog
             open={deleteConfirm.open}
-            title="products.deleteProduct"
+            title={t('products.deleteProduct', 'Delete Product')}
             itemName={deleteConfirm.name}
-            confirmText="common.confirmDelete"
-            cancelText="common.cancel"
+            confirmText={t('common.confirmDelete', 'Confirm Delete')}
+            cancelText={t('common.cancel', 'Cancel')}
             loading={deleteMutation.isPending}
             onConfirm={() => deleteConfirm.id && deleteMutation.mutate(deleteConfirm.id)}
             onCancel={() => setDeleteConfirm({ open: false, id: null, force: false })}

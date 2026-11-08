@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
+import { EmptyState } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { getAbsoluteImageUrl } from '@/utils/image'
 

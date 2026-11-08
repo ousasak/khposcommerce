@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { dashboardService } from '@/services/dashboardService'
 import { useThemeStore } from '@/stores/themeStore'
+import { useAuthStore } from '@/stores/authStore'
 import { DEFAULT_WIDGETS_LIST } from '@/config/dashboardWidgets'
 
 // Subcomponents imports
@@ -30,6 +31,19 @@ const DashboardPage: React.FC = () => {
   const [selectedBranchId, setSelectedBranchId] = useState<number | undefined>(undefined)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
+  const isDashboardTransitioning = useAuthStore((s) => s.isDashboardTransitioning)
+  const endDashboardTransition = useAuthStore((s) => s.endDashboardTransition)
+
+  // Smoothly conclude login transition after deliberate duration (2s) giving user a calm, premium UX experience
+  useEffect(() => {
+    if (isDashboardTransitioning) {
+      const timer = setTimeout(() => {
+        endDashboardTransition()
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [isDashboardTransitioning, endDashboardTransition])
+
   // Real backend query for stats
   const { 
     data: statsRes, 
@@ -54,14 +68,14 @@ const DashboardPage: React.FC = () => {
   })
 
   // Real backend query for sales chart fallback
-  const { data: salesChartRes } = useQuery({
+  const { data: salesChartRes, isLoading: salesChartLoading } = useQuery({
     queryKey: ['sales-chart', selectedBranchId],
     queryFn: () => dashboardService.getSalesChart(selectedBranchId),
     staleTime: 60000,
   })
 
   // Real backend query for operation panels
-  const { data: panelsRes, refetch: refetchPanels } = useQuery({
+  const { data: panelsRes, isLoading: panelsLoading, refetch: refetchPanels } = useQuery({
     queryKey: ['dashboard-operation-panels'],
     queryFn: () => dashboardService.getOperationPanels(),
     staleTime: 30000,
@@ -82,12 +96,12 @@ const DashboardPage: React.FC = () => {
   })
 
   // Legacy fallback queries
-  const { data: topProductsRes } = useQuery({
+  const { data: topProductsRes, isLoading: topProductsLoading } = useQuery({
     queryKey: ['top-products'],
     queryFn: () => dashboardService.getTopProducts(),
   })
 
-  const { data: lowStockRes } = useQuery({
+  const { data: lowStockRes, isLoading: lowStockLoading } = useQuery({
     queryKey: ['low-stock'],
     queryFn: () => dashboardService.getLowStock(),
   })
@@ -190,7 +204,7 @@ const DashboardPage: React.FC = () => {
               <DashboardCharts 
                 salesData={salesChartRes || []} 
                 chartsData={chartsRes} 
-                isLoading={chartsLoading} 
+                isLoading={chartsLoading || salesChartLoading} 
               />
             </motion.div>
           )}
@@ -202,6 +216,7 @@ const DashboardPage: React.FC = () => {
                 topProducts={topProductsRes || []} 
                 recentOrders={panelsRes?.pending_orders || []}
                 latestCustomers={panelsRes?.latest_customers || []} 
+                isLoading={panelsLoading || topProductsLoading}
               />
             </motion.div>
           )}
@@ -212,6 +227,7 @@ const DashboardPage: React.FC = () => {
               <DashboardRow4 
                 lowStockList={lowStockRes || []} 
                 stats={statsRes} 
+                isLoading={lowStockLoading || statsLoading}
               />
             </motion.div>
           )}
@@ -219,7 +235,7 @@ const DashboardPage: React.FC = () => {
           {/* Row 5: Financial Metrics & Profit Margins */}
           {isWidgetVisible('financial_metrics') && (
             <motion.div variants={itemVariants}>
-              <DashboardRow5 stats={statsRes} />
+              <DashboardRow5 stats={statsRes} isLoading={statsLoading} />
             </motion.div>
           )}
 
@@ -282,6 +298,7 @@ const DashboardPage: React.FC = () => {
             <motion.div variants={itemVariants}>
               <RecentActivities 
                 activityLog={panelsRes?.activity_log || []} 
+                isLoading={panelsLoading}
               />
             </motion.div>
           )}

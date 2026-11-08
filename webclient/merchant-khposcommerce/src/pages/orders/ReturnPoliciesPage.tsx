@@ -21,20 +21,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { useThemeStore } from '@/stores/themeStore'
 import { downloadCsv } from '@/utils/export'
 import { GlobalFormat } from '@/utils/formatters'
-import {
-  Breadcrumb,
-  HeaderActionsGroup,
-  AddButton,
-  SecondaryButton,
-  ExportButton,
-  EnterpriseStatsGrid,
-  EnterpriseStatsCard,
-  TableToolbar,
-  TableWrapper,
-  TableEmptyState,
-  TableActionMenu,
-} from '@/components/common'
-import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
+import { Breadcrumb, HeaderActionsGroup, AddButton, SecondaryButton, ExportButton, EnterpriseStatsGrid, EnterpriseStatsCard, TableWrapper, TableEmptyState, TableActionMenu } from '@/components/common'
+import { ReturnPolicySearchBar } from './components/ReturnPolicySearchBar'
 import { usePageTab } from '@/hooks/usePageTab'
 import Pagination from '@/components/shared/Pagination'
 import { ReturnPoliciesFilterDrawer } from './components/ReturnPoliciesFilterDrawer'
@@ -137,7 +125,7 @@ export const getConditionBadge = (
 
 export const ReturnPoliciesPage: React.FC = () => {
   const navigate = useNavigate()
-  const { t, i18n } = useTranslation(['returns', 'nav', 'sales', 'common'])
+  const { t, i18n } = useTranslation(['policies', 'returns', 'nav', 'sales', 'common'])
   const { language } = useThemeStore()
   const currentLang = i18n.language || language || 'km'
   const isKhmer = currentLang.startsWith('km')
@@ -516,31 +504,30 @@ export const ReturnPoliciesPage: React.FC = () => {
         />
       </EnterpriseStatsGrid>
 
-      {/* ── 3. WORKSPACE TABS NAVIGATION ──────────────────────────────── */}
-      <div className="print:hidden">
-        <WorkspaceTabs
-          tabs={workspaceTabs}
-          activeTab={activeTab}
-          onChange={handleTabChange}
-          onTabChange={handleTabChange}
-          variant="underline"
-        />
-      </div>
-
-      {/* ── 4. GLOBAL TABLE TOOLBAR ───────────────────────────────────── */}
-      <TableToolbar
+      {/* ── 3. SMART-HR STYLE POLICIES SEARCH & FILTER BAR (MATCHING PRODUCTS STANDARD) ── */}
+      <ReturnPolicySearchBar
         search={search}
         onSearchChange={(val) => {
           setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('policies.searchPolicies', 'Search policies by name or category...')}
+        typeFilter={activeTab}
+        onTypeChange={(val) => {
+          setActiveTab(val as PolicyFilterTab)
+          setPage(1)
+        }}
+        categoryFilter={categoryFilter}
+        onCategoryChange={(val) => {
+          setCategoryFilter(val)
+          setPage(1)
+        }}
+        categories={categories}
+        returnableFilter={returnableFilter}
+        onReturnableChange={(val) => {
+          setReturnableFilter(val)
+          setPage(1)
+        }}
         onReset={handleResetFilters}
-        onRefresh={() => refetch()}
-        refreshLoading={isFetching}
-        onFilterClick={() => setFilterDrawerOpen(true)}
-        isFilterActive={activeDrawerFiltersCount > 0}
-        filterActiveCount={activeDrawerFiltersCount}
         columns={[
           { key: 'name', label: t('policies.columns.name', 'Policy Name') },
           { key: 'appliesTo', label: t('policies.columns.appliesTo', 'Applies To') },
@@ -553,6 +540,7 @@ export const ReturnPoliciesPage: React.FC = () => {
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
+        columnSettingsTitle={t('manageTable', 'Manage Table')}
       />
 
       {/* ── 5. CONTENT: POLICIES TABLE ────────────────────────────────── */}

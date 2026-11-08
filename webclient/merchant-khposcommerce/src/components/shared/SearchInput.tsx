@@ -69,7 +69,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         placeholder={resolvedPlaceholder}
         disabled={disabled}
         autoFocus={autoFocus}
-        className={`w-full ${heightClass} box-border leading-normal pl-9 pr-8 ${radiusClass} border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-800/80 hover:border-muted-foreground/40 dark:hover:border-slate-600 focus:bg-background dark:focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-ring focus:border-primary text-foreground dark:text-slate-100 transition-all placeholder:text-muted-foreground dark:placeholder:text-slate-400 font-normal text-sm shadow-xs disabled:opacity-50 disabled:cursor-not-allowed ${inputClassName}`}
+        className={`w-full ${heightClass} box-border leading-normal pl-9 pr-8 ${radiusClass} border border-slate-300 dark:border-slate-700 bg-background dark:bg-slate-800/80 hover:border-slate-400 dark:hover:border-slate-600 focus:bg-background dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 text-foreground dark:text-slate-100 transition-all placeholder:text-muted-foreground/60 dark:placeholder:text-slate-400 font-medium text-sm shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed ${inputClassName}`}
       />
       {value && !disabled && (
         <button

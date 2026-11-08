@@ -20,7 +20,7 @@ import {
 import { reportService } from '@/services/reportService'
 import { useToast } from '@/hooks/useToast'
 import { useAuthStore } from '@/stores/authStore'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import { downloadBlob } from '@/utils/export'
 
 import PurchaseFilters, { type PurchaseFilterState } from './components/purchase/PurchaseFilters'

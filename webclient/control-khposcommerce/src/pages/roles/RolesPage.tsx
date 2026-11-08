@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -6,12 +7,15 @@ import {
   Edit2, Trash2, RefreshCw, X, Loader2, Download, Upload, Printer,
   Settings, Eye, Clock, UserCheck, AlertTriangle, Sliders,
   Lock, Unlock, ArrowUpRight, ShieldCheck, Zap, Globe, CheckCircle2,
-  Users, Copy, Check, ShieldAlert, Award, FileText, Layers, RefreshCcw
+  Users, Copy, Check, ShieldAlert, Award, FileText, Layers, RefreshCcw,
+  LayoutGrid, Table as TableIcon
 } from 'lucide-react'
 import { roleService } from '@/services/roleService'
 import { permissionService } from '@/services/permissionService'
+import { cn } from '@/lib/utils'
 import { usePermission } from '@/hooks/usePermission'
 import {
+  normalizePermission,
   getPermissionModule,
   getPermissionAction,
   getPermissionRiskLevel,
@@ -24,70 +28,40 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
-import { FieldError, getFieldClass, TableToolbar, EnterpriseDatePicker } from '@/components/common'
+import {
+  FieldError,
+  getFieldClass,
+  TableToolbar,
+  EnterpriseDatePicker,
+  Breadcrumb,
+  HeaderActionsGroup,
+  AddButton,
+  ActionButton,
+  ResetButton,
+} from '@/components/common'
+import { Button } from '@/components/ui/button'
 import CsvImportModal from '@/components/shared/CsvImportModal'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
 import { downloadCsv } from '@/utils/export'
 import TableActionMenu from '@/components/shared/TableActionMenu'
+import type { Role } from "./rolesCommon"
+import {
+  getRoleSlugColor,
+  formatRoleSlug,
+  ROLE_TITLE_KH,
+  ROLE_DESCRIPTION_KH,
+  formatRoleTitle,
+  isBuiltInRole,
+  getRoleDescription,
+  MODULE_ORDER,
+  MODULE_HEADINGS,
+  MODULE_HEADINGS_KM,
+  ACTION_ORDER,
+  formatApexPermissionLabel,
+} from './rolesCommon'
 
-interface Role {
-  id:                 number
-  name:               string
-  guard_name:         string
-  description?:        string
-  permissions_count?: number
-  users_count?:       number
-  is_system?:         boolean
-  is_active?:         boolean
-  status?:            'active' | 'inactive'
-  created_at?:        string
-  created_by?:        string
-}
-
-// ── Sub-component: Animated Counter ──────────────────────────────────────────
-const AnimatedCounter: React.FC<{ value: number; prefix?: string; suffix?: string; decimals?: number }> = ({
-  value,
-  prefix = '',
-  suffix = '',
-  decimals = 0,
-}) => {
-  const [displayValue, setDisplayValue] = useState(0)
-
-  useEffect(() => {
-    let start = 0
-    const end = value
-    const duration = 1000
-    const startTime = performance.now()
-
-    const updateCounter = (currentTime: number) => {
-      const elapsedTime = currentTime - startTime
-      const progress = Math.min(elapsedTime / duration, 1)
-      const easedProgress = 1 - Math.pow(1 - progress, 3)
-      const current = start + (end - start) * easedProgress
-      setDisplayValue(current)
-
-      if (progress < 1) {
-        requestAnimationFrame(updateCounter)
-      }
-    }
-
-    requestAnimationFrame(updateCounter)
-  }, [value])
-
-  return (
-    <span>
-      {prefix}
-      {decimals > 0
-        ? displayValue.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
-        : Math.round(displayValue).toLocaleString()}
-      {suffix}
-    </span>
-  )
-}
-
-// ── Sub-component: Circular Progress Ring ────────────────────────────────────
+// ── Sub-component: Circular Progress Ring// ── Sub-component: Circular Progress Ring ────────────────────────────────────
 const CircularProgressRing: React.FC<{ percentage: number; colorClass: string; size?: number }> = ({
   percentage,
   colorClass,
@@ -134,12 +108,13 @@ const CircularProgressRing: React.FC<{ percentage: number; colorClass: string; s
 
 // ── Main Roles Management Page Component ─────────────────────────────────────
 const RolesPage: React.FC = () => {
-  const { t, i18n } = useTranslation()
+  const { t, i18n } = useTranslation(['roles', 'common', 'buttons'])
   const qc = useQueryClient()
   const toast = useToast()
 
   const storeLanguage = useThemeStore((s) => s.language)
   const currentLang = storeLanguage || i18n.language || 'en'
+  const isKhmer = currentLang === 'km' || currentLang.startsWith('km') || currentLang.startsWith('kh')
 
   const {
     page,
@@ -168,6 +143,7 @@ const RolesPage: React.FC = () => {
   const canEdit = hasPermission('role.update')
   const canDelete = hasPermission('role.delete')
   const canExport = hasPermission('role.export')
+  const canImport = hasPermission('role.import') || canCreate
 
   // Dedicated Manage Role Permissions Drawer State
   const [permDrawerRole, setPermDrawerRole] = useState<Role | null>(null)
@@ -179,17 +155,6 @@ const RolesPage: React.FC = () => {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importPreviewData, setImportPreviewData] = useState<{ headers: string[]; rows: string[][] } | null>(null)
   const [isImporting, setIsImporting] = useState(false)
-
-  // Column Settings Dropdown State
-  const [showColSettings, setShowColSettings] = useState(false)
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
-    roleName: true,
-    guard: true,
-    permissions: true,
-    usersCount: true,
-    status: true,
-    actions: true,
-  })
 
   // Advanced Filter Drawer States
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -203,8 +168,11 @@ const RolesPage: React.FC = () => {
 
   // Form States for Role Create/Edit
   const [name, setName] = useState('')
+  const [displayName, setDisplayName] = useState('')
+  const [displayNameKm, setDisplayNameKm] = useState('')
   const [guardName, setGuardName] = useState('api')
   const [description, setDescription] = useState('')
+  const [descriptionKm, setDescriptionKm] = useState('')
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   const handleClearError = (field: string) => {
@@ -297,24 +265,161 @@ const RolesPage: React.FC = () => {
   }
 
   const toggleModuleAll = (modPerms: any[]) => {
-    const modNames = modPerms.map(p => p.name)
-    const allSelected = modNames.every(n => selectedPermissions.includes(n))
-    if (allSelected) {
-      const modSet = new Set(modNames)
-      setSelectedPermissions(prev => prev.filter(n => !modSet.has(n)))
-    } else {
-      setSelectedPermissions(prev => Array.from(new Set([...prev, ...modNames])))
-    }
+    const modNames = (modPerms || []).map(p => (typeof p === 'string' ? p : p?.name)).filter(Boolean)
+    setSelectedPermissions(prev => {
+      const list = Array.isArray(prev) ? prev : []
+      const allSelected = modNames.length > 0 && modNames.every(n => list.includes(n))
+      if (allSelected) {
+        const modSet = new Set(modNames)
+        return list.filter(n => !modSet.has(n))
+      } else {
+        return Array.from(new Set([...list, ...modNames]))
+      }
+    })
   }
 
   const togglePermission = (name: string) => {
-    setSelectedPermissions(prev =>
-      prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
-    )
+    if (!name) return
+    setSelectedPermissions(prev => {
+      const list = Array.isArray(prev) ? prev : []
+      return list.includes(name) ? list.filter(n => n !== name) : [...list, name]
+    })
   }
 
   const rolesRaw: Role[] = data?.data ?? []
   const pagination = data?.pagination ?? { total: rolesRaw.length, current_page: 1, last_page: 1 }
+
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { id: routeRoleId } = useParams<{ id?: string }>()
+
+  const isCreateRoute = location.pathname.endsWith('/create')
+  const isEditRoute = location.pathname.endsWith('/edit') || (Boolean(routeRoleId) && location.pathname.includes('/roles/'))
+
+  const [formMode, setFormMode] = useState<'create' | 'edit' | null>(null)
+  const [isLoadingPerms, setIsLoadingPerms] = useState(false)
+  const isFormView = formMode !== null || isCreateRoute || isEditRoute
+
+  const groupedPermissions = useMemo(() => {
+    const map: Record<string, any[]> = {}
+    allPermissions.forEach((p: any) => {
+      const pName = typeof p === 'string' ? p : p?.name
+      if (!pName) return
+      const mod = (typeof p === 'object' && p?.module) ? p.module : getPermissionModule(pName)
+      if (!map[mod]) map[mod] = []
+      map[mod].push(typeof p === 'string' ? { name: p, module: mod } : p)
+    })
+    Object.keys(map).forEach((mod) => {
+      map[mod].sort((a, b) => {
+        const actA = getPermissionAction(a?.name || '')
+        const actB = getPermissionAction(b?.name || '')
+        const weightA = ACTION_ORDER[actA] ?? 50
+        const weightB = ACTION_ORDER[actB] ?? 50
+        return weightA - weightB
+      })
+    })
+    return map
+  }, [allPermissions])
+
+  const sortedFormModules = useMemo(() => {
+    const existingModules = Object.keys(groupedPermissions)
+    return existingModules.sort((a, b) => {
+      const idxA = MODULE_ORDER.indexOf(a)
+      const idxB = MODULE_ORDER.indexOf(b)
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      if (idxA !== -1) return -1
+      if (idxB !== -1) return 1
+      return a.localeCompare(b)
+    })
+  }, [groupedPermissions])
+
+  // Direct lookup for edit route when role is not yet in local state
+  const isDirectEdit = Boolean(isEditRoute && routeRoleId && !editingRole)
+  const { data: directRoleData, isLoading: isLoadingDirectRole } = useQuery({
+    queryKey: ['role-direct-lookup', routeRoleId],
+    queryFn: async () => {
+      if (!routeRoleId) return null
+      const found = rolesRaw.find(
+        (r) => r.id.toString() === routeRoleId || r.name.toLowerCase() === routeRoleId.toLowerCase()
+      )
+      if (found) return found
+
+      try {
+        const res = await roleService.list({ per_page: 100 })
+        const list: Role[] = res?.data ?? []
+        const matched = list.find(
+          (r) => r.id.toString() === routeRoleId || r.name.toLowerCase() === routeRoleId.toLowerCase()
+        )
+        if (matched) return matched
+      } catch (err) {
+        console.error('Failed to query roles list for lookup', err)
+      }
+
+      if (!isNaN(Number(routeRoleId))) {
+        try {
+          return await roleService.show(routeRoleId)
+        } catch (err) {
+          console.error('Failed to fetch role by id', err)
+        }
+      }
+      return null
+    },
+    enabled: isDirectEdit,
+  })
+
+  useEffect(() => {
+    const roleToEdit = editingRole || directRoleData || rolesRaw.find(
+      (r) => r.id.toString() === routeRoleId || r.name.toLowerCase() === routeRoleId?.toLowerCase()
+    )
+
+    if (isCreateRoute) {
+      setFormMode('create')
+      setEditingRole(null)
+      setName('')
+      setGuardName('api')
+      setDisplayName('')
+      setDisplayNameKm('')
+      setDescription('')
+      setDescriptionKm('')
+      setSelectedPermissions([])
+      setFormErrors({})
+    } else if (isEditRoute && routeRoleId) {
+      setFormMode('edit')
+      if (roleToEdit && roleToEdit.id !== editingRole?.id) {
+        setEditingRole(roleToEdit)
+        setName(roleToEdit.name)
+        setGuardName(roleToEdit.guard_name || 'api')
+        const initialDisplayNameEn = roleToEdit.display_name || formatRoleSlug(roleToEdit.name)
+        const initialDisplayNameKm = roleToEdit.display_name_km || ROLE_TITLE_KH[roleToEdit.name.toLowerCase()] || ''
+        const initialDescEn = roleToEdit.description || ''
+        const initialDescKm = roleToEdit.description_km || ROLE_DESCRIPTION_KH[roleToEdit.name.toLowerCase()] || ''
+        setDisplayName(initialDisplayNameEn)
+        setDisplayNameKm(initialDisplayNameKm)
+        setDescription(initialDescEn)
+        setDescriptionKm(initialDescKm)
+        setIsLoadingPerms(true)
+        roleService.getRolePermissions(roleToEdit.id)
+          .then((res) => {
+            const perms = Array.isArray(res) ? res : (res?.permissions ?? [])
+            setSelectedPermissions(perms.map((p: any) => (typeof p === 'string' ? p : p.name)))
+          })
+          .catch(() => {})
+          .finally(() => setIsLoadingPerms(false))
+      }
+    } else if (!isCreateRoute && !isEditRoute && formMode) {
+      setFormMode(null)
+      setEditingRole(null)
+    }
+  }, [location.pathname, routeRoleId, isCreateRoute, isEditRoute, rolesRaw, directRoleData])
+
+  // Reset scroll whenever route or form mode changes
+  useEffect(() => {
+    const mainEl = document.querySelector('main')
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [location.pathname, isFormView])
 
   // ── Client-side Filter Logic ────────────────────────────────────────────────
   const roles = useMemo(() => {
@@ -417,11 +522,12 @@ const RolesPage: React.FC = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['roles'] })
       qc.invalidateQueries({ queryKey: ['roles-dashboard-stats'] })
-      toast.success('Role created successfully.')
+      toast.success(t('roles.toastCreateSuccess', 'Role created successfully.'))
+      handleCancelForm()
       closeModal()
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to create role.')
+      toast.error(err?.response?.data?.message ?? t('roles.toastCreateFailed', 'Failed to create role.'))
     },
   })
 
@@ -430,12 +536,14 @@ const RolesPage: React.FC = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['roles'] })
       qc.invalidateQueries({ queryKey: ['roles-dashboard-stats'] })
-      toast.success('Role updated successfully.')
+      qc.invalidateQueries({ queryKey: ['role-permissions'] })
+      toast.success(t('roles.toastUpdateSuccess', 'Role updated successfully.'))
+      handleCancelForm()
       closeModal()
       setPermDrawerRole(null)
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to update role.')
+      toast.error(err?.response?.data?.message ?? t('roles.toastUpdateFailed', 'Failed to update role.'))
     },
   })
 
@@ -444,12 +552,12 @@ const RolesPage: React.FC = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['roles'] })
       qc.invalidateQueries({ queryKey: ['roles-dashboard-stats'] })
-      toast.success('Role deleted successfully.')
+      toast.success(t('roles.toastDeleteSuccess', 'Role deleted successfully.'))
       setDeleteTarget(null)
       adjustAfterDelete(roles.length)
     },
     onError: () => {
-      toast.error('Failed to delete role. It may be assigned to active users.')
+      toast.error(t('roles.toastDeleteFailed', 'Failed to delete role. It may be assigned to active users.'))
       setDeleteTarget(null)
     },
   })
@@ -463,32 +571,80 @@ const RolesPage: React.FC = () => {
       if (permDrawerRole) {
         qc.invalidateQueries({ queryKey: ['role-permissions', permDrawerRole.id] })
       }
-      toast.success(`Updated permissions for role ${permDrawerRole?.name?.toUpperCase()}`)
+      toast.success(t('roles.toastPermissionsSuccess', {
+        role: formatRoleTitle(permDrawerRole, isKhmer),
+        defaultValue: `Updated permissions for role ${permDrawerRole?.name?.toUpperCase()}`
+      }))
       setPermDrawerRole(null)
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? 'Failed to update permissions.')
+      toast.error(err?.response?.data?.message ?? t('roles.toastPermissionsFailed', 'Failed to update permissions.'))
     },
   })
 
   // ── Modal & Drawer Handlers ────────────────────────────────────────────────
-  const openCreateModal = () => {
+  const handleOpenCreateForm = () => {
     setEditingRole(null)
     setFormErrors({})
     setName('')
+    setDisplayName('')
+    setDisplayNameKm('')
     setGuardName('api')
     setDescription('')
-    setModalOpen(true)
+    setDescriptionKm('')
+    setSelectedPermissions([])
+    setFormMode('create')
+    navigate('/roles/create')
   }
 
-  const openEditModal = (role: Role) => {
+  const handleOpenEditForm = (role: Role) => {
     setEditingRole(role)
     setFormErrors({})
     setName(role.name)
     setGuardName(role.guard_name || 'api')
-    setDescription(role.description || '')
-    setModalOpen(true)
+    const initialDisplayNameEn = role.display_name || formatRoleSlug(role.name)
+    const initialDisplayNameKm = role.display_name_km || ROLE_TITLE_KH[role.name.toLowerCase()] || ''
+    const initialDescEn = role.description || ''
+    const initialDescKm = role.description_km || ROLE_DESCRIPTION_KH[role.name.toLowerCase()] || ''
+    setDisplayName(initialDisplayNameEn)
+    setDisplayNameKm(initialDisplayNameKm)
+    setDescription(initialDescEn)
+    setDescriptionKm(initialDescKm)
+    setFormMode('edit')
+    setIsLoadingPerms(true)
+    roleService.getRolePermissions(role.id)
+      .then((res) => {
+        const perms = Array.isArray(res) ? res : (res?.permissions ?? [])
+        setSelectedPermissions(perms.map((p: any) => (typeof p === 'string' ? p : p.name)))
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingPerms(false))
+    navigate(`/roles/${role.name}/edit`)
   }
+
+  const handleCancelForm = () => {
+    setFormMode(null)
+    setEditingRole(null)
+    setFormErrors({})
+    setName('')
+    setDisplayName('')
+    setDisplayNameKm('')
+    setGuardName('api')
+    setDescription('')
+    setDescriptionKm('')
+    setSelectedPermissions([])
+    navigate('/roles')
+  }
+
+  const openCreateModal = handleOpenCreateForm
+  const openEditModal = handleOpenEditForm
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('action') === 'new') {
+      handleOpenCreateForm()
+    }
+  }, [])
 
   const openPermissionDrawer = (role: Role) => {
     setPermDrawerRole(role)
@@ -500,11 +656,14 @@ const RolesPage: React.FC = () => {
   const handleCloneRole = (role: Role) => {
     setFormErrors({})
     setName(`${role.name}_copy`)
+    setDisplayName(`${role.display_name || formatRoleSlug(role.name)} (Copy)`)
+    setDisplayNameKm(role.display_name_km ? `${role.display_name_km} (ចម្លង)` : (ROLE_TITLE_KH[role.name.toLowerCase()] ? `${ROLE_TITLE_KH[role.name.toLowerCase()]} (ចម្លង)` : ''))
     setGuardName(role.guard_name || 'api')
-    setDescription(`Cloned copy of ${role.name}`)
+    setDescription(role.description ? `Copy of ${role.description}` : '')
+    setDescriptionKm(role.description_km ? `ចម្លងចេញពី ${role.description_km}` : (ROLE_DESCRIPTION_KH[role.name.toLowerCase()] ? `ចម្លងចេញពី ${ROLE_DESCRIPTION_KH[role.name.toLowerCase()]}` : ''))
     setEditingRole(null)
-    setModalOpen(true)
-    toast.info(`Cloning role "${role.name.toUpperCase()}".`)
+    setFormMode('create')
+    toast.info(t('roles.toastCloneInfo', { role: role.name.toUpperCase(), defaultValue: `Cloning role "${role.name.toUpperCase()}".` }))
   }
 
   const closeModal = () => {
@@ -512,7 +671,11 @@ const RolesPage: React.FC = () => {
     setEditingRole(null)
     setFormErrors({})
     setName('')
+    setDisplayName('')
+    setDisplayNameKm('')
+    setGuardName('api')
     setDescription('')
+    setDescriptionKm('')
   }
 
   const validate = () => {
@@ -523,8 +686,8 @@ const RolesPage: React.FC = () => {
     return errors
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     const errors = validate()
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors)
@@ -532,7 +695,15 @@ const RolesPage: React.FC = () => {
       return
     }
 
-    const payload = { name, guard_name: guardName, description }
+    const payload = {
+      name: editingRole?.name === 'super_admin' ? 'super_admin' : (name.trim().toLowerCase().replace(/[\s-]+/g, '_') || name.trim()),
+      display_name: displayName.trim() || undefined,
+      display_name_km: displayNameKm.trim() || undefined,
+      guard_name: guardName || 'api',
+      description: description.trim() || undefined,
+      description_km: descriptionKm.trim() || undefined,
+      permissions: selectedPermissions,
+    }
     if (editingRole) {
       updateMutation.mutate({ id: editingRole.id, data: payload })
     } else {
@@ -583,12 +754,12 @@ const RolesPage: React.FC = () => {
       await new Promise((res) => setTimeout(res, 800))
       qc.invalidateQueries({ queryKey: ['roles'] })
       qc.invalidateQueries({ queryKey: ['roles-dashboard-stats'] })
-      toast.success('Successfully imported system roles dataset!')
+      toast.success(t('roles.toastImportSuccess', 'Successfully imported system roles dataset!'))
       setImportModalOpen(false)
       setImportFile(null)
       setImportPreviewData(null)
     } catch {
-      toast.error('Failed to import roles dataset.')
+      toast.error(t('roles.toastImportFailed', 'Failed to import roles dataset.'))
     } finally {
       setIsImporting(false)
     }
@@ -614,545 +785,501 @@ const RolesPage: React.FC = () => {
     reset()
   }
 
-  return (
-    <div className="space-y-5 print:p-0">
-      {/* ── 1. BREADCRUMB ─────────────────────────────────────────────────── */}
-      <Breadcrumb
-        items={[
-          { label: 'Dashboard', path: '/dashboard' },
-          { label: 'Administration' },
-          { label: 'Roles & Permissions' },
-        ]}
-      />
-
-      {/* ── 2. FRAMELESS HERO HEADER ────────────────────────────────────────── */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 py-1 print:hidden">
-        <div className="space-y-1 min-w-0 flex-1 z-10">
-          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
-            Roles & Permissions Management
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-            Manage system roles, user access levels, permissions, security policies, and authorization activities across the Enterprise ERP platform.
+  if (isFormView && isEditRoute && !editingRole) {
+    if (isLoading || isLoadingDirectRole) {
+      return (
+        <div className="py-24 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+          <Loader2 size={32} className="animate-spin text-primary" />
+          <span className="text-sm font-medium">{t('roles.loadingRoles', 'Loading role details...')}</span>
+        </div>
+      )
+    }
+    return (
+      <div className="py-24 flex flex-col items-center justify-center gap-4 text-center">
+        <AlertTriangle size={40} className="text-amber-500" />
+        <div>
+          <h2 className="text-lg font-bold text-foreground">{t('roles.noRolesFound', 'Role not found')}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t('roles.noRolesDescription', 'The requested role could not be found.')}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap w-full xl:w-auto xl:justify-end shrink-0 z-10">
-          {canCreate && (
-            <button
-              onClick={() => setImportModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all shadow-2xs cursor-pointer"
-            >
-              <Upload size={15} />
-              <span>Import CSV</span>
-            </button>
-          )}
-          {canExport && (
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all shadow-2xs cursor-pointer"
-            >
-              <Download size={15} />
-              <span>Export CSV</span>
-            </button>
-          )}
-          {canCreate && (
-            <button
-              onClick={openCreateModal}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-primary rounded-xl hover:opacity-90 transition-all shadow-md active:scale-95 cursor-pointer"
-            >
-              <Plus size={16} />
-              <span>Create Role</span>
-            </button>
-          )}
+        <Button onClick={() => navigate('/roles')} variant="outline">
+          {t('roles.title', 'Roles')}
+        </Button>
+      </div>
+    )
+  }
+
+  if (isFormView) {
+    return (
+      <div className="space-y-6 max-w-4xl pb-16 print:p-0">
+        {/* ── 1. GLOBAL BREADCRUMB ──────────────────────────────────────────── */}
+        <nav className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+          >
+            {t('common.dashboard', 'Dashboard')}
+          </button>
+          <span className="text-slate-400 dark:text-slate-600">›</span>
+          <button
+            type="button"
+            onClick={() => navigate('/roles')}
+            className="hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+          >
+            {t('roles.title', 'Roles')}
+          </button>
+          <span className="text-slate-400 dark:text-slate-600">›</span>
+          <span className="text-slate-700 dark:text-slate-300 font-medium">
+            {editingRole ? formatRoleTitle(editingRole, isKhmer) : t('roles.newRole', 'New Role')}
+          </span>
+          <span className="text-slate-400 dark:text-slate-600">›</span>
+          <span className="text-slate-900 dark:text-white font-semibold">
+            {editingRole ? t('roles.edit', 'Edit') : t('roles.create', 'Create')}
+          </span>
+        </nav>
+
+        {/* ── 2. HERO HEADER ────────────────────────────────────────────────── */}
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {editingRole
+              ? t('roles.editRoleHeading', {
+                  role: formatRoleTitle(editingRole, isKhmer),
+                  defaultValue: `Edit ${formatRoleSlug(editingRole.name)}`
+                })
+              : t('roles.newRole', 'New Role')}
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {t('roles.editSubtitle', 'Change what this role grants.')}
+          </p>
+        </div>
+
+        {/* ── 3. APEX SHADCN CARD ───────────────────────────────────────────── */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-card p-6 sm:p-8 shadow-xs">
+          {/* Role Details */}
+          <div className="mb-6">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              {t('roles.roleDetails', 'Role Details')}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+              {t('roles.roleDetailsDesc', "Permissions granted here apply to every user holding this role. A user's own grants are added on top of these — nothing listed below can be taken away per-user.")}
+            </p>
+          </div>
+
+          {/* Form Content */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* ── Row 1: Role Key & Guard Scope ─────────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* Role Key (Slug) */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                  {t('roles.roleKey', 'Role Key / Slug')} <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value.toLowerCase().replace(/[\s-]+/g, '_'))
+                    handleClearError('name')
+                  }}
+                  disabled={editingRole?.name === 'super_admin'}
+                  placeholder="e.g. warehouse_staff"
+                  className="w-full h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium font-mono text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors disabled:bg-slate-50 dark:disabled:bg-slate-800/40 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed"
+                />
+                {formErrors.name && (
+                  <p className="text-xs text-rose-500 mt-1.5 font-semibold">{formErrors.name}</p>
+                )}
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                  {t('roles.roleKeyHelp', 'Unique system identifier (e.g. cashier, manager, admin).')}
+                </p>
+              </div>
+
+              {/* Guard Scope */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                  {t('roles.guardScopeLabel', 'Guard Scope')}
+                </label>
+                <select
+                  value={guardName}
+                  onChange={(e) => setGuardName(e.target.value)}
+                  disabled={editingRole?.name === 'super_admin'}
+                  className="w-full h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors cursor-pointer disabled:bg-slate-50 dark:disabled:bg-slate-800/40 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed"
+                >
+                  <option value="api">{t('roles.guardApiOption', 'api (REST API Guard - Standard)')}</option>
+                  <option value="web">{t('roles.guardWebOption', 'web (Session Guard)')}</option>
+                </select>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                  {t('roles.guardScopeHelp', 'Authentication driver used to verify permissions (Default: api).')}
+                </p>
+              </div>
+            </div>
+
+            {/* ── Row 2: Display Title (EN) & Display Title (KH) ─────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                  {t('roles.displayNameEn', 'Display Title (English)')}
+                </label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => {
+                    setDisplayName(e.target.value)
+                    if (!editingRole && !name) {
+                      setName(e.target.value.toLowerCase().replace(/[\s-]+/g, '_'))
+                    }
+                  }}
+                  placeholder={t('roles.displayNameEnPlaceholder', 'e.g. Store Manager')}
+                  className="w-full h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                  {t('roles.displayNameKm', 'Display Title (Khmer)')}
+                </label>
+                <input
+                  type="text"
+                  value={displayNameKm}
+                  onChange={(e) => setDisplayNameKm(e.target.value)}
+                  placeholder={t('roles.displayNameKmPlaceholder', 'ឧ. អ្នកគ្រប់គ្រងហាង')}
+                  className="w-full h-10 px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* ── Row 3: Description (EN) & Description (KH) ────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                  {t('roles.descriptionEn', 'Description (English)')}
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  placeholder={t('roles.descriptionEnPlaceholder', 'Full access to store operations and inventory...')}
+                  className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-y min-h-[84px]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                  {t('roles.descriptionKm', 'Description (Khmer)')}
+                </label>
+                <textarea
+                  value={descriptionKm}
+                  onChange={(e) => setDescriptionKm(e.target.value)}
+                  rows={3}
+                  placeholder={t('roles.descriptionKmPlaceholder', 'មានសិទ្ធិគ្រប់គ្រងលើការលក់ និងទំនិញក្នុងស្តុក...')}
+                  className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors resize-y min-h-[84px]"
+                />
+              </div>
+            </div>
+
+            {/* Permissions Section */}
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                  {t('roles.permissions', 'Permissions')}
+                </label>
+                <div className="flex items-center gap-3 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPermissions(allPermissions.map((p: any) => p.name))}
+                    className="font-medium text-primary hover:text-primary/80 hover:underline cursor-pointer"
+                  >
+                    {t('roles.selectAll', 'Select all')}
+                  </button>
+                  <span className="text-slate-300 dark:text-slate-700">•</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPermissions([])}
+                    className="font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:underline cursor-pointer"
+                  >
+                    {t('roles.clearAll', 'Clear all')}
+                  </button>
+                </div>
+              </div>
+
+              {isLoadingPerms ? (
+                <div className="py-16 flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400">
+                  <Loader2 size={24} className="animate-spin text-primary" />
+                  <span className="text-sm font-medium">{t('roles.loadingPermissions', 'Loading permissions...')}</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-16 gap-y-6">
+                  {sortedFormModules.map((mod) => {
+                    const perms = groupedPermissions[mod] || []
+                    if (perms.length === 0) return null
+
+                    const modPermNames = perms.map((p: any) => (typeof p === 'string' ? p : p?.name)).filter(Boolean)
+                    const isAllModSelected = modPermNames.length > 0 && modPermNames.every((n: string) => (Array.isArray(selectedPermissions) ? selectedPermissions : []).includes(n))
+
+                    return (
+                      <div key={mod} className="space-y-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                            {MODULE_HEADINGS[mod] || mod.toUpperCase().replace(/_/g, ' ')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleModuleAll(perms)}
+                            className="text-[11px] font-normal text-slate-400 hover:text-primary dark:text-slate-500 dark:hover:text-primary transition-colors cursor-pointer select-none"
+                          >
+                            {isAllModSelected
+                              ? t('roles.deselectModuleAll', 'Deselect')
+                              : t('roles.selectModuleAll', 'Select all')}
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {perms.map((p: any) => {
+                            const isChecked = (Array.isArray(selectedPermissions) ? selectedPermissions : []).includes(p.name)
+                            const labels = formatApexPermissionLabel(p)
+
+                            return (
+                              <div
+                                key={p.name}
+                                role="checkbox"
+                                aria-checked={isChecked}
+                                tabIndex={0}
+                                onClick={() => togglePermission(p.name)}
+                                onKeyDown={(e) => {
+                                  if (e.key === ' ' || e.key === 'Enter') {
+                                    e.preventDefault()
+                                    togglePermission(p.name)
+                                  }
+                                }}
+                                className="flex items-center gap-2.5 cursor-pointer select-none group py-0.5 outline-none"
+                              >
+                                <div
+                                  className={cn(
+                                    "w-5 h-5 rounded-[4px] border flex items-center justify-center transition-all shrink-0",
+                                    isChecked
+                                      ? "bg-primary border-primary text-primary-foreground shadow-xs"
+                                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 group-hover:border-primary"
+                                  )}
+                                >
+                                  {isChecked && <Check size={14} strokeWidth={3.5} className="text-primary-foreground" />}
+                                </div>
+                                <span className="text-sm font-medium text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                                  {labels.en}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Actions Footer */}
+            <div className="flex flex-wrap items-center gap-3 pt-6 mt-8 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="h-10 px-5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98] text-sm font-semibold shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="animate-spin size-4" />
+                )}
+                <span>{editingRole ? t('roles.saveChanges', 'Save Changes') : t('roles.createRole', 'Create Role')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCancelForm}
+                className="h-10 px-5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold transition-colors cursor-pointer"
+              >
+                <span>{t('roles.cancel', 'Cancel')}</span>
+              </button>
+
+              {editingRole && isBuiltInRole(editingRole) && (
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-400 dark:text-slate-500 ml-2">
+                  <Lock size={14} className="shrink-0 text-slate-400" />
+                  <span>{t('roles.builtInHint', 'Built-in role — it can be changed but not deleted.')}</span>
+                </div>
+              )}
+            </div>
+          </form>
         </div>
       </div>
+    )
+  }
 
-      {/* ── 3. TOP 4 LARGE UNIQUE SECURITY KPI CARDS ───────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* CARD 1: ACCESS CONTROL OVERVIEW (Blue / Indigo Theme - ShieldCheck Icon) */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="p-5 rounded-[24px] bg-gradient-to-br from-blue-600/10 via-indigo-600/5 to-transparent border border-blue-500/20 dark:border-blue-500/30 bg-card shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
-              Access Control Overview
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <ArrowUpRight size={11} />
-                <span>+8.4%</span>
-              </span>
-              <span className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-                <ShieldCheck size={18} />
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="text-2xl font-bold text-foreground tracking-tight">
-                <AnimatedCounter value={analytics.totalRoles} />
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-0.5 font-medium">Configured System Roles</div>
-            </div>
-            <CircularProgressRing
-              percentage={Math.min(((analytics.activeRoles / (analytics.totalRoles || 1)) * 100), 100)}
-              colorClass="text-blue-500"
-            />
-          </div>
-          <div className="w-full bg-muted/60 h-1.5 rounded-full overflow-hidden mb-3">
-            <div
-              className="bg-blue-500 h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(((analytics.activeRoles / (analytics.totalRoles || 1)) * 100), 100)}%` }}
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border/60 text-[11px]">
-            <div>
-              <div className="text-muted-foreground">Active</div>
-              <div className="font-semibold text-emerald-600 dark:text-emerald-400">{analytics.activeRoles}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Inactive</div>
-              <div className="font-semibold text-slate-500">{analytics.inactiveRoles}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">System Roles</div>
-              <div className="font-semibold text-blue-600 dark:text-blue-400">{analytics.systemRoles}</div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* CARD 2: PERMISSION INTELLIGENCE (Purple / Violet Theme - Key Icon) */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="p-5 rounded-[24px] bg-gradient-to-br from-purple-600/10 via-violet-600/5 to-transparent border border-purple-500/20 dark:border-purple-500/30 bg-card shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-              Permission Intelligence
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                <Key size={11} />
-                <span>Coverage</span>
-              </span>
-              <span className="p-2.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform">
-                <Key size={18} />
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="text-2xl font-bold text-foreground tracking-tight">
-                <AnimatedCounter value={analytics.permissionCoverage} suffix="%" decimals={1} />
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-0.5 font-medium">Permission Coverage Rate</div>
-            </div>
-            <CircularProgressRing
-              percentage={analytics.permissionCoverage}
-              colorClass="text-purple-500"
-            />
-          </div>
-          <div className="w-full bg-muted/60 h-1.5 rounded-full overflow-hidden mb-3">
-            <div
-              className="bg-purple-500 h-full rounded-full transition-all duration-500"
-              style={{ width: `${analytics.permissionCoverage}%` }}
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border/60 text-[11px]">
-            <div>
-              <div className="text-muted-foreground">Total Perms</div>
-              <div className="font-semibold text-purple-600 dark:text-purple-400">{analytics.totalPermissions}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Assigned</div>
-              <div className="font-semibold text-emerald-600">{analytics.assignedPermissions}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Unused</div>
-              <div className="font-semibold text-slate-500">{analytics.unusedPermissions}</div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* CARD 3: SECURITY ACTIVITY (Emerald / Teal Theme - Activity Icon) */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="p-5 rounded-[24px] bg-gradient-to-br from-emerald-600/10 via-teal-600/5 to-transparent border border-emerald-500/20 dark:border-emerald-500/30 bg-card shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              Security Activity
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <Zap size={11} />
-                <span>Audited</span>
-              </span>
-              <span className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
-                <Activity size={18} />
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="text-2xl font-bold text-foreground tracking-tight">
-                <AnimatedCounter value={analytics.accessEvents} />
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-0.5 font-medium">Logged Security Events</div>
-            </div>
-            <CircularProgressRing
-              percentage={96}
-              colorClass="text-emerald-500"
-            />
-          </div>
-          <div className="w-full bg-muted/60 h-1.5 rounded-full overflow-hidden mb-3">
-            <div className="bg-emerald-500 h-full rounded-full w-[96%]" />
-          </div>
-          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border/60 text-[11px]">
-            <div>
-              <div className="text-muted-foreground">Perm Changes</div>
-              <div className="font-semibold text-emerald-600">{analytics.permissionChanges}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Role Updates</div>
-              <div className="font-semibold text-teal-600">{analytics.roleUpdates}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Failed Attempts</div>
-              <div className="font-semibold text-rose-500">{analytics.failedAttempts}</div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* CARD 4: ROLE USAGE ANALYTICS (Orange / Gold Theme - ShieldAlert Icon) */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="p-5 rounded-[24px] bg-gradient-to-br from-amber-600/10 via-orange-600/5 to-transparent border border-amber-500/20 dark:border-amber-500/30 bg-card shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-              Role Usage Analytics
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Users size={11} />
-                <span>Assigned</span>
-              </span>
-              <span className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
-                <Users size={18} />
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="text-2xl font-bold text-foreground tracking-tight">
-                <AnimatedCounter value={analytics.usersAssigned} />
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-0.5 font-medium">Assigned Users Total</div>
-            </div>
-            <CircularProgressRing
-              percentage={78}
-              colorClass="text-amber-500"
-            />
-          </div>
-          <div className="w-full bg-muted/60 h-1.5 rounded-full overflow-hidden mb-3">
-            <div className="bg-amber-500 h-full rounded-full w-[78%]" />
-          </div>
-          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-border/60 text-[11px]">
-            <div>
-              <div className="text-muted-foreground">Most Used</div>
-              <div className="font-semibold text-amber-600 dark:text-amber-400 truncate">{analytics.mostUsedRole}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Avg Perms</div>
-              <div className="font-semibold text-foreground">{analytics.averagePermissions}/role</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Distribution</div>
-              <div className="font-semibold text-emerald-600">Optimal</div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* ── 4. SECOND ROW MINI SECURITY KPI CARDS (6 CARDS) ───────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {/* 1. Today's Role Changes */}
-        <div className="p-3.5 rounded-[20px] bg-card border border-border/70 shadow-2xs flex items-center gap-3 hover:border-blue-500/30 transition-all">
-          <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
-            <Clock size={16} />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-foreground">+{analytics.roleChangesToday}</div>
-            <div className="text-[10px] text-muted-foreground font-medium">Today Changes</div>
-          </div>
-        </div>
-
-        {/* 2. New Roles */}
-        <div className="p-3.5 rounded-[20px] bg-card border border-border/70 shadow-2xs flex items-center gap-3 hover:border-emerald-500/30 transition-all">
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
-            <Plus size={16} />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+{analytics.newRolesCount}</div>
-            <div className="text-[10px] text-muted-foreground font-medium">New Roles</div>
-          </div>
-        </div>
-
-        {/* 3. New Permissions */}
-        <div className="p-3.5 rounded-[20px] bg-card border border-border/70 shadow-2xs flex items-center gap-3 hover:border-purple-500/30 transition-all">
-          <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500">
-            <Key size={16} />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-purple-600 dark:text-purple-400">+{analytics.newPermissionsCount}</div>
-            <div className="text-[10px] text-muted-foreground font-medium">New Perms</div>
-          </div>
-        </div>
-
-        {/* 4. Active Sessions */}
-        <div className="p-3.5 rounded-[20px] bg-card border border-border/70 shadow-2xs flex items-center gap-3 hover:border-cyan-500/30 transition-all">
-          <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-500 relative">
-            <Globe size={16} />
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-foreground">{analytics.activeSessions}</div>
-            <div className="text-[10px] text-muted-foreground font-medium">Active Sessions</div>
-          </div>
-        </div>
-
-        {/* 5. Security Alerts */}
-        <div className="p-3.5 rounded-[20px] bg-card border border-border/70 shadow-2xs flex items-center gap-3 hover:border-rose-500/30 transition-all">
-          <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
-            <AlertTriangle size={16} />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-rose-600 dark:text-rose-400">{analytics.securityAlerts}</div>
-            <div className="text-[10px] text-muted-foreground font-medium">Security Alerts</div>
-          </div>
-        </div>
-
-        {/* 6. Permission Reviews */}
-        <div className="p-3.5 rounded-[20px] bg-card border border-border/70 shadow-2xs flex items-center gap-3 hover:border-amber-500/30 transition-all">
-          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
-            <ShieldCheck size={16} />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-amber-600 dark:text-amber-400">{analytics.permissionReviews}</div>
-            <div className="text-[10px] text-muted-foreground font-medium">Perm Reviews</div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── 5. GLOBAL STANDARD TABLE TOOLBAR ─────────────────────────────────── */}
-      <TableToolbar
-        search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder={t('roles.searchPlaceholder', 'Search by role name, key, guard, description...')}
-        onFilterClick={() => setFilterDrawerOpen(true)}
-        isFilterActive={hasActiveFilters}
-        onReset={resetAllFilters}
-        onRefresh={() => {
-          qc.invalidateQueries({ queryKey: ['roles'] })
-          qc.invalidateQueries({ queryKey: ['roles-dashboard-stats'] })
-        }}
-        refreshLoading={isFetching}
-        columns={[
-          { key: 'roleName', label: t('roles.roleName', 'Role Name & Guard') },
-          { key: 'guard', label: t('roles.guardScope', 'Guard Scope') },
-          { key: 'permissions', label: t('roles.assignedPermissions', 'Assigned Permissions') },
-          { key: 'usersCount', label: t('roles.assignedUsers', 'Assigned Users') },
-          { key: 'status', label: t('roles.roleStatus', 'Role Status') },
+  return (
+    <div className="space-y-6 print:p-0">
+      {/* ── 1. GLOBAL BREADCRUMB ──────────────────────────────────────────── */}
+      <Breadcrumb
+        items={[
+          { label: t('roles.administration', 'Administration'), path: '/users' },
+          { label: t('roles.title', 'Roles & Permissions') },
         ]}
-        visibleColumns={visibleColumns}
-        onColumnChange={setVisibleColumns}
       />
 
-      {/* ── 6. ENTERPRISE ROLES DATA TABLE ───────────────────────────────────── */}
-      <div className="bg-card rounded-[24px] border border-border/80 shadow-lg overflow-hidden relative">
-        <TableWrapper isFetching={isFetching}>
-          <table className="w-full text-left border-collapse">
-            <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md border-b border-border/70 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <tr>
-                {visibleColumns.roleName && <th className="p-4 pl-6">Role Name & Guard</th>}
-                {visibleColumns.guard && <th className="p-4">Guard Scope</th>}
-                {visibleColumns.permissions && <th className="p-4">Permissions Count</th>}
-                {visibleColumns.usersCount && <th className="p-4">Assigned Users</th>}
-                {visibleColumns.status && <th className="p-4">Security Level</th>}
-                {visibleColumns.actions && <th className="p-4 pr-6 text-right">Actions</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50 text-xs text-foreground font-medium">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="p-4 pl-6"><div className="skeleton h-4 w-44 rounded-lg" /></td>
-                    <td className="p-4"><div className="skeleton h-4 w-20 rounded-lg" /></td>
-                    <td className="p-4"><div className="skeleton h-4 w-28 rounded-lg" /></td>
-                    <td className="p-4"><div className="skeleton h-4 w-16 rounded-lg" /></td>
-                    <td className="p-4"><div className="skeleton h-4 w-20 rounded-full" /></td>
-                    <td className="p-4 pr-6 text-right"><div className="skeleton h-4 w-20 rounded-lg ml-auto" /></td>
-                  </tr>
-                ))
-              ) : roles.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="py-16 text-center">
-                    <div className="max-w-xs mx-auto space-y-3">
-                      <div className="p-4 rounded-full bg-muted/40 w-fit mx-auto text-muted-foreground/40">
-                        <Shield size={40} />
-                      </div>
-                      <h3 className="text-base font-bold text-foreground">No roles found.</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Try adjusting your search query or create a new system role.
-                      </p>
-                      <button
-                        onClick={openCreateModal}
-                        className="btn-primary px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold hover:opacity-90 inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <Plus size={14} />
-                        Create Role
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                roles.map((r) => {
-                  const roleLower = r.name.toLowerCase()
-                  const isSystemRole = r.is_system || ['super-admin', 'admin', 'manager', 'staff'].includes(roleLower)
+      {/* ── 2. GLOBAL FRAMELESS HERO HEADER ───────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-1 print:hidden">
+        <div className="space-y-1 min-w-0 flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
+              {t('roles.title', 'Roles & Permissions')}
+            </h1>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+              {t('roles.rolesCount', { count: roles.length, defaultValue: `${roles.length} roles` })}
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
+            {t('roles.subtitle', 'What each role can do, and who holds it.')}
+          </p>
+        </div>
 
-                  let badge = (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      Active Role
-                    </span>
-                  )
+        <HeaderActionsGroup>
+          <ActionButton
+            onClick={() => navigate('/permissions')}
+            icon={<Key className="size-4 text-primary" />}
+            label={t('roles.permissionMatrix', 'Permission Matrix')}
+          />
 
-                  if (isSystemRole) {
-                    badge = (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                        <ShieldCheck size={11} />
-                        System Role
-                      </span>
-                    )
-                  } else if (r.is_active === false) {
-                    badge = (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-500/10 text-slate-600 border border-slate-500/20">
-                        Inactive
-                      </span>
-                    )
-                  }
-
-                  return (
-                    <tr
-                      key={r.id}
-                      className="hover:bg-muted/40 transition-colors group cursor-pointer"
-                    >
-                      {visibleColumns.roleName && (
-                        <td className="p-4 pl-6 font-semibold text-foreground">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2.5 rounded-2xl transition-transform group-hover:scale-105 ${
-                              isSystemRole ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'bg-primary/10 text-primary'
-                            }`}>
-                              <ShieldAlert size={18} />
-                            </div>
-                            <div>
-                              <div className="font-bold text-foreground text-sm flex items-center gap-2">
-                                <span>{r.name.toUpperCase().replace(/_/g, ' ')}</span>
-                                {isSystemRole && (
-                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-purple-500/15 text-purple-600">
-                                    System
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[11px] text-muted-foreground font-normal">
-                                {r.description || `Guard scope: ${r.guard_name}`}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                      )}
-
-                      {visibleColumns.guard && (
-                        <td className="p-4 font-mono text-xs text-muted-foreground">
-                          <span className="px-2 py-1 rounded-lg bg-muted border border-border">
-                            {r.guard_name || 'api'}
-                          </span>
-                        </td>
-                      )}
-
-                      {visibleColumns.permissions && (
-                        <td className="p-4 text-xs font-semibold text-foreground">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-muted/60 border border-border/80">
-                            <Key size={12} className="text-primary" />
-                            <span>{r.permissions_count ?? 12} Permissions</span>
-                          </span>
-                        </td>
-                      )}
-
-                      {visibleColumns.usersCount && (
-                        <td className="p-4 text-xs font-semibold text-foreground">
-                          <span className="inline-flex items-center gap-1">
-                            <Users size={13} className="text-muted-foreground" />
-                            <span>{r.users_count ?? (r.name.includes('staff') ? 120 : 15)} Users</span>
-                          </span>
-                        </td>
-                      )}
-
-                      {visibleColumns.status && <td className="p-4">{badge}</td>}
-
-                      {visibleColumns.actions && (
-                        <td className="p-4 pr-6 text-right" onClick={(e) => e.stopPropagation()}>
-                          <TableActionMenu
-                            variant="hybrid"
-                            maxInline={2}
-                            onView={() => setViewRole(r)}
-                            onEdit={canEdit ? () => openEditModal(r) : undefined}
-                            onDelete={canDelete && !r.is_system && r.name !== 'super_admin' ? () => setDeleteTarget(r) : undefined}
-                            items={[
-                              ...(canEdit ? [{
-                                label: t('roles.permissions', 'Manage Permissions'),
-                                icon: Shield,
-                                onClick: () => openPermissionDrawer(r),
-                                variant: 'default' as const,
-                              }] : []),
-                              ...(canCreate ? [{
-                                label: t('roles.clone', 'Clone Role'),
-                                icon: Copy,
-                                onClick: () => handleCloneRole(r),
-                                variant: 'default' as const,
-                              }] : []),
-                            ]}
-                          />
-                        </td>
-                      )}
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </TableWrapper>
-
-        <Pagination
-          currentPage={pagination.current_page}
-          lastPage={pagination.last_page}
-          total={pagination.total}
-          perPage={perPage}
-          onPageChange={setPage}
-          onPerPageChange={setPerPage}
-        />
+          {canCreate && (
+            <AddButton
+              onClick={openCreateModal}
+              label={t('roles.newRole', 'New Role')}
+            />
+          )}
+        </HeaderActionsGroup>
       </div>
 
-      {/* ── 7. ADVANCED FILTER DRAWER (ANT DESIGN DRAWER STYLE) ──────────────── */}
+      {/* ── 3. CARDS VIEW (APEX SHADCN 2-COLUMN CARDS GRID) ──────────────────── */}
+      <div className="space-y-4">
+          {isLoading ? (
+            <div className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 size={28} className="animate-spin text-primary" />
+              <span className="text-xs font-medium">{t('roles.loadingRoles', 'Loading roles...')}</span>
+            </div>
+          ) : roles.length === 0 ? (
+            <div className="py-16 text-center rounded-xl border border-dashed border-border p-8 bg-card/50">
+              <Shield size={36} className="mx-auto text-muted-foreground/50 mb-3" />
+              <h3 className="text-sm font-semibold text-foreground">
+                {t('roles.noRolesFound', 'No roles found')}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                {t('roles.noRolesDescription', 'No roles available in the system.')}
+              </p>
+              {canCreate && (
+                <Button
+                  size="sm"
+                  onClick={openCreateModal}
+                  className="mt-4 h-8 px-3 text-xs bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer"
+                >
+                  <Plus size={14} className="mr-1" />
+                  {t('roles.newRole', 'New Role')}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {roles.map((role) => {
+                const isSys = isBuiltInRole(role)
+                const permsCount = role.permissions_count ?? 0
+                const usersCount = role.users_count ?? 0
+                const slugColor = getRoleSlugColor(role.name)
+
+                return (
+                  <div
+                    key={role.id}
+                    className="rounded-xl border border-neutral-200/90 dark:border-neutral-800 bg-white dark:bg-card p-6 shadow-md hover:shadow-lg dark:shadow-neutral-950/40 hover:border-neutral-300 dark:hover:border-neutral-700 transition-all duration-200 flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Top Header: Title, slug badge, built-in badge, pencil edit */}
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <h3 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+                            {formatRoleTitle(role, isKhmer)}
+                          </h3>
+                          <span className={slugColor}>
+                            {role.name.toLowerCase()}
+                          </span>
+                          {isSys ? (
+                            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-md text-xs font-bold bg-blue-600 text-white shadow-xs">
+                              <Lock size={12} className="stroke-[2.5]" />
+                              <span>{t('roles.builtIn', 'Built-in')}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-md text-xs font-bold bg-amber-600 text-white shadow-xs">
+                              <Unlock size={12} className="stroke-[2.5]" />
+                              <span>{t('roles.custom', 'Custom')}</span>
+                            </span>
+                          )}
+                        </div>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(role)}
+                            title={t('roles.editRole', 'Edit role')}
+                            className="text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors cursor-pointer"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-2 mb-6 leading-relaxed">
+                        {getRoleDescription(role, isKhmer, t)}
+                      </p>
+                    </div>
+
+                    {/* Bottom stats & View action */}
+                    <div className="flex items-center justify-between text-sm text-neutral-500 dark:text-neutral-400 mt-auto">
+                      <div className="flex items-center gap-6">
+                        <span className="inline-flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-neutral-400 dark:text-neutral-500 stroke-[2]" />
+                          <span>{t('roles.permissionsCount', { count: permsCount, defaultValue: `${permsCount} permissions` })}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                          <Users size={16} className="text-neutral-400 dark:text-neutral-500 stroke-[2]" />
+                          <span>{t('roles.usersCount', { count: usersCount, defaultValue: `${usersCount} users` })}</span>
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openPermissionDrawer(role)}
+                        className="text-sm font-semibold text-primary hover:text-primary/80 hover:underline cursor-pointer"
+                      >
+                        {t('roles.view', 'View')}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Pagination for Cards View */}
+          {pagination.last_page > 1 && (
+            <div className="pt-2">
+              <Pagination
+                currentPage={pagination.current_page}
+                lastPage={pagination.last_page}
+                total={pagination.total}
+                perPage={perPage}
+                onPageChange={setPage}
+                onPerPageChange={setPerPage}
+              />
+            </div>
+          )}
+        </div>
+
+      {/* ── APEX SHADCN INFORMATIONAL NOTICE ─────────────────────────────────── */}
+      <div className="pt-6 pb-2 text-[12px] text-muted-foreground/80 leading-relaxed border-t border-border/40 mt-6 print:hidden">
+        {t('roles.notice', 'These checks gate what the interface offers, not what the data allows. This template exports as static files with no server, so every fixture under /api is publicly readable regardless of role — enforce permissions in your backend as well. Roles you create are held in memory for the session, like every other change in this demo — see the data-provider docs for where to swap in a real backend.')}
+      </div>
+
+  {/* ── 7. ADVANCED FILTER DRAWER (ANT DESIGN DRAWER STYLE) ──────────────── */}
       <AnimatePresence>
         {filterDrawerOpen && (
           <div className="fixed inset-0 z-50 overflow-hidden print:hidden">
@@ -1175,7 +1302,9 @@ const RolesPage: React.FC = () => {
                 <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/30">
                   <div className="flex items-center gap-2">
                     <Sliders className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-bold text-foreground">Advanced Role Filters</h2>
+                    <h2 className="text-lg font-bold text-foreground">
+                      {t('roles.filterTitle', 'Advanced Role Filters')}
+                    </h2>
                   </div>
                   <button
                     onClick={() => setFilterDrawerOpen(false)}
@@ -1189,12 +1318,14 @@ const RolesPage: React.FC = () => {
                 <div className="p-6 space-y-6 overflow-y-auto flex-1">
                   {/* Role Status */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Role Status</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      {t('roles.roleStatus', 'Role Status')}
+                    </label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: 'all', label: 'All Status' },
-                        { id: 'active', label: 'Active Role' },
-                        { id: 'inactive', label: 'Inactive Role' },
+                        { id: 'all', label: t('roles.allStatus', 'All Status') },
+                        { id: 'active', label: t('roles.activeRole', 'Active Role') },
+                        { id: 'inactive', label: t('roles.inactiveRole', 'Inactive Role') },
                       ].map((st) => (
                         <button
                           key={st.id}
@@ -1202,7 +1333,7 @@ const RolesPage: React.FC = () => {
                           onClick={() => setFilterStatus(st.id)}
                           className={`py-2 px-3 text-xs font-semibold rounded-xl capitalize transition-all border cursor-pointer ${
                             filterStatus === st.id
-                              ? 'bg-primary text-white border-primary shadow-2xs'
+                              ? 'bg-primary text-white border-primary shadow-xs'
                               : 'bg-card border-border text-muted-foreground hover:bg-muted'
                           }`}
                         >
@@ -1214,12 +1345,14 @@ const RolesPage: React.FC = () => {
 
                   {/* Role Type */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Role Type</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      {t('roles.roleType', 'Role Type')}
+                    </label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: 'all', label: 'All Types' },
-                        { id: 'system', label: 'System Role' },
-                        { id: 'custom', label: 'Custom Role' },
+                        { id: 'all', label: t('roles.allTypes', 'All Types') },
+                        { id: 'system', label: t('roles.systemRole', 'System Role') },
+                        { id: 'custom', label: t('roles.customRole', 'Custom Role') },
                       ].map((tp) => (
                         <button
                           key={tp.id}
@@ -1227,7 +1360,7 @@ const RolesPage: React.FC = () => {
                           onClick={() => setFilterType(tp.id)}
                           className={`py-2 px-3 text-xs font-semibold rounded-xl capitalize transition-all border cursor-pointer ${
                             filterType === tp.id
-                              ? 'bg-primary text-white border-primary shadow-2xs'
+                              ? 'bg-primary text-white border-primary shadow-xs'
                               : 'bg-card border-border text-muted-foreground hover:bg-muted'
                           }`}
                         >
@@ -1239,37 +1372,45 @@ const RolesPage: React.FC = () => {
 
                   {/* Permission Level */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Permission Level</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      {t('roles.permissionLevel', 'Permission Level')}
+                    </label>
                     <select
                       value={filterPermLevel}
                       onChange={(e) => setFilterPermLevel(e.target.value)}
                       className="w-full p-2.5 rounded-xl border border-border bg-card text-foreground text-xs font-medium"
                     >
-                      <option value="all">All Permission Levels</option>
-                      <option value="full">Full Administrative Access</option>
-                      <option value="limited">Limited Operations Access</option>
-                      <option value="readonly">Read-Only Access</option>
+                      <option value="all">{t('roles.allPermissionLevels', 'All Permission Levels')}</option>
+                      <option value="full">{t('roles.fullAdministrativeAccess', 'Full Administrative Access')}</option>
+                      <option value="limited">{t('roles.limitedOperationsAccess', 'Limited Operations Access')}</option>
+                      <option value="readonly">{t('roles.readOnlyAccess', 'Read-Only Access')}</option>
                     </select>
                   </div>
 
                   {/* Date Range */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Created Date Range</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      {t('roles.createdDateRange', 'Created Date Range')}
+                    </label>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <span className="text-[10px] text-muted-foreground mb-1 block">Start Date</span>
+                        <span className="text-[10px] text-muted-foreground mb-1 block">
+                          {t('roles.startDate', 'Start Date')}
+                        </span>
                         <EnterpriseDatePicker
                           value={filterStartDate}
                           onChange={(val) => setFilterStartDate(val)}
-                          placeholder="Start Date"
+                          placeholder={t('roles.startDate', 'Start Date')}
                         />
                       </div>
                       <div>
-                        <span className="text-[10px] text-muted-foreground mb-1 block">End Date</span>
+                        <span className="text-[10px] text-muted-foreground mb-1 block">
+                          {t('roles.endDate', 'End Date')}
+                        </span>
                         <EnterpriseDatePicker
                           value={filterEndDate}
                           onChange={(val) => setFilterEndDate(val)}
-                          placeholder="End Date"
+                          placeholder={t('roles.endDate', 'End Date')}
                         />
                       </div>
                     </div>
@@ -1277,18 +1418,20 @@ const RolesPage: React.FC = () => {
 
                   {/* Usage Range */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">User Usage Range</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      {t('roles.userUsageRange', 'User Usage Range')}
+                    </label>
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="number"
-                        placeholder="Min Users"
+                        placeholder={t('roles.minUsers', 'Min Users')}
                         value={filterMinUsers}
                         onChange={(e) => setFilterMinUsers(e.target.value)}
                         className="w-full p-2 rounded-xl border border-border bg-card text-foreground text-xs"
                       />
                       <input
                         type="number"
-                        placeholder="Max Users"
+                        placeholder={t('roles.maxUsers', 'Max Users')}
                         value={filterMaxUsers}
                         onChange={(e) => setFilterMaxUsers(e.target.value)}
                         className="w-full p-2 rounded-xl border border-border bg-card text-foreground text-xs"
@@ -1304,14 +1447,14 @@ const RolesPage: React.FC = () => {
                     onClick={resetAllFilters}
                     className="flex-1 py-2.5 px-4 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                   >
-                    Reset Filters
+                    {t('roles.resetFilters', 'Reset Filters')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setFilterDrawerOpen(false)}
                     className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-white text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
                   >
-                    Apply Filters
+                    {t('roles.applyFilters', 'Apply Filters')}
                   </button>
                 </div>
               </motion.div>
@@ -1334,7 +1477,7 @@ const RolesPage: React.FC = () => {
               <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
                 <h3 className="font-bold text-base text-foreground flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
-                  <span>Role Specification Details</span>
+                  <span>{t('roles.roleDetailsTitle', 'Role Specification Details')}</span>
                 </h3>
                 <button onClick={() => setViewRole(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">
                   <X size={18} />
@@ -1347,21 +1490,21 @@ const RolesPage: React.FC = () => {
                     <ShieldAlert size={32} />
                   </div>
                   <div className="text-center">
-                    <p className="font-bold text-foreground text-base">{viewRole.name.toUpperCase().replace(/_/g, ' ')}</p>
-                    <p className="text-muted-foreground text-xs font-mono">Guard: {viewRole.guard_name}</p>
+                    <p className="font-bold text-foreground text-base">{formatRoleTitle(viewRole, isKhmer)}</p>
+                    <p className="text-muted-foreground text-xs font-mono">{t('roles.guardScope', 'Guard Scope')}: {viewRole.guard_name}</p>
                     <span className="mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-                      System Role
+                      {isBuiltInRole(viewRole) ? t('roles.systemRole', 'System Role') : t('roles.customRole', 'Custom Role')}
                     </span>
                   </div>
                 </div>
 
                 <div className="space-y-3 text-xs">
                   {[
-                    { label: 'Role Name', value: viewRole.name },
-                    { label: 'Guard Scope', value: viewRole.guard_name || 'api' },
-                    { label: 'Permissions Count', value: `${viewRole.permissions_count ?? 12} Granted` },
-                    { label: 'Assigned Users', value: `${viewRole.users_count ?? 15} Active Users` },
-                    { label: 'Security Level', value: 'High Privilege' },
+                    { label: t('roles.roleName', 'Role Name'), value: formatRoleTitle(viewRole, isKhmer) },
+                    { label: t('roles.guardScope', 'Guard Scope'), value: viewRole.guard_name || 'api' },
+                    { label: t('roles.permissionsCountLabel', 'Permissions Count'), value: t('roles.permissionsGranted', { count: viewRole.permissions_count ?? 12, defaultValue: `${viewRole.permissions_count ?? 12} Granted` }) },
+                    { label: t('roles.assignedUsersLabel', 'Assigned Users'), value: t('roles.activeUsersCount', { count: viewRole.users_count ?? 15, defaultValue: `${viewRole.users_count ?? 15} Active Users` }) },
+                    { label: t('roles.securityLevel', 'Security Level'), value: t('roles.highPrivilege', 'High Privilege') },
                   ].map((row) => (
                     <div key={row.label} className="flex items-center justify-between py-2.5 border-b border-border/60">
                       <span className="text-muted-foreground font-medium">{row.label}</span>
@@ -1377,13 +1520,13 @@ const RolesPage: React.FC = () => {
                     onClick={() => { setViewRole(null); openEditModal(viewRole) }}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold bg-primary text-white rounded-xl hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
                   >
-                    <Edit2 size={14} /> Edit Role
+                    <Edit2 size={14} /> {t('roles.editRoleBtn', 'Edit Role')}
                   </button>
                   <button
                     onClick={() => { setViewRole(null); openPermissionDrawer(viewRole) }}
                     className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
                   >
-                    <Shield size={14} /> Permissions
+                    <Shield size={14} /> {t('roles.permissionsBtn', 'Permissions')}
                   </button>
                 </div>
               )}
@@ -1392,100 +1535,6 @@ const RolesPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── 9. CREATE / EDIT ROLE MODAL ───────────────────────────────────────── */}
-      <AnimatePresence>
-        {modalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 print:hidden">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border rounded-[24px] w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4"
-            >
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-primary" />
-                  <span>{editingRole ? 'Edit System Role' : 'Create New System Role'}</span>
-                </h3>
-                <button onClick={closeModal} className="text-muted-foreground hover:text-foreground cursor-pointer">
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    Role Key Name <span className="text-rose-500 font-bold">*</span>
-                  </label>
-                  <input
-                    id="name"
-                    name="name"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value)
-                      handleClearError('name')
-                    }}
-                    placeholder="e.g. manager, cashier, warehouse_staff"
-                    className={getFieldClass(
-                      formErrors.name,
-                      'w-full p-2.5 rounded-xl border border-border bg-card text-foreground text-xs font-mono transition-all'
-                    )}
-                  />
-                  <FieldError error={formErrors.name} />
-                  <p className="text-[10px] text-muted-foreground mt-1">Use lowercase with underscores (e.g. store_manager)</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    Guard Scope
-                  </label>
-                  <select
-                    value={guardName}
-                    onChange={(e) => setGuardName(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-border bg-card text-foreground text-xs"
-                  >
-                    <option value="api">api (REST API Guard)</option>
-                    <option value="web">web (Session Guard)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    Role Description
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    placeholder="Describe privileges for this role..."
-                    className="w-full p-2.5 rounded-xl border border-border bg-card text-foreground text-xs"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-4 border-t border-border mt-4">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="px-4 py-2 text-xs font-semibold text-white bg-primary rounded-xl hover:opacity-90 shadow-sm flex items-center gap-2 disabled:opacity-60 cursor-pointer"
-                  >
-                    {isSaving && <Loader2 size={14} className="animate-spin" />}
-                    {isSaving ? 'Saving...' : editingRole ? 'Save Changes' : 'Create Role'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ── 10. MANAGE PERMISSIONS DRAWER (SLIDE FROM RIGHT) ─────────────────── */}
       {/* ── 10. MANAGE PERMISSIONS DRAWER (SLIDE FROM RIGHT) ─────────────────── */}
       <AnimatePresence>
         {permDrawerRole && (
@@ -1513,13 +1562,15 @@ const RolesPage: React.FC = () => {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-foreground">Role Permissions Assignment</h2>
+                        <h2 className="text-base font-bold text-foreground">
+                          {t('roles.managePermissionsTitle', 'Role Permissions Assignment')}
+                        </h2>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary uppercase">
-                          {permDrawerRole.name}
+                          {formatRoleTitle(permDrawerRole, isKhmer)}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Guard: <span className="font-mono text-foreground font-semibold">{permDrawerRole.guard_name || 'api'}</span> • {selectedPermissions.length} / {allPermissions.length} permissions granted
+                        {t('roles.guardLabel', 'Guard')}: <span className="font-mono text-foreground font-semibold">{permDrawerRole.guard_name || 'api'}</span> • {t('roles.permissionsCountGranted', { selected: selectedPermissions.length, total: allPermissions.length, defaultValue: `${selectedPermissions.length} / ${allPermissions.length} permissions granted` })}
                       </p>
                     </div>
                   </div>
@@ -1541,7 +1592,7 @@ const RolesPage: React.FC = () => {
                         type="text"
                         value={permDrawerSearch}
                         onChange={(e) => setPermDrawerSearch(e.target.value)}
-                        placeholder="Search permissions or modules..."
+                        placeholder={t('roles.searchPermissionsPlaceholder', 'Search permissions or modules...')}
                         className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                       {permDrawerSearch && (
@@ -1558,10 +1609,10 @@ const RolesPage: React.FC = () => {
                       onChange={(e) => setPermDrawerModule(e.target.value)}
                       className="px-3 py-2 text-xs rounded-xl border border-border bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                     >
-                      <option value="all">All Modules ({permissionModules.length})</option>
+                      <option value="all">{t('roles.allModulesCount', { count: permissionModules.length, defaultValue: `All Modules (${permissionModules.length})` })}</option>
                       {permissionModules.map((m) => (
                         <option key={m} value={m}>
-                          {m.toUpperCase()}
+                          {MODULE_HEADINGS[m] || m.toUpperCase()}
                         </option>
                       ))}
                     </select>
@@ -1570,7 +1621,7 @@ const RolesPage: React.FC = () => {
                   {/* Quick Action Buttons */}
                   <div className="flex items-center justify-between py-1 border-b border-border/50 text-xs">
                     <span className="font-medium text-muted-foreground">
-                      Showing {drawerFilteredPermissions.length} permissions
+                      {t('roles.showingPermissionsCount', { count: drawerFilteredPermissions.length, defaultValue: `Showing ${drawerFilteredPermissions.length} permissions` })}
                     </span>
                     <div className="flex items-center gap-2">
                       <button
@@ -1578,7 +1629,7 @@ const RolesPage: React.FC = () => {
                         onClick={handleSelectAll}
                         className="px-2.5 py-1 rounded-lg text-primary hover:bg-primary/10 font-semibold transition-colors cursor-pointer"
                       >
-                        Select All Visible
+                        {t('roles.selectAllVisible', 'Select All Visible')}
                       </button>
                       <span className="text-muted-foreground/40">|</span>
                       <button
@@ -1586,7 +1637,7 @@ const RolesPage: React.FC = () => {
                         onClick={handleDeselectAll}
                         className="px-2.5 py-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted font-semibold transition-colors cursor-pointer"
                       >
-                        Deselect All Visible
+                        {t('roles.deselectAllVisible', 'Deselect All Visible')}
                       </button>
                     </div>
                   </div>
@@ -1595,11 +1646,11 @@ const RolesPage: React.FC = () => {
                   {(isLoadingRolePerms || isLoadingAllPerms) ? (
                     <div className="py-16 flex flex-col items-center justify-center gap-2 text-muted-foreground">
                       <Loader2 size={24} className="animate-spin text-primary" />
-                      <span className="text-xs font-medium">Loading permissions matrix...</span>
+                      <span className="text-xs font-medium">{t('roles.loadingMatrix', 'Loading permissions matrix...')}</span>
                     </div>
                   ) : Object.keys(groupedDrawerPermissions).length === 0 ? (
                     <div className="py-16 text-center text-xs text-muted-foreground">
-                      No permissions match your search or filter criteria.
+                      {t('roles.noPermissionsMatch', 'No permissions match your search or filter criteria.')}
                     </div>
                   ) : (
                     /* Module Groups Accordion / Cards */
@@ -1618,7 +1669,7 @@ const RolesPage: React.FC = () => {
                             <div className="px-4 py-3 bg-muted/40 border-b border-border/70 flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-xs uppercase tracking-wider text-foreground">
-                                  {mod.replace(/_/g, ' ')}
+                                  {MODULE_HEADINGS[mod] || mod.toUpperCase().replace(/_/g, ' ')}
                                 </span>
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
                                   {selectedInMod} / {modPermNames.length}
@@ -1629,7 +1680,9 @@ const RolesPage: React.FC = () => {
                                 onClick={() => toggleModuleAll(perms)}
                                 className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
                               >
-                                {isAllModSelected ? 'Deselect Module' : 'Select All Module'}
+                                {isAllModSelected
+                                  ? t('roles.deselectModuleAll', 'Deselect')
+                                  : t('roles.selectModuleAll', 'Select all')}
                               </button>
                             </div>
 
@@ -1638,7 +1691,7 @@ const RolesPage: React.FC = () => {
                               {perms.map((p: any) => {
                                 const isChecked = selectedPermissions.includes(p.name)
                                 const risk = p.risk_level || getPermissionRiskLevel(p.name)
-                                const action = p.action_type || getPermissionAction(p.name)
+                                const labels = formatApexPermissionLabel(p)
 
                                 return (
                                   <div
@@ -1651,18 +1704,22 @@ const RolesPage: React.FC = () => {
                                     }`}
                                   >
                                     <div className="flex items-center gap-2.5 min-w-0">
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={() => {}}
-                                        className="rounded text-primary focus:ring-primary h-3.5 w-3.5 pointer-events-none"
-                                      />
+                                      <div
+                                        className={cn(
+                                          "w-5 h-5 rounded-[4px] border flex items-center justify-center transition-all shrink-0",
+                                          isChecked
+                                            ? "bg-primary border-primary text-primary-foreground shadow-xs"
+                                            : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 group-hover:border-primary"
+                                        )}
+                                      >
+                                        {isChecked && <Check size={14} strokeWidth={3.5} className="text-primary-foreground" />}
+                                      </div>
                                       <div className="min-w-0">
                                         <div className="text-xs font-semibold text-foreground truncate">
-                                          {p.name}
+                                          {labels.en}
                                         </div>
-                                        <div className="text-[10px] text-muted-foreground capitalize">
-                                          {action.replace(/_/g, ' ')}
+                                        <div className="text-[10px] text-muted-foreground font-mono">
+                                          {p.name}
                                         </div>
                                       </div>
                                     </div>
@@ -1675,7 +1732,7 @@ const RolesPage: React.FC = () => {
                                           : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                                       }`}
                                     >
-                                      {risk}
+                                      {risk === 'high' ? t('roles.riskHigh', 'HIGH') : risk === 'medium' ? t('roles.riskMedium', 'MED') : t('roles.riskLow', 'LOW')}
                                     </span>
                                   </div>
                                 )
@@ -1696,7 +1753,7 @@ const RolesPage: React.FC = () => {
                     disabled={assignPermissionsMutation.isPending}
                     className="flex-1 py-2.5 px-4 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    Cancel
+                    {t('roles.cancel', 'Cancel')}
                   </button>
                   <button
                     type="button"
@@ -1712,7 +1769,7 @@ const RolesPage: React.FC = () => {
                     className="flex-1 py-2.5 px-4 rounded-xl bg-primary text-white text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                   >
                     {assignPermissionsMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-                    <span>{assignPermissionsMutation.isPending ? 'Saving Permissions...' : 'Save Permissions'}</span>
+                    <span>{assignPermissionsMutation.isPending ? t('roles.savingPermissions', 'Saving Permissions...') : t('roles.savePermissions', 'Save Permissions')}</span>
                   </button>
                 </div>
               </motion.div>
@@ -1729,7 +1786,7 @@ const RolesPage: React.FC = () => {
           setImportFile(null)
           setImportPreviewData(null)
         }}
-        resourceName="Roles"
+        resourceName={t('roles.resourceName', 'Roles')}
         expectedHeaders={['name', 'guard_name', 'description']}
         importFile={importFile}
         setImportFile={(file) => {
@@ -1746,9 +1803,13 @@ const RolesPage: React.FC = () => {
       {/* ── 12. CONFIRM DELETE DIALOG ──────────────────────────────────────────── */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete Role"
-        message={`Are you sure you want to delete role "${deleteTarget?.name?.toUpperCase()}"? Users assigned to this role will lose their privileges.`}
-        confirmText="Delete Role"
+        title={t('roles.deleteRoleTitle', 'Delete Role')}
+        message={t('roles.deleteRoleConfirmMessage', {
+          role: formatRoleTitle(deleteTarget, isKhmer),
+          defaultValue: `Are you sure you want to delete role "${formatRoleTitle(deleteTarget, false)}"? Users assigned to this role will lose their privileges.`
+        })}
+        confirmText={t('roles.deleteRoleBtn', 'Delete Role')}
+        cancelText={t('roles.cancel', 'Cancel')}
         loading={deleteMutation.isPending}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}

@@ -256,6 +256,22 @@
     },
     "defaultCustomer": "Online Customer",
     "defaultCarrier": "Standard Delivery"
-  }
+  },
+  "searchPlaceholder": "Search order number, customer name, phone...",
+  "deleteSelected": "Delete Selected",
+  "searchByOrderOrCustomer": "Search by order number or customer...",
+  "statusPending": "Pending",
+  "statusProcessing": "Processing",
+  "statusCompleted": "Completed",
+  "statusCancelled": "Cancelled",
+  "allPaymentStatus": "All Payment Status",
+  "paymentPaid": "Paid",
+  "paymentUnpaid": "Unpaid",
+  "paymentPartiallyPaid": "Partially Paid",
+  "paymentRefunded": "Refunded",
+  "allFulfillment": "All Fulfillment",
+  "fulfillmentUnfulfilled": "Unfulfilled",
+  "fulfillmentProcessing": "Processing",
+  "fulfillmentShipped": "Shipped",
+  "fulfillmentDelivered": "Delivered"
 }
-

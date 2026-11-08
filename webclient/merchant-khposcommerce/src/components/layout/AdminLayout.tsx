@@ -16,12 +16,12 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { useThemeStore, applyPrimaryCssVar } from '@/stores/themeStore'
 import { useCompanyStore } from '@/stores/companyStore'
-import { BrandLogo } from '@/components/common/BrandLogo'
+import { BrandLogo } from '@/components/common'
 import { useTranslation } from 'react-i18next'
 import api from '@/api/client'
 import Header from './Header'
 import Footer from './Footer'
-import UserAvatar from '@/components/common/UserAvatar'
+import { UserAvatar } from '@/components/common'
 import { ErrorBoundary } from '@/components/common'
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
@@ -177,8 +177,7 @@ const NAV_GROUPS: NavGroup[] = [
           { labelKey: 'nav.employeeDirectory',    path: '/employees?tab=employees', permission: 'employee.view' },
           { labelKey: 'nav.attendanceManagement', path: '/employees?tab=attendance', permission: 'attendance.view' },
           { labelKey: 'nav.leaveManagement',      path: '/employees?tab=leaves', permission: 'employee.view' },
-          { labelKey: 'nav.holidays',             path: '/employees?tab=holidays', permission: 'holiday.view' },
-          { labelKey: 'nav.payrollManagement',    path: '/employees?tab=payrolls', permission: 'payroll.view' },
+          { labelKey: 'nav.payrollManagement',    path: '/payroll', permission: 'payroll.view' },
           { labelKey: 'nav.orgStructure',         path: '/employees?tab=org', permission: 'department.view' },
         ],
       },
@@ -1099,8 +1098,17 @@ const AdminLayout: React.FC = () => {
     ? `${sidebarConfig.width}px`
     : '256px'
 
+  const mainRef = React.useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [location.pathname])
+
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-full w-full bg-background overflow-hidden">
       {/* ── Mobile Sidebar Drawer & Backdrop (for phones < 640px) ─────────── */}
       <AnimatePresence>
         {mobileOpen && (
@@ -1389,7 +1397,7 @@ const AdminLayout: React.FC = () => {
         <Header onToggleSidebar={handleToggleSidebar} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-background print:overflow-visible print:bg-white print:p-0">
+        <main ref={mainRef} className="flex-1 overflow-y-auto bg-slate-50/60 dark:bg-background print:overflow-visible print:bg-white print:p-0">
           <div className="p-4 sm:p-6 print:p-0">
             <motion.div
               key={location.pathname}

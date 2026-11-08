@@ -19,11 +19,10 @@ import notificationService from '@/services/notificationService'
 import { sound } from '@/utils/sound'
 import { useToast } from '@/hooks/useToast'
 import { useTranslation } from 'react-i18next'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import { HeaderActionsGroup, AddButton, ActionButton, FilterButton, RefreshButton, TableToolbar } from '@/components/common'
+import { Breadcrumb, ResetButton } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ActionButton, FilterButton, RefreshButton } from '@/components/common'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { ColumnSettingsPopover } from '@/components/shared/ColumnSettingsPopover'
 import { usePermission } from '@/hooks/usePermission'
@@ -36,6 +35,7 @@ import { StockTransferStatsCards } from './components/StockTransferStatsCards'
 import { StockAdjustmentStatsCards } from './components/StockAdjustmentStatsCards'
 import { StockOpnameStatsCards } from './components/StockOpnameStatsCards'
 import { StockAlertConfigModal, DEFAULT_STOCK_ALERT_CONFIG, type StockAlertConfig } from './components/StockAlertConfigModal'
+import { InventorySearchBar } from './components/InventorySearchBar'
 import { InventoryFilterDrawer } from './components/InventoryFilterDrawer'
 import { InventoryTabsNav } from './components/InventoryTabsNav'
 import { InventoryStockLevelsTable } from './components/InventoryStockLevelsTable'
@@ -559,7 +559,7 @@ const InventoryPage: React.FC<{ tab?: string }> = ({ tab }) => {
 
       const currentWarehouseName = selectedWarehouse
         ? warehouses.find((w: any) => String(w.id) === String(selectedWarehouse))?.name || 'Selected Warehouse'
-        : 'All Warehouses (ឃ្លាំងទាំងអស់)'
+        : t('inventory.allWarehouses', 'All Warehouses')
 
       const res = await notificationService.sendStockAlert({
         out_of_stock: analytics.outOfStock,
@@ -805,16 +805,25 @@ const InventoryPage: React.FC<{ tab?: string }> = ({ tab }) => {
         />
       )}
 
-      {/* Search & Actions Bar (for list tabs) */}
+      {/* Search & Actions Bar (100% Product standard) */}
       {activeTab !== 'dashboard' && (
-        <TableToolbar
+        <InventorySearchBar
+          activeTab={activeTab}
           search={search}
           onSearchChange={(val) => { setSearch(val); setPage(1); }}
-          searchPlaceholder={t('inventory.searchPlaceholder', 'Search sku, item name, barcode...')}
-          onFilterClick={() => setFilterDrawerOpen(true)}
-          isFilterActive={!!(selectedWarehouse || selectedCategory || selectedBrand || selectedStatus || selectedSupplier || filterStartDate || filterEndDate || selectedCreatedBy)}
-          onReset={handleResetFilters}
-          onRefresh={() => {
+          warehouseFilter={selectedWarehouse}
+          onWarehouseChange={(val) => { setSelectedWarehouse(val); setPage(1); }}
+          warehouses={Array.isArray(warehouses) ? warehouses : ((warehouses as any)?.data ?? [])}
+          statusFilter={selectedStatus}
+          onStatusChange={(val) => { setSelectedStatus(val); setPage(1); }}
+          categoryFilter={selectedCategory}
+          onCategoryChange={(val) => { setSelectedCategory(val); setPage(1); }}
+          categories={Array.isArray(categories) ? categories : ((categories as any)?.data ?? [])}
+          brandFilter={selectedBrand}
+          onBrandChange={(val) => { setSelectedBrand(val); setPage(1); }}
+          brands={Array.isArray(brands) ? brands : ((brands as any)?.data ?? [])}
+          onApply={() => {
+            setPage(1)
             if (activeTab === 'levels') qc.invalidateQueries({ queryKey: ['inventory-levels'] })
             if (activeTab === 'movements') qc.invalidateQueries({ queryKey: ['inventory-movements-list'] })
             if (activeTab === 'transfers') qc.invalidateQueries({ queryKey: ['inventory-transfers'] })
@@ -822,6 +831,7 @@ const InventoryPage: React.FC<{ tab?: string }> = ({ tab }) => {
             if (activeTab === 'opnames') qc.invalidateQueries({ queryKey: ['inventory-opnames'] })
             qc.invalidateQueries({ queryKey: ['inventory-dashboard-stats'] })
           }}
+          onReset={handleResetFilters}
           columns={currentTabColumnOptions}
           visibleColumns={currentTabVisibleColumns}
           onColumnChange={setCurrentTabVisibleColumns}

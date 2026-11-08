@@ -10,7 +10,7 @@ export const namespaces = [
   'settings', 'setting', 'reports', 'report', 'auth', 'tables', 'table', 'forms', 'form', 'pagination', 'errors', 'empty',
   'confirm', 'deleteConfirm', 'finance', 'logs', 'marketing', 'mobile',
   'nav', 'pageContent', 'profile', 'reviews', 'toast', 'website', 'pos', 'orders', 'order', 'security', 'cms', 'shipping', 'returns',
-  'users', 'user', 'policies', 'policy', 'expenses', 'expense'
+  'users', 'user', 'policies', 'policy', 'expenses', 'expense', 'roles', 'role'
 ]
 
 // Expose runtime translation dictionaries for React.createElement interceptor
@@ -143,13 +143,7 @@ export function translateString(text: string): string {
       // If it's a multiple selection, apply language-specific modifier rules
       if (isSelected) {
         if (currentLang === 'km') {
-          translatedEntity = `${translatedEntity}ដែលបានជ្រើសរើស`
-        } else if (currentLang === 'th') {
-          translatedEntity = `${translatedEntity}ที่เลือก`
-        } else if (currentLang === 'vi') {
-          translatedEntity = `Các ${translatedEntity.toLowerCase()} đã chọn`
-        } else if (currentLang === 'zh') {
-          translatedEntity = `已选${translatedEntity}`
+          translatedEntity = `${translatedEntity} ដែលបានជ្រើសរើស`
         } else {
           translatedEntity = `Selected ${translatedEntity}`
         }
@@ -197,10 +191,10 @@ const namespaceAliases: Record<string, string> = {
   setting: 'settings',
   users: 'settings',
   user: 'settings',
-  policies: 'returns',
-  policy: 'returns',
+  policy: 'policies',
   expenses: 'finance',
   expense: 'finance',
+  role: 'roles',
 }
 
 export async function ensureLanguageLoaded(lng: string) {

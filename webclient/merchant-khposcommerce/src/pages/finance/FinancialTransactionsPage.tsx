@@ -5,20 +5,15 @@ import { financeService } from '@/services/financeService'
 import { useToast } from '@/hooks/useToast'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import {
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-  TableToolbar,
-  ModernSelect,
-} from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import type { TransactionForm } from './types/finance.types'
 import {
-  TransactionStatsCards,
-  TransactionFormDrawer,
+  FinancialTransactionsStatsCards,
+  FinancialTransactionsFormDrawer,
   FinancialTransactionsTable,
+  TransactionSearchBar,
 } from './components'
 
 export const FinancialTransactionsPage: React.FC = () => {
@@ -48,7 +43,6 @@ export const FinancialTransactionsPage: React.FC = () => {
     txn_company: true,
     txn_method: true,
     txn_ref: true,
-    txn_description: true,
     txn_date: true,
   })
 
@@ -176,36 +170,32 @@ export const FinancialTransactionsPage: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <TransactionStatsCards
+      <FinancialTransactionsStatsCards
         transactions={allTransactions && allTransactions.length > 0 ? allTransactions : transactions}
         isLoading={loadingTransactions || loadingAllTransactions}
       />
 
-      {/* Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-Style Financial Transactions Filter Bar */}
+      <TransactionSearchBar
         search={search}
         onSearchChange={(val) => {
           setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('finance.search_transactions', 'Search transactions (description, reference)...')}
-        filterContent={
-          <ModernSelect
-            value={filterType}
-            onChange={(val) => {
-              setFilterType(String(val ?? ''))
-              setPage(1)
-            }}
-            options={[
-              { value: '', label: `${t('finance.filter_type', t('common.type', 'Type'))}: ${t('finance.all_types', t('common.all', 'All'))}` },
-              { value: 'debit', label: t('finance.type_debit', 'Debit (Inflow)') },
-              { value: 'credit', label: t('finance.type_credit', 'Credit (Outflow)') },
-            ]}
-            className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-          />
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['transactions-tab'] })}
-        refreshLoading={fetchingTransactions}
+        typeFilter={filterType}
+        onTypeChange={(val) => {
+          setFilterType(val)
+          setPage(1)
+        }}
+        onApply={() => {
+          setPage(1)
+          qc.invalidateQueries({ queryKey: ['transactions-tab'] })
+        }}
+        onReset={() => {
+          setSearch('')
+          setFilterType('')
+          setPage(1)
+        }}
         columns={[
           { key: 'txn_id', label: t('finance.txn_id', 'Transaction ID') },
           { key: 'txn_type', label: t('finance.type_col', 'Type') },
@@ -213,7 +203,6 @@ export const FinancialTransactionsPage: React.FC = () => {
           { key: 'txn_company', label: t('finance.company_col', 'Company') },
           { key: 'txn_method', label: t('finance.payment_method', 'Payment Method') },
           { key: 'txn_ref', label: t('finance.ref_col', 'Reference') },
-          { key: 'txn_description', label: t('finance.description_col', 'Description') },
           { key: 'txn_date', label: t('finance.date_col', 'Date') },
         ]}
         visibleColumns={visibleColumns}
@@ -239,7 +228,7 @@ export const FinancialTransactionsPage: React.FC = () => {
       />
 
       {/* Form Drawer */}
-      <TransactionFormDrawer
+      <FinancialTransactionsFormDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         editingItem={null}

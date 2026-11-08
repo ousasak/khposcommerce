@@ -2,17 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Copy, Check } from 'lucide-react'
 import type { PromotionCampaign } from '../types'
-import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerTabNav,
-  DetailDrawerBody,
-  DetailDrawerFooter,
-  DetailDrawerCard,
-  DetailDrawerRow,
-  StatusBadge,
-  ActionButton,
-} from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerTabNav, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, StatusBadge, ActionButton } from '@/components/common'
 
 interface PromotionDetailDrawerProps {
   promo: PromotionCampaign | null

@@ -26,17 +26,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
 import { GlobalFormat } from '@/utils/formatters'
-import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerTabNav,
-  DetailDrawerBody,
-  DetailDrawerFooter,
-  DetailDrawerCard,
-  DetailDrawerRow,
-  CancelButton,
-  ActionButton,
-} from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerTabNav, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, CancelButton, ActionButton } from '@/components/common'
 import type { DetailDrawerTabItem } from '@/components/common'
 import type {
   OrderReturn,

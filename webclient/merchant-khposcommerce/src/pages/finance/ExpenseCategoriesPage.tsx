@@ -6,19 +6,11 @@ import { useToast } from '@/hooks/useToast'
 import { usePermission } from '@/hooks/usePermission'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import {
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-  TableToolbar,
-  ModernSelect,
-  ConfirmModal,
-  BulkSelectionBanner,
-} from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, ConfirmModal, BulkSelectionBanner } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import type { CategoryForm } from './types/finance.types'
-import { CategoryFormDrawer, ExpenseCategoriesTable } from './components'
+import { ExpenseCategoriesFormDrawer, ExpenseCategoriesTable, ExpenseCategorySearchBar } from './components'
 
 export const ExpenseCategoriesPage: React.FC = () => {
   const { t } = useTranslation(['finance', 'common', 'nav'])
@@ -268,31 +260,27 @@ export const ExpenseCategoriesPage: React.FC = () => {
         </HeaderActionsGroup>
       </div>
 
-      {/* Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-Style Expense Categories Filter Bar */}
+      <ExpenseCategorySearchBar
         search={search}
         onSearchChange={(val) => {
           setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('finance.search_categories', 'Search categories...')}
-        filterContent={
-          <ModernSelect
-            value={filterStatus}
-            onChange={(val) => {
-              setFilterStatus(String(val ?? ''))
-              setPage(1)
-            }}
-            options={[
-              { value: '', label: `${t('finance.filter_status', t('common.status', 'Status'))}: ${t('finance.all_status', t('common.all', 'All'))}` },
-              { value: 'active', label: t('finance.status_active', 'Active') },
-              { value: 'inactive', label: t('finance.status_inactive', 'Inactive') },
-            ]}
-            className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-          />
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['expense-categories-tab'] })}
-        refreshLoading={isFetching}
+        statusFilter={filterStatus}
+        onStatusChange={(val) => {
+          setFilterStatus(val)
+          setPage(1)
+        }}
+        onApply={() => {
+          setPage(1)
+          qc.invalidateQueries({ queryKey: ['expense-categories-tab'] })
+        }}
+        onReset={() => {
+          setSearch('')
+          setFilterStatus('')
+          setPage(1)
+        }}
         columns={[
           { key: 'category_name', label: t('finance.category_name', 'Category Name') },
           { key: 'category_code', label: t('finance.code_col', 'Code') },
@@ -302,6 +290,8 @@ export const ExpenseCategoriesPage: React.FC = () => {
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
+        selectedCount={selectedCategoryIds.length}
+        onBulkDelete={() => setBulkDeleteCategoryConfirmOpen(true)}
       />
 
       {/* Bulk Delete Banner */}
@@ -342,7 +332,7 @@ export const ExpenseCategoriesPage: React.FC = () => {
       />
 
       {/* Form Drawer */}
-      <CategoryFormDrawer
+      <ExpenseCategoriesFormDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         editingItem={editingItem}

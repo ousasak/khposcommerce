@@ -8,14 +8,7 @@ import { sound } from '@/utils/sound'
 import { focusFirstInvalidField } from '@/utils/formValidation'
 import { EmployeeAvatar } from './EmployeeAvatar'
 import { formatShiftName } from '../utils/shiftFormatters'
-import {
-  EnterpriseModal,
-  ModalFooter,
-  EnterpriseDatePicker,
-  EnterpriseTimePicker,
-  FieldLabel,
-  FieldError,
-} from '@/components/common'
+import { EnterpriseModal, ModalFooter, EnterpriseDatePicker, EnterpriseTimePicker, FieldLabel, FieldError } from '@/components/common'
 
 interface QuickAttendanceModalProps {
   open: boolean

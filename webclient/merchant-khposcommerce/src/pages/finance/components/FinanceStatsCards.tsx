@@ -8,11 +8,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import {
-  EnterpriseStatsCard,
-  EnterpriseMiniStatsCard,
-  EnterpriseStatsGrid,
-} from '@/components/common'
+import { EnterpriseStatsCard, EnterpriseMiniStatsCard, EnterpriseStatsGrid } from '@/components/common'
 
 export type FinanceTimeframe = 'all' | 'month' | 'today'
 

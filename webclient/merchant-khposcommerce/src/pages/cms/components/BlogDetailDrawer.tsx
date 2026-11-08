@@ -20,17 +20,7 @@ import {
   Hash,
   Share2,
 } from 'lucide-react'
-import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerTabNav,
-  DetailDrawerBody,
-  DetailDrawerFooter,
-  DetailDrawerCard,
-  StatusBadge,
-  AppImage,
-  ActionButton,
-} from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerTabNav, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, StatusBadge, AppImage, ActionButton } from '@/components/common'
 import type { DetailDrawerTabItem } from '@/components/common'
 import { useToast } from '@/hooks/useToast'
 import { getAbsoluteImageUrl } from '@/utils/image'

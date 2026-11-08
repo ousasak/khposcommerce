@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { StatusBadge, CloseButton, ActionButton } from '@/components/common'
 import { getAbsoluteImageUrl } from '@/utils/image'
-import { Image as AntImage } from 'antd'
+import { Image } from '@/components/ui/image'
 import type { Banner } from '../types'
 
 interface BannerDetailDrawerProps {
@@ -75,7 +75,7 @@ export const BannerDetailDrawer: React.FC<BannerDetailDrawerProps> = ({
           <div className="p-6 space-y-5 overflow-y-auto flex-1">
             {/* Interactive Device Mockup Switcher */}
             <div className="space-y-2">
-              <AntImage
+              <Image
                 src={getImageUrl(banner.image_url || banner.image)}
                 preview={{
                   visible: imagePreviewVisible,

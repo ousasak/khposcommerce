@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import { securityService } from '@/services/securityService'
 import { showToast } from '../../utils/toast'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import { HeaderActionsGroup } from '@/components/common'
 
 export const SecurityOverviewDashboard: React.FC = () => {

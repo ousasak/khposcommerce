@@ -1,3 +1,5 @@
+export type RateSource = 'system' | 'manual' | 'nbc' | 'api'
+
 export interface CurrencyForm {
   name: string
   code: string
@@ -5,6 +7,9 @@ export interface CurrencyForm {
   exchange_rate: string
   is_active: boolean
   is_default: boolean
+  country?: string
+  rate_source?: RateSource
+  decimal_precision?: number
 }
 
 export interface CurrencyItem {
@@ -15,6 +20,9 @@ export interface CurrencyItem {
   exchange_rate: number | string
   is_active: boolean
   is_default: boolean
+  country?: string
+  rate_source?: RateSource
+  decimal_precision?: number
   created_at?: string
   updated_at?: string
 }

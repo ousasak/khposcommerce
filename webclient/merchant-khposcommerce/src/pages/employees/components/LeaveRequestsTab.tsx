@@ -23,6 +23,7 @@ import {
   UserCheck,
   CalendarRange,
   CalendarDays,
+  RotateCcw,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
@@ -37,6 +38,9 @@ import {
   ModernSelect,
   EnterpriseDatePicker,
   TableActionMenu,
+  InlineFilterSelect,
+  FilterPopover,
+  ActiveFilterChips,
 } from '@/components/common'
 import TableWrapper from '@/components/shared/TableWrapper'
 import Pagination from '@/components/shared/Pagination'
@@ -48,8 +52,8 @@ import { GlobalFormat } from '@/utils/formatters'
 import { focusFirstInvalidField } from '@/utils/formValidation'
 import { useAuthStore } from '@/stores/authStore'
 import { EmployeeAvatar } from './EmployeeAvatar'
-import { LeaveFilterDrawer } from './LeaveFilterDrawer'
 import { LeaveDetailDrawer } from './LeaveDetailDrawer'
+import LeaveSearchBar from './LeaveSearchBar'
 
 export interface LeaveRequestsTabProps {
   createModalOpen?: boolean
@@ -77,7 +81,7 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('')
   const [filterType, setFilterType] = useState<string>('')
-  const [timeframe, setTimeframe] = useState<'7days' | 'month' | 'year' | 'all'>('7days')
+  const [timeframe, setTimeframe] = useState<'all' | '7days' | 'month' | 'year' | 'custom'>('all')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
 
@@ -103,7 +107,6 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
   ], [t])
 
   // ─── Modals & Drawers State ────────────────────────────────────────────────
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [inspectRecord, setInspectRecord] = useState<any | null>(null)
   const [internalCreateOpen, setInternalCreateOpen] = useState(false)
   const isCreateModalOpen = controlledCreateOpen !== undefined ? controlledCreateOpen : internalCreateOpen
@@ -191,32 +194,20 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
 
   // ─── KPI Metrics (SmartHR 4-Tile Ribbon Cards) ─────────────────────────────
   const kpiMetrics = useMemo(() => {
-    const presentToday =
-      statsData?.attendance_today?.present ??
-      (statsData?.active_employees
-        ? Math.max(1, statsData.active_employees - (statsData.pending_leaves_count || 0))
-        : 180)
-    const totalStaff = statsData?.total_employees || empList.length || 200
-
-    const planned =
-      records.filter((r: any) => r.leave_type === 'annual' || r.leave_type === 'special').length ||
-      10
-    const unplanned =
-      records.filter(
-        (r: any) =>
-          r.leave_type === 'sick' || r.leave_type === 'unpaid' || r.leave_type === 'maternity'
-      ).length || 10
-    const pending =
-      records.filter((r: any) => r.status === 'pending').length ||
-      (statsData?.pending_leaves_count ?? 15)
+    const total = pagination.total ?? records.length
+    const pending = records.filter((r: any) => r.status === 'pending').length
+    const approved = records.filter((r: any) => r.status === 'approved').length
+    const rejected = records.filter((r: any) => r.status === 'rejected').length
 
     return {
-      presentRatio: `${presentToday}/${totalStaff}`,
-      plannedLeaves: planned,
-      unplannedLeaves: unplanned,
-      pendingRequests: pending,
+      totalLeaves: total,
+      pendingLeaves: (filterStatus === '' && statsData?.pending_leaves_count !== undefined)
+        ? statsData.pending_leaves_count
+        : pending,
+      approvedLeaves: approved,
+      rejectedLeaves: rejected,
     }
-  }, [statsData, empList, records])
+  }, [pagination.total, records, statsData, filterStatus])
 
   // ─── Mutations ─────────────────────────────────────────────────────────────
   const approveMutation = useMutation({
@@ -309,7 +300,7 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
     setSearch('')
     setFilterStatus('')
     setFilterType('')
-    setTimeframe('7days')
+    setTimeframe('all')
     setStartDateFilter('')
     setEndDateFilter('')
     setPage(1)
@@ -319,7 +310,7 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
   const activeFiltersCount = [
     filterStatus,
     filterType,
-    timeframe !== '7days' && timeframe !== 'all' ? timeframe : '',
+    timeframe !== 'all' ? timeframe : '',
     startDateFilter,
     endDateFilter,
   ].filter(Boolean).length
@@ -409,256 +400,255 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
     <div className="space-y-4">
       {/* ─── 1. Flutter 3 Flatten Style KPI Metric Cards ─── */}
       <FlattenStatsGrid columns={4} className="print:hidden">
-        {/* Card 1: Total Present (Flatten Teal Box) */}
+        {/* Card 1: Total Leaves */}
         <FlattenStatCard
-          title={t('employees.total_present', 'Total Present')}
-          value={kpiMetrics.presentRatio}
-          useCounter={false}
-          icon={UserCheck}
+          title={t('employees.total_leaves', 'Total Requests')}
+          value={kpiMetrics.totalLeaves}
+          useCounter={true}
+          icon={CalendarDays}
           color="teal"
           delay={0.02}
         />
 
-        {/* Card 2: Planned Leaves (Flatten Emerald Box) */}
+        {/* Card 2: Pending Approval */}
         <FlattenStatCard
-          title={t('employees.planned_leaves', 'Planned Leaves')}
-          value={kpiMetrics.plannedLeaves}
+          title={t('employees.pending_leaves', 'Pending Approval')}
+          value={kpiMetrics.pendingLeaves}
           useCounter={true}
-          icon={CalendarRange}
-          color="emerald"
+          icon={Clock}
+          color="amber"
           delay={0.06}
         />
 
-        {/* Card 3: Unplanned Leaves (Flatten Amber Box) */}
+        {/* Card 3: Approved */}
         <FlattenStatCard
-          title={t('employees.unplanned_leaves', 'Unplanned Leaves')}
-          value={kpiMetrics.unplannedLeaves}
+          title={t('employees.approved_leaves', 'Approved')}
+          value={kpiMetrics.approvedLeaves}
           useCounter={true}
-          icon={AlertCircle}
-          color="amber"
+          icon={CheckCircle2}
+          color="emerald"
           delay={0.1}
         />
 
-        {/* Card 4: Pending Requests (Flatten Cyan Box) */}
+        {/* Card 4: Rejected */}
         <FlattenStatCard
-          title={t('employees.pending_requests', 'Pending Requests')}
-          value={kpiMetrics.pendingRequests}
+          title={t('employees.rejected_leaves', 'Rejected')}
+          value={kpiMetrics.rejectedLeaves}
           useCounter={true}
-          icon={Clock}
-          color="cyan"
+          icon={XCircle}
+          color="rose"
           delay={0.14}
         />
       </FlattenStatsGrid>
 
 
 
-      {/* ─── 3. Global Standard Table Toolbar ─── */}
-      <TableToolbar
+      {/* ─── SmartHR/Product Style Inline Leave Requests Search & Filter Bar ─── */}
+      <LeaveSearchBar
         search={search}
         onSearchChange={(val) => {
           setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('employees.search_leaves_placeholder', 'Search employee, code, reason...')}
-        onFilterClick={() => setFilterDrawerOpen(true)}
-        isFilterActive={activeFiltersCount > 0}
-        filterActiveCount={activeFiltersCount}
-        onReset={handleResetFilters}
-        hideResetButton={activeFiltersCount === 0 && !search}
-        onRefresh={() => {
-          sound.playClick()
-          refetch()
+        statusFilter={filterStatus}
+        onStatusChange={(val) => {
+          setFilterStatus(val)
+          setPage(1)
         }}
-        refreshLoading={isFetching || isLoading}
+        leaveTypeFilter={filterType}
+        onLeaveTypeChange={(val) => {
+          setFilterType(val)
+          setPage(1)
+        }}
+        timeframeFilter={timeframe}
+        onTimeframeChange={(val) => {
+          setTimeframe((val as any) || '7days')
+          setPage(1)
+        }}
+        startDateFilter={startDateFilter}
+        onStartDateChange={(val) => {
+          setStartDateFilter(val)
+          setPage(1)
+        }}
+        endDateFilter={endDateFilter}
+        onEndDateChange={(val) => {
+          setEndDateFilter(val)
+          setPage(1)
+        }}
+        onApply={() => setPage(1)}
+        onReset={handleResetFilters}
         columns={columnOptions}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
         columnSettingsTitle={t('employees.columns_visibility', 'Column Visibility')}
-        leftActions={
-          <div className="w-48 hidden sm:block">
-            <ModernSelect
-              value={timeframe}
-              onChange={(val) => {
-                sound.playClick()
-                setTimeframe(val as any)
-                setPage(1)
-              }}
-              options={timeframeOptions}
-              size="md"
-              prefix={<Calendar size={14} className="text-muted-foreground" />}
-              selectClassName="!rounded-xl !h-10 font-medium text-xs sm:text-[13px] shadow-xs border-border/80 hover:border-border hover:bg-muted/40 transition-all cursor-pointer"
-              placeholder={t('employees.select_timeframe', 'Timeframe')}
-            />
-          </div>
-        }
       />
 
-      {/* ─── 4. Active Filter Indicator Chips ─── */}
-      {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-1 text-xs animate-in fade-in duration-200">
-          <span className="text-muted-foreground font-medium">{t('common.activeFilters', 'Active Filters:')}</span>
-
-          {startDateFilter && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/25">
-              <Calendar size={12} />
-              <span>{t('employees.from_date', 'From')}: {startDateFilter}</span>
-              <button
-                type="button"
-                onClick={() => setStartDateFilter('')}
-                className="hover:bg-primary/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {endDateFilter && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/25">
-              <Calendar size={12} />
-              <span>{t('employees.to_date', 'To')}: {endDateFilter}</span>
-              <button
-                type="button"
-                onClick={() => setEndDateFilter('')}
-                className="hover:bg-primary/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {filterType && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-foreground font-medium border border-border">
-              <span>{t('employees.leave_type', 'Leave Type')}: {getLeaveTypeDisplay(filterType).label}</span>
-              <button
-                type="button"
-                onClick={() => setFilterType('')}
-                className="hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {filterStatus && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-foreground font-medium border border-border">
-              <span>
-                {t('employees.approval_status', 'Status')}:{' '}
-                {filterStatus === 'approved'
-                  ? t('employees.approved', 'Approved')
-                  : filterStatus === 'rejected'
-                  ? t('employees.rejected', 'Rejected')
-                  : t('employees.pending', 'Pending')}
-              </span>
-              <button
-                type="button"
-                onClick={() => setFilterStatus('')}
-                className="hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {timeframe !== '7days' && timeframe !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-foreground font-medium border border-border">
-              <span>
-                {t('employees.period', 'Period')}:{' '}
-                {timeframe === 'month'
-                  ? t('employees.this_month', 'This Month')
-                  : timeframe === 'year'
-                  ? t('employees.this_year', 'This Year')
-                  : timeframe}
-              </span>
-              <button
-                type="button"
-                onClick={() => setTimeframe('7days')}
-                className="hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-        </div>
-      )}
+      {/* ─── 4. Active Filter Indicator Chips (1-Click Removal & Clear All) ─── */}
+      <ActiveFilterChips
+        items={[
+          ...(filterStatus
+            ? [
+                {
+                  key: 'status',
+                  label: t('employees.approval_status', 'Status'),
+                  value: filterStatus,
+                  displayValue:
+                    filterStatus === 'approved'
+                      ? t('employees.approved', 'Approved')
+                      : filterStatus === 'rejected'
+                      ? t('employees.rejected', 'Rejected')
+                      : t('employees.pending', 'Pending'),
+                  onRemove: () => setFilterStatus(''),
+                },
+              ]
+            : []),
+          ...(filterType
+            ? [
+                {
+                  key: 'type',
+                  label: t('employees.leave_type', 'Leave Type'),
+                  value: filterType,
+                  displayValue: getLeaveTypeDisplay(filterType).label,
+                  onRemove: () => setFilterType(''),
+                },
+              ]
+            : []),
+          ...(timeframe && timeframe !== 'all'
+            ? [
+                {
+                  key: 'timeframe',
+                  label: t('employees.period', 'Period'),
+                  value: timeframe,
+                  displayValue:
+                    timeframe === '7days'
+                      ? t('employees.last_7_days', 'Last 7 Days')
+                      : timeframe === 'month'
+                      ? t('employees.this_month', 'This Month')
+                      : timeframe === 'year'
+                      ? t('employees.this_year', 'This Year')
+                      : t('employees.custom_range', 'Custom Range'),
+                  onRemove: () => setTimeframe('all'),
+                },
+              ]
+            : []),
+          ...(startDateFilter
+            ? [
+                {
+                  key: 'start_date',
+                  label: t('employees.from_date', 'From'),
+                  value: startDateFilter,
+                  icon: <Calendar size={12} />,
+                  onRemove: () => setStartDateFilter(''),
+                },
+              ]
+            : []),
+          ...(endDateFilter
+            ? [
+                {
+                  key: 'end_date',
+                  label: t('employees.to_date', 'To'),
+                  value: endDateFilter,
+                  icon: <Calendar size={12} />,
+                  onRemove: () => setEndDateFilter(''),
+                },
+              ]
+            : []),
+        ]}
+        onClearAll={handleResetFilters}
+      />
 
       {/* ─── 5. Main Content: Global Standard Flatten Table ─── */}
       <TableWrapper isFetching={isFetching}>
+        {isLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center text-muted-foreground">
+            <RefreshCw className="animate-spin mb-3 text-teal-600 dark:text-teal-400" size={26} />
+            <span className="text-sm font-medium">{t('employees.loading_leaves', 'Loading leave requests...')}</span>
+          </div>
+        ) : records.length === 0 ? (
+          <EmptyState
+            variant="subtle"
+            icon={<Calendar size={36} className="text-muted-foreground/60 stroke-1.5" />}
+            title={
+              activeFiltersCount > 0 || search
+                ? t('employees.no_matching_leaves', 'No matching leave requests found')
+                : t('employees.no_leaves_found', 'No leave requests found')
+            }
+            description={
+              activeFiltersCount > 0 || search
+                ? t('employees.no_matching_leaves_desc', 'No records match your active search or filter criteria. Try resetting filters.')
+                : t('employees.no_leaves_desc', 'Create a new leave request or adjust filter criteria')
+            }
+            action={
+              activeFiltersCount > 0 || search
+                ? {
+                    label: t('buttons.reset', 'Reset Filters'),
+                    onClick: handleResetFilters,
+                    icon: <RotateCcw size={14} />,
+                  }
+                : canCreate
+                ? {
+                    label: t('employees.add_leave', 'Request Leave'),
+                    onClick: () => setIsCreateOpen(true),
+                    icon: <Plus size={14} />,
+                  }
+                : undefined
+            }
+            py="py-16"
+          />
+        ) : (
           <table className="w-full data-table">
             <thead>
               <tr>
-                    {visibleColumns.employee && (
-                      <th className="py-3.5 px-4 font-bold min-w-[220px]">
-                        {t('employees.employee', 'Employee')}
-                      </th>
-                    )}
+                {visibleColumns.employee && (
+                  <th className="py-3.5 px-4 font-bold min-w-[220px]">
+                    {t('employees.employee', 'Employee')}
+                  </th>
+                )}
 
-                    {visibleColumns.leave_type && (
-                      <th className="py-3.5 px-4 font-bold min-w-[170px]">
-                        {t('employees.leave_type', 'Leave Type')}
-                      </th>
-                    )}
+                {visibleColumns.leave_type && (
+                  <th className="py-3.5 px-4 font-bold min-w-[170px]">
+                    {t('employees.leave_type', 'Leave Type')}
+                  </th>
+                )}
 
-                    {visibleColumns.start_date && (
-                      <th className="py-3.5 px-4 font-bold min-w-[130px]">
-                        {t('employees.start_date', 'From')}
-                      </th>
-                    )}
+                {visibleColumns.start_date && (
+                  <th className="py-3.5 px-4 font-bold min-w-[130px]">
+                    {t('employees.start_date', 'From')}
+                  </th>
+                )}
 
-                    {visibleColumns.end_date && (
-                      <th className="py-3.5 px-4 font-bold min-w-[130px]">
-                        {t('employees.end_date', 'To')}
-                      </th>
-                    )}
+                {visibleColumns.end_date && (
+                  <th className="py-3.5 px-4 font-bold min-w-[130px]">
+                    {t('employees.end_date', 'To')}
+                  </th>
+                )}
 
-                    {visibleColumns.total_days && (
-                      <th className="py-3.5 px-4 font-bold min-w-[110px]">
-                        {t('employees.no_of_days', 'No of Days')}
-                      </th>
-                    )}
+                {visibleColumns.total_days && (
+                  <th className="py-3.5 px-4 font-bold min-w-[110px]">
+                    {t('employees.no_of_days', 'No of Days')}
+                  </th>
+                )}
 
-                    {visibleColumns.reason && (
-                      <th className="py-3.5 px-4 font-bold min-w-[180px]">
-                        {t('employees.reason', 'Reason')}
-                      </th>
-                    )}
+                {visibleColumns.reason && (
+                  <th className="py-3.5 px-4 font-bold min-w-[180px]">
+                    {t('employees.reason', 'Reason')}
+                  </th>
+                )}
 
-                    {visibleColumns.status && (
-                      <th className="py-3.5 px-4 font-bold min-w-[130px] text-center">
-                        {t('employees.approval_status', 'Status')}
-                      </th>
-                    )}
+                {visibleColumns.status && (
+                  <th className="py-3.5 px-4 font-bold min-w-[130px] text-center">
+                    {t('employees.approval_status', 'Status')}
+                  </th>
+                )}
 
-                    <th className="py-3.5 px-4 font-bold w-28 text-right">
-                      {t('common.actions', 'Action')}
-                    </th>
-                  </tr>
-                </thead>
+                <th className="py-3.5 px-4 font-bold w-28 text-right">
+                  {t('common.actions', 'Action')}
+                </th>
+              </tr>
+            </thead>
 
-                <tbody className="divide-y divide-border/60">
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                        <RefreshCw className="animate-spin inline-block mr-2" size={18} />
-                        <span>{t('employees.loading_leaves', 'Loading leave requests...')}</span>
-                      </td>
-                    </tr>
-                  ) : records.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="py-16 text-center">
-                        <EmptyState
-                          icon={<Calendar size={32} className="text-muted-foreground/50 stroke-1" />}
-                          title={t('employees.no_leaves_found', 'No leave requests found')}
-                          description={t('employees.no_leaves_desc', 'Create a new leave request or adjust filter criteria')}
-                          action={{
-                            label: t('employees.add_leave', 'Request Leave'),
-                            onClick: () => setIsCreateOpen(true),
-                            icon: <Plus size={14} />,
-                          }}
-                        />
-                      </td>
-                    </tr>
-                  ) : (
-                    records.map((item: any) => {
+            <tbody className="divide-y divide-border/60">
+              {records.map((item: any) => {
                       const typeInfo = getLeaveTypeDisplay(item.leave_type)
                       const daysStr = calculateDays(item)
 
@@ -818,11 +808,11 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
                           </td>
                         </tr>
                       )
-                    })
-                  )}
+                    })}
                 </tbody>
               </table>
-        </TableWrapper>
+        )}
+      </TableWrapper>
 
       {/* ─── 6. Standard Enterprise Table Pagination Bar ─── */}
       {totalRecords > 0 && (
@@ -840,24 +830,7 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
         />
       )}
 
-      {/* ─── 7. Global Slide-Over Filter Drawer ─── */}
-      <LeaveFilterDrawer
-        isOpen={filterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-        onReset={handleResetFilters}
-        startDate={startDateFilter}
-        setStartDate={setStartDateFilter}
-        endDate={endDateFilter}
-        setEndDate={setEndDateFilter}
-        leaveType={filterType}
-        setLeaveType={setFilterType}
-        status={filterStatus}
-        setStatus={setFilterStatus}
-        timeframe={timeframe}
-        setTimeframe={(val) => setTimeframe(val as any)}
-      />
-
-      {/* ─── 8. Global Slide-Over Detail Drawer ─── */}
+      {/* ─── 7. Global Slide-Over Detail Drawer ─── */}
       <LeaveDetailDrawer
         isOpen={Boolean(inspectRecord)}
         onClose={() => setInspectRecord(null)}

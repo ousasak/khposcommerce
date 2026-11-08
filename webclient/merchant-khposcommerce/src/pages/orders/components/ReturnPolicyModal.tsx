@@ -13,13 +13,7 @@ import {
   Info,
   Check,
 } from 'lucide-react'
-import {
-  EnterpriseModal,
-  ModalFooter,
-  ToggleSwitch,
-  FieldError,
-  getFieldClass,
-} from '@/components/common'
+import { EnterpriseModal, ModalFooter, ToggleSwitch, FieldError, getFieldClass } from '@/components/common'
 import { orderReturnService } from '@/services/orderReturnService'
 import { useToast } from '@/hooks/useToast'
 import type { ReturnPolicy } from '../types'
@@ -52,7 +46,7 @@ export const ReturnPolicyModal: React.FC<ReturnPolicyModalProps> = ({
   companyId,
   onSuccess,
 }) => {
-  const { t, i18n } = useTranslation(['returns', 'nav', 'sales', 'common'])
+  const { t, i18n } = useTranslation(['policies', 'returns', 'nav', 'sales', 'common'])
   const isKhmer = (i18n.language || 'km').startsWith('km')
   const toast = useToast()
   const queryClient = useQueryClient()

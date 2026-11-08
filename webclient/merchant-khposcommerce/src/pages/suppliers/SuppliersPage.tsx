@@ -19,29 +19,18 @@ import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import StatusBadge from '@/components/common/StatusBadge'
+import { Breadcrumb } from '@/components/common'
+import { StatusBadge } from '@/components/common'
 import ColumnSettingsPopover from '@/components/shared/ColumnSettingsPopover'
 import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
 import { usePermission } from '@/hooks/usePermission'
-import {
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-  FilterButton,
-  RefreshButton,
-  ResetButton,
-  EmptyState,
-  TableToolbar,
-  SupplierLogo,
-  InlineFilterSelect,
-} from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, FilterButton, RefreshButton, ResetButton, EmptyState, TableToolbar, SupplierLogo, InlineFilterSelect } from '@/components/common'
 import { downloadCsv } from '@/utils/export'
 
 // Types & Sub-components
 import { type Supplier } from './types/supplier.types'
 import { SuppliersStatsCards } from './components/SuppliersStatsCards'
-import { SuppliersFilterDrawer } from './components/SuppliersFilterDrawer'
+import { SupplierSearchBar } from './components/SupplierSearchBar'
 
 const SuppliersPage: React.FC = () => {
   const { t } = useTranslation(['suppliers', 'common', 'nav'])
@@ -89,7 +78,6 @@ const SuppliersPage: React.FC = () => {
   const [countryFilter, setCountryFilter] = useState('')
   const [cityFilter, setCityFilter] = useState('')
   const [createdByFilter, setCreatedByFilter] = useState('')
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
 
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -309,28 +297,16 @@ const SuppliersPage: React.FC = () => {
         />
       )}
 
-      {/* Global Standard Table Toolbar with Shadcn Inline Quick Filters */}
-      <TableToolbar
+      {/* SmartHR-Style Inline Filter Bar */}
+      <SupplierSearchBar
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        searchPlaceholder={t('suppliers.searchPlaceholder', 'Search Supplier Name, Code, Phone, Email, Company...')}
-        hideFilterButton={true}
-        isFilterActive={Boolean(statusFilter)}
+        statusFilter={statusFilter}
+        setStatusFilter={(val) => { setStatusFilter(val); setPage(1); }}
+        countryFilter={countryFilter}
+        setCountryFilter={(val) => { setCountryFilter(val); setPage(1); }}
+        onApply={() => setPage(1)}
         onReset={handleResetFilters}
-        onRefresh={() => refetch()}
-        refreshLoading={isFetching}
-        filters={
-          <InlineFilterSelect
-            label={t('suppliers.tableStatus', 'Status')}
-            value={statusFilter}
-            onChange={(val) => { setStatusFilter(val); setPage(1); }}
-            allLabel={t('common.allStatus', 'All status')}
-            options={[
-              { label: t('common.active', 'Active'), value: 'active' },
-              { label: t('common.inactive', 'Inactive'), value: 'inactive' },
-            ]}
-          />
-        }
         columns={[
           { key: 'name', label: t('suppliers.tableSupplier', 'Supplier') },
           { key: 'code', label: t('suppliers.tableCode', 'Code') },
@@ -562,8 +538,8 @@ const SuppliersPage: React.FC = () => {
                             <SupplierLogo
                               logo={supplier.logo}
                               name={supplier.name}
-                              size="sm"
-                              className="rounded-xl shadow-2xs group-hover:scale-105"
+                              size="md"
+                              className="rounded-xl shadow-xs group-hover:scale-105 shrink-0"
                             />
                             <div className="space-y-1 min-w-0">
                               <span className="font-bold text-foreground text-xs hover:text-primary transition-colors block truncate">
@@ -685,16 +661,10 @@ const SuppliersPage: React.FC = () => {
                           <StatusBadge status={supplier.is_active} />
                         </td>
                       )}
-                      <td className={`sticky right-0 z-10 ${isSelected ? 'bg-primary/10 dark:bg-primary/15' : 'bg-card group-hover:bg-muted/40 dark:group-hover:bg-muted/20'} transition-colors border-l border-border py-3 px-4 text-center whitespace-nowrap min-w-[96px]`} onClick={(e) => e.stopPropagation()}>
+                      <td className={`sticky right-0 z-10 ${isSelected ? 'bg-primary/10 dark:bg-primary/15' : 'bg-card group-hover:bg-muted/40 dark:group-hover:bg-muted/20'} transition-colors border-l border-border py-3 px-3 text-center whitespace-nowrap min-w-[80px]`} onClick={(e) => e.stopPropagation()}>
                         <TableActionMenu
-                          items={canCreatePO ? [
-                            {
-                              label: t('suppliers.createPO', 'Create Purchase Order'),
-                              icon: ShoppingCart,
-                              onClick: () => navigate(`/purchases/create?supplier_id=${supplier.id}`),
-                              variant: 'success',
-                            },
-                          ] : undefined}
+                          variant="inline"
+                          buttonSize="sm"
                           onView={canViewSupplier ? () => navigate(`/suppliers/${supplier.id}`) : undefined}
                           onEdit={canUpdateSupplier ? () => navigate(`/suppliers/${supplier.id}/edit`) : undefined}
                           onDelete={canDeleteSupplier ? () => setDeleteTarget(supplier) : undefined}
@@ -717,22 +687,7 @@ const SuppliersPage: React.FC = () => {
         />
       </div>
 
-      {/* Filter Drawer */}
-      <SuppliersFilterDrawer
-        isOpen={filterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        countryFilter={countryFilter}
-        setCountryFilter={setCountryFilter}
-        cityFilter={cityFilter}
-        setCityFilter={setCityFilter}
-        users={users || []}
-        createdByFilter={createdByFilter}
-        setCreatedByFilter={setCreatedByFilter}
-        onReset={handleResetFilters}
-        setPage={setPage}
-      />
+
 
       {/* Single Delete Confirmation */}
       <ConfirmDialog

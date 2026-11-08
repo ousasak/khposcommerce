@@ -1299,5 +1299,32 @@
   "sending": "Sending...",
   "loadingData": "Loading data from database...",
   "khmer": "Khmer",
-  "english": "English"
+  "english": "English",
+  "clearSearch": "Clear search",
+  "decrease": "Decrease",
+  "increase": "Increase",
+  "allCountries": "All Countries",
+  "countries": {
+    "cambodia": "Cambodia",
+    "thailand": "Thailand",
+    "vietnam": "Vietnam",
+    "china": "China",
+    "singapore": "Singapore",
+    "malaysia": "Malaysia",
+    "usa": "United States"
+  },
+  "searchNameCodePhone": "Search name, code, phone...",
+  "allLocations": "All Locations",
+  "provinces": {
+    "phnomPenh": "Phnom Penh",
+    "siemReap": "Siem Reap",
+    "battambang": "Battambang",
+    "sihanoukville": "Sihanoukville",
+    "kampot": "Kampot",
+    "kandal": "Kandal"
+  },
+  "allTypes": "All Types",
+  "mainHq": "Main HQ",
+  "subBranch": "Sub Branch",
+  "searchCompanyPlaceholder": "Search company name, code, NPWP..."
 }

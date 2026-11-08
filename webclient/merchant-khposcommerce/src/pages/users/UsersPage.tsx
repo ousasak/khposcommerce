@@ -11,15 +11,14 @@ import { focusFirstInvalidField } from '@/utils/formValidation'
 import Pagination from '@/components/shared/Pagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { useServerPagination } from '@/hooks/useServerPagination'
-import ResetButton from '@/components/shared/ResetButton'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb, ResetButton } from '@/components/common'
 import { downloadCsv } from '@/utils/export'
 import { useTranslation } from 'react-i18next'
 import { TableToolbar, InlineFilterSelect, HeaderActionsGroup, AddButton, ExportButton, ImportButton } from '@/components/common'
 import { usePermission } from '@/hooks/usePermission'
 
 import { UserStatsCards } from './components/UserStatsCards'
-import { UserFilterDrawer } from './components/UserFilterDrawer'
+import { UserSearchBar } from './components/UserSearchBar'
 import { UserDetailDrawer } from './components/UserDetailDrawer'
 import { UserFormModal } from './components/UserFormModal'
 import { PasswordResetModal } from './components/PasswordResetModal'
@@ -54,7 +53,6 @@ const UsersPage: React.FC = () => {
 
   // Modal & Drawer States
   const [modalOpen, setModalOpen] = useState(false)
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [viewUser, setViewUser] = useState<User | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
@@ -522,40 +520,17 @@ const UsersPage: React.FC = () => {
       {/* Stats Cards */}
       <UserStatsCards analytics={analytics} />
 
-      {/* Global Standard Table Toolbar with Shadcn Inline Quick Filters */}
-      <TableToolbar
+      {/* SmartHR-Style Inline Filter Bar */}
+      <UserSearchBar
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        searchPlaceholder={t('users.searchPlaceholder', 'Search user name, email, phone number...')}
-        hideFilterButton={true}
-        isFilterActive={hasActiveFilters}
+        roles={roles}
+        filterRole={filterRole}
+        setFilterRole={(val) => { setFilterRole(val); setPage(1); }}
+        filterStatus={filterStatus}
+        setFilterStatus={(val) => { setFilterStatus(val); setPage(1); }}
+        onApply={() => setPage(1)}
         onReset={resetAllFilters}
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['users'] })}
-        refreshLoading={isFetching}
-        filters={
-          <>
-            <InlineFilterSelect
-              label={t('users.role', 'Role')}
-              value={filterRole === 'all' ? '' : filterRole}
-              onChange={(val) => { setFilterRole(val || 'all'); setPage(1); }}
-              allLabel={t('users.allRoles', 'All roles')}
-              options={(roles || []).map((r: any) => ({
-                label: r.name,
-                value: (r.name || '').toLowerCase(),
-              }))}
-            />
-            <InlineFilterSelect
-              label={t('common.status', 'Status')}
-              value={filterStatus === 'all' ? '' : filterStatus}
-              onChange={(val) => { setFilterStatus(val || 'all'); setPage(1); }}
-              allLabel={t('common.allStatus', 'All status')}
-              options={[
-                { label: t('common.active', 'Active'), value: 'active' },
-                { label: t('common.inactive', 'Inactive'), value: 'inactive' },
-              ]}
-            />
-          </>
-        }
         columns={[
           { key: 'avatar', label: t('users.avatar', 'Avatar') },
           { key: 'userInfo', label: t('users.userInfo', 'User Info & Contact') },
@@ -566,26 +541,6 @@ const UsersPage: React.FC = () => {
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
-      />
-
-      {/* Filter Drawer */}
-      <UserFilterDrawer
-        isOpen={filterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-        roles={roles}
-        filterStatus={filterStatus}
-        setFilterStatus={setFilterStatus}
-        filterRole={filterRole}
-        setFilterRole={setFilterRole}
-        filterStartDate={filterStartDate}
-        setFilterStartDate={setFilterStartDate}
-        filterEndDate={filterEndDate}
-        setFilterEndDate={setFilterEndDate}
-        filterVerified={filterVerified}
-        setFilterVerified={setFilterVerified}
-        filter2FA={filter2FA}
-        setFilter2FA={setFilter2FA}
-        onReset={resetAllFilters}
       />
 
       {/* Table Section */}

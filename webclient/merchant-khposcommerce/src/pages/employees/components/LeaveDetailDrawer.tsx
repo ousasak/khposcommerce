@@ -1,14 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerBody,
-  DetailDrawerFooter,
-  DetailDrawerCard,
-  DetailDrawerRow,
-  StatusBadge,
-} from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, StatusBadge } from '@/components/common'
 import { EmployeeAvatar } from './EmployeeAvatar'
 import {
   Calendar,

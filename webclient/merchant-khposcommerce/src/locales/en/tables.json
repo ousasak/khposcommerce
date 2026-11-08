@@ -44,5 +44,7 @@
   "deleted_at": "Deleted At",
   "table.deleted_at": "Deleted At",
   "action": "Action",
-  "table.action": "Action"
+  "table.action": "Action",
+  "manageTable": "Manage Table",
+  "manageColumns": "Manage Columns"
 }

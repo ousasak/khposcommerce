@@ -1,8 +1,13 @@
 export interface Product {
   id: number
   name: string
+  slug?: string
   sku: string
   barcode?: string
+  category_id?: number | null
+  brand_id?: number | null
+  unit_id?: number | null
+  tax_id?: number | null
   selling_price: number
   cost_price?: number
   compare_price?: number
@@ -20,6 +25,11 @@ export interface Product {
   is_digital: boolean
   sold_count: number
   rating_avg: number
+  rating_count?: number
+  view_count?: number
+  meta_title?: string
+  meta_description?: string
+  meta_keywords?: string
   description?: string
   primary_image?: string | { image?: string; url?: string } | null
   images?: Array<{ id?: number; url?: string; image?: string; thumb_url?: string; is_primary?: boolean }> | null

@@ -8,8 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/common/forms/Input'
-import { FieldLabel } from '@/components/common/forms/FormField'
+import { Input, FieldLabel } from '@/components/common'
 import type { ChannelCredentials } from '../types/notification.types'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'

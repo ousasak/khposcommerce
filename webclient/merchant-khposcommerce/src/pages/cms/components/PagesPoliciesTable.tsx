@@ -1,9 +1,8 @@
 import React from 'react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge, EmptyState } from '@/components/common'
 import { FileCode, ShieldCheck, Globe, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 

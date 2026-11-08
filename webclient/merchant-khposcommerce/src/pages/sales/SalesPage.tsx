@@ -9,14 +9,8 @@ import { sound } from '@/utils/sound'
 import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { usePageTab } from '@/hooks/usePageTab'
-import {
-  Breadcrumb,
-  HeaderActionsGroup,
-  ExportButton,
-  AddButton,
-  TableToolbar,
-} from '@/components/common'
-import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
+import { Breadcrumb, HeaderActionsGroup, ExportButton, AddButton } from '@/components/common'
+import { SalesSearchBar } from './components/SalesSearchBar'
 import { SalesFilterDrawer } from './components/SalesFilterDrawer'
 import { SalesDetailDrawer } from './components/SalesDetailDrawer'
 import { ProcessRefundModal } from './components/ProcessRefundModal'
@@ -373,31 +367,33 @@ const SalesPage: React.FC = () => {
         isLoading={isLoading}
       />
 
-      {/* ── 3. WORKSPACE TABS NAVIGATION ──────────────────────────────────────── */}
-      <WorkspaceTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={handleTabChange}
-        variant="underline"
-      />
-
-      {/* ── 4. GLOBAL TABLE TOOLBAR (SEARCH, FILTER, RESET, REFRESH, COLS) ────── */}
-      <TableToolbar
+      {/* ── 3. SMART-HR STYLE SALES SEARCH & FILTER BAR (MATCHING PRODUCTS STANDARD) ── */}
+      <SalesSearchBar
         search={search}
-        onSearchChange={(searchQuery) => {
-          setSearch(searchQuery)
+        onSearchChange={(val) => {
+          setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('searchByInvoice', 'Search by invoice number or customer...')}
-        onFilterClick={() => setFilterDrawerOpen(true)}
-        isFilterActive={activeFiltersCount > 0}
-        filterActiveCount={activeFiltersCount}
+        statusFilter={activeTab}
+        onStatusChange={(val) => {
+          setActiveTab(val)
+          setPage(1)
+        }}
+        paymentMethodFilter={paymentMethodFilter || ''}
+        onPaymentMethodChange={(val) => {
+          setPaymentMethodFilter(val || undefined)
+          setPage(1)
+        }}
+        paymentStatusFilter={paymentStatusFilter || ''}
+        onPaymentStatusChange={(val) => {
+          setPaymentStatusFilter(val || undefined)
+          setPage(1)
+        }}
         onReset={handleResetAllFilters}
-        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['sales'] })}
-        refreshLoading={isFetching}
         columns={columnOptions}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
+        columnSettingsTitle={t('manageTable', 'Manage Table')}
       />
 
       {/* ── 5. CLEAN GLOBAL SALES TABLE (MATCHING PRODUCTS TABLE STANDARD) ─────────── */}

@@ -1,11 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Image as ImageIcon, Eye, MousePointerClick, DollarSign, Store, Globe, Smartphone } from 'lucide-react'
-import {
-  EnterpriseStatsCard,
-  EnterpriseMiniStatsCard,
-  EnterpriseStatsGrid,
-} from '@/components/common'
+import { EnterpriseStatsCard, EnterpriseMiniStatsCard, EnterpriseStatsGrid } from '@/components/common'
 import { AnimatedCounter } from '@/components/shared/AnimatedCounter'
 import type { BannerAnalytics } from '../types'
 

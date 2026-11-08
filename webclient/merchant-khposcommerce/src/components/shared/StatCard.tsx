@@ -1,8 +1,28 @@
 import React from 'react'
-import { ArrowUpRight, ArrowDownRight, Minus, type LucideIcon } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { motion } from 'framer-motion'
+import { ArrowUpRight, ArrowDownRight, Minus, Package, type LucideIcon } from 'lucide-react'
 import { AnimatedCounter } from '@/components/shared/AnimatedCounter'
 import { cn } from '@/lib/utils'
+
+export type StatCardVariant =
+  | 'default'
+  | 'primary'
+  | 'emerald'
+  | 'green'
+  | 'rose'
+  | 'red'
+  | 'danger'
+  | 'amber'
+  | 'yellow'
+  | 'warning'
+  | 'purple'
+  | 'violet'
+  | 'indigo'
+  | 'blue'
+  | 'sky'
+  | 'cyan'
+  | 'slate'
+  | 'gray'
 
 export interface StatCardProps {
   title: string
@@ -17,52 +37,146 @@ export interface StatCardProps {
     trend?: 'up' | 'down' | 'neutral'
     label?: string
   }
-  icon?: LucideIcon | React.ComponentType<{ className?: string }> | React.ReactNode
+  icon?: LucideIcon | React.ComponentType<{ className?: string; size?: number }> | React.ReactNode
   iconClassName?: string
   iconContainerClassName?: string
-  variant?: 'default' | 'primary' | 'emerald' | 'rose' | 'amber' | 'purple' | 'blue'
+  variant?: StatCardVariant
   className?: string
   valueClassName?: string
   onClick?: () => void
   loading?: boolean
   rightAction?: React.ReactNode
+  isActive?: boolean
 }
 
-const variantStyles: Record<string, { iconBg: string; text: string; ring: string }> = {
-  default: {
-    iconBg: 'bg-muted text-muted-foreground',
-    text: 'text-foreground',
-    ring: 'border-border/80',
-  },
-  primary: {
-    iconBg: 'bg-primary/10 text-primary',
-    text: 'text-primary',
-    ring: 'border-primary/20',
-  },
-  emerald: {
-    iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    ring: 'border-emerald-500/20',
-  },
+interface VariantTheme {
+  borderLeft: string
+  iconBox: string
+  activeRing: string
+  activeBg: string
+}
+
+const VARIANT_THEMES: Record<string, VariantTheme> = {
+  // Red / Rose / Danger
   rose: {
-    iconBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
-    text: 'text-rose-600 dark:text-rose-400',
-    ring: 'border-rose-500/20',
+    borderLeft: 'border-l-4 border-l-rose-500',
+    iconBox: 'bg-rose-50 dark:bg-rose-950/40 text-rose-500 dark:text-rose-400',
+    activeRing: 'ring-2 ring-rose-500/50',
+    activeBg: 'bg-rose-50/20 dark:bg-rose-950/10',
   },
+  red: {
+    borderLeft: 'border-l-4 border-l-red-500',
+    iconBox: 'bg-red-50 dark:bg-red-950/40 text-red-500 dark:text-red-400',
+    activeRing: 'ring-2 ring-red-500/50',
+    activeBg: 'bg-red-50/20 dark:bg-red-950/10',
+  },
+  danger: {
+    borderLeft: 'border-l-4 border-l-rose-500',
+    iconBox: 'bg-rose-50 dark:bg-rose-950/40 text-rose-500 dark:text-rose-400',
+    activeRing: 'ring-2 ring-rose-500/50',
+    activeBg: 'bg-rose-50/20 dark:bg-rose-950/10',
+  },
+
+  // Amber / Yellow / Warning
   amber: {
-    iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-    text: 'text-amber-600 dark:text-amber-400',
-    ring: 'border-amber-500/20',
+    borderLeft: 'border-l-4 border-l-amber-500',
+    iconBox: 'bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-400',
+    activeRing: 'ring-2 ring-amber-500/50',
+    activeBg: 'bg-amber-50/20 dark:bg-amber-950/10',
   },
-  purple: {
-    iconBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-    text: 'text-purple-600 dark:text-purple-400',
-    ring: 'border-purple-500/20',
+  yellow: {
+    borderLeft: 'border-l-4 border-l-amber-500',
+    iconBox: 'bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-400',
+    activeRing: 'ring-2 ring-amber-500/50',
+    activeBg: 'bg-amber-50/20 dark:bg-amber-950/10',
   },
+  warning: {
+    borderLeft: 'border-l-4 border-l-amber-500',
+    iconBox: 'bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-400',
+    activeRing: 'ring-2 ring-amber-500/50',
+    activeBg: 'bg-amber-50/20 dark:bg-amber-950/10',
+  },
+
+  // Emerald / Green / Success
+  emerald: {
+    borderLeft: 'border-l-4 border-l-emerald-500',
+    iconBox: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 dark:text-emerald-400',
+    activeRing: 'ring-2 ring-emerald-500/50',
+    activeBg: 'bg-emerald-50/20 dark:bg-emerald-950/10',
+  },
+  green: {
+    borderLeft: 'border-l-4 border-l-emerald-500',
+    iconBox: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 dark:text-emerald-400',
+    activeRing: 'ring-2 ring-emerald-500/50',
+    activeBg: 'bg-emerald-50/20 dark:bg-emerald-950/10',
+  },
+
+  // Blue / Sky / Cyan
   blue: {
-    iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    text: 'text-blue-600 dark:text-blue-400',
-    ring: 'border-blue-500/20',
+    borderLeft: 'border-l-4 border-l-blue-500',
+    iconBox: 'bg-blue-50 dark:bg-blue-950/40 text-blue-500 dark:text-blue-400',
+    activeRing: 'ring-2 ring-blue-500/50',
+    activeBg: 'bg-blue-50/20 dark:bg-blue-950/10',
+  },
+  sky: {
+    borderLeft: 'border-l-4 border-l-sky-500',
+    iconBox: 'bg-sky-50 dark:bg-sky-950/40 text-sky-500 dark:text-sky-400',
+    activeRing: 'ring-2 ring-sky-500/50',
+    activeBg: 'bg-sky-50/20 dark:bg-sky-950/10',
+  },
+  cyan: {
+    borderLeft: 'border-l-4 border-l-cyan-500',
+    iconBox: 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-500 dark:text-cyan-400',
+    activeRing: 'ring-2 ring-cyan-500/50',
+    activeBg: 'bg-cyan-50/20 dark:bg-cyan-950/10',
+  },
+
+  // Purple / Violet / Indigo
+  purple: {
+    borderLeft: 'border-l-4 border-l-purple-500',
+    iconBox: 'bg-purple-50 dark:bg-purple-950/40 text-purple-500 dark:text-purple-400',
+    activeRing: 'ring-2 ring-purple-500/50',
+    activeBg: 'bg-purple-50/20 dark:bg-purple-950/10',
+  },
+  violet: {
+    borderLeft: 'border-l-4 border-l-purple-500',
+    iconBox: 'bg-purple-50 dark:bg-purple-950/40 text-purple-500 dark:text-purple-400',
+    activeRing: 'ring-2 ring-purple-500/50',
+    activeBg: 'bg-purple-50/20 dark:bg-purple-950/10',
+  },
+  indigo: {
+    borderLeft: 'border-l-4 border-l-indigo-500',
+    iconBox: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 dark:text-indigo-400',
+    activeRing: 'ring-2 ring-indigo-500/50',
+    activeBg: 'bg-indigo-50/20 dark:bg-indigo-950/10',
+  },
+
+  // Primary Theme
+  primary: {
+    borderLeft: 'border-l-4 border-l-primary',
+    iconBox: 'bg-primary/10 text-primary',
+    activeRing: 'ring-2 ring-primary/50',
+    activeBg: 'bg-primary/5',
+  },
+
+  // Default / Slate / Gray
+  default: {
+    borderLeft: 'border-l-4 border-l-slate-400 dark:border-l-slate-600',
+    iconBox: 'bg-muted text-muted-foreground',
+    activeRing: 'ring-2 ring-muted/50',
+    activeBg: 'bg-muted/10',
+  },
+  slate: {
+    borderLeft: 'border-l-4 border-l-slate-400 dark:border-l-slate-600',
+    iconBox: 'bg-muted text-muted-foreground',
+    activeRing: 'ring-2 ring-muted/50',
+    activeBg: 'bg-muted/10',
+  },
+  gray: {
+    borderLeft: 'border-l-4 border-l-gray-400 dark:border-l-gray-600',
+    iconBox: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300',
+    activeRing: 'ring-2 ring-gray-400/50',
+    activeBg: 'bg-gray-50/50 dark:bg-gray-900/50',
   },
 }
 
@@ -84,108 +198,130 @@ export const StatCard: React.FC<StatCardProps> = ({
   onClick,
   loading = false,
   rightAction,
+  isActive = false,
 }) => {
   const isClickable = Boolean(onClick)
   const isNumeric = typeof value === 'number'
-  const currentVariant = variantStyles[variant] || variantStyles.default
+  const currentTheme = VARIANT_THEMES[variant] || VARIANT_THEMES.default
 
   const isUp = change?.trend === 'up'
   const isDown = change?.trend === 'down'
 
+  const renderIcon = () => {
+    if (!Icon) {
+      return <Package className="w-5 h-5" />
+    }
+    if (React.isValidElement(Icon)) {
+      return Icon
+    }
+    const IconComponent = Icon as React.ComponentType<{ className?: string; size?: number }>
+    return <IconComponent className={cn('w-5 h-5 shrink-0', iconClassName)} size={20} />
+  }
+
+  if (loading) {
+    return (
+      <div
+        className={cn(
+          'bg-card rounded-2xl shadow-xs p-5 min-h-[96px] flex items-center gap-3.5 border border-border/60 animate-pulse',
+          currentTheme.borderLeft,
+          className
+        )}
+      >
+        <div className="w-12 h-12 rounded-xl bg-muted shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3 bg-muted rounded w-20" />
+          <div className="h-6 bg-muted rounded w-16" />
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <Card
+    <motion.div
+      whileHover={onClick ? { y: -2, transition: { duration: 0.15 } } : undefined}
+      whileTap={onClick ? { scale: 0.98 } : undefined}
       onClick={onClick}
       className={cn(
-        'relative overflow-hidden transition-all duration-200 border-border/70 hover:border-border select-none shadow-xs',
+        'bg-card dark:bg-slate-900 rounded-2xl shadow-xs p-5 min-h-[96px] flex items-center gap-3.5 border border-border/60 transition-all duration-200 select-none relative',
+        currentTheme.borderLeft,
         isClickable && 'cursor-pointer hover:shadow-md active:scale-[0.99]',
+        isActive && cn('ring-2 shadow-sm', currentTheme.activeRing, currentTheme.activeBg),
         className
       )}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
-          {title}
-        </CardTitle>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {rightAction}
-          {Icon && (
-            <div
+      {/* Left: Icon Box (Rounded-xl with soft tinted background matching inventory stock alert style) */}
+      <div
+        className={cn(
+          'w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors',
+          currentTheme.iconBox,
+          iconContainerClassName
+        )}
+      >
+        {renderIcon()}
+      </div>
+
+      {/* Right: Metric Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-1.5">
+          <p className="text-xs text-muted-foreground font-medium truncate">
+            {title}
+          </p>
+          {rightAction && <div className="shrink-0">{rightAction}</div>}
+        </div>
+
+        <div className="flex items-baseline gap-2 mt-0.5">
+          <div
+            className={cn(
+              'text-2xl font-bold text-foreground tracking-tight truncate font-sans',
+              valueClassName
+            )}
+          >
+            {isNumeric && useCounter ? (
+              <AnimatedCounter
+                value={value}
+                prefix={prefix}
+                suffix={suffix}
+                decimals={decimals}
+              />
+            ) : (
+              <span>
+                {prefix}
+                {value}
+                {suffix}
+              </span>
+            )}
+          </div>
+
+          {/* Change Badge (Trend indicator) */}
+          {change && (
+            <span
               className={cn(
-                'size-9 rounded-xl flex items-center justify-center border',
-                currentVariant.iconBg,
-                currentVariant.ring,
-                iconContainerClassName
+                'inline-flex items-center gap-0.5 font-bold text-[11px] px-1.5 py-0.5 rounded-md font-mono shrink-0',
+                isUp && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+                isDown && 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+                !isUp && !isDown && 'bg-muted text-muted-foreground'
               )}
             >
-              {React.isValidElement(Icon) ? (
-                Icon
+              {isUp ? (
+                <ArrowUpRight className="size-3" />
+              ) : isDown ? (
+                <ArrowDownRight className="size-3" />
               ) : (
-                // @ts-expect-error dynamic component
-                <Icon className={cn('size-4 shrink-0', iconClassName)} />
+                <Minus className="size-3" />
               )}
-            </div>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div
-          className={cn(
-            'text-2xl font-black tracking-tight text-foreground font-mono truncate',
-            valueClassName
-          )}
-        >
-          {loading ? (
-            <div className="h-8 w-24 bg-muted animate-pulse rounded-md" />
-          ) : isNumeric && useCounter ? (
-            <AnimatedCounter
-              value={value}
-              prefix={prefix}
-              suffix={suffix}
-              decimals={decimals}
-            />
-          ) : (
-            <span>
-              {prefix}
-              {value}
-              {suffix}
+              {change.value}
+              {change.label && <span className="ml-0.5 font-sans font-normal opacity-80">{change.label}</span>}
             </span>
           )}
         </div>
 
-        {(change || description) && (
-          <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground truncate">
-            {change && (
-              <span
-                className={cn(
-                  'inline-flex items-center gap-0.5 font-bold font-mono px-1.5 py-0.5 rounded-md text-[11px]',
-                  isUp && 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-                  isDown && 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
-                  !isUp && !isDown && 'bg-muted text-muted-foreground'
-                )}
-              >
-                {isUp ? (
-                  <ArrowUpRight className="size-3" />
-                ) : isDown ? (
-                  <ArrowDownRight className="size-3" />
-                ) : (
-                  <Minus className="size-3" />
-                )}
-                {change.value}
-              </span>
-            )}
-            {change?.label && (
-              <span className="text-[11px] text-muted-foreground truncate">
-                {change.label}
-              </span>
-            )}
-            {description && !change?.label && (
-              <span className="text-[11px] text-muted-foreground truncate">
-                {description}
-              </span>
-            )}
+        {description && !change && (
+          <div className="text-[11px] text-muted-foreground/80 mt-0.5 truncate">
+            {description}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </motion.div>
   )
 }
 

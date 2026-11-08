@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Eye, ShieldCheck, Truck, Package } from 'lucide-react'
-import { Image as AntImage } from 'antd'
+import { Image } from '@/components/ui/image'
 import { getAbsoluteImageUrl, DEFAULT_PRODUCT_IMAGE } from '@/utils/image'
-import CloseButton from '@/components/common/buttons/CloseButton'
+import { CloseButton } from '@/components/common'
 
 interface ProductLivePreviewDrawerProps {
   isOpen: boolean
@@ -78,9 +78,9 @@ export const ProductLivePreviewDrawer: React.FC<ProductLivePreviewDrawerProps> =
             {/* Product Hero Image */}
             <div className="space-y-3">
               {allImages.length > 0 ? (
-                <AntImage.PreviewGroup items={allImages}>
+                <Image.PreviewGroup items={allImages}>
                   <div className="rounded-2xl overflow-hidden border border-border bg-muted/20 aspect-square relative shadow-xs">
-                    <AntImage
+                    <Image
                       src={allImages[selectedImageIndex] || allImages[0]}
                       alt="Preview"
                       className="w-full h-full object-cover"
@@ -90,7 +90,7 @@ export const ProductLivePreviewDrawer: React.FC<ProductLivePreviewDrawerProps> =
                         mask: (
                           <div className="flex items-center gap-1 text-xs font-semibold text-white drop-shadow-md">
                             <Eye size={14} />
-                            <span>Preview</span>
+                            <span>{t('products.preview', 'Preview')}</span>
                           </div>
                         ),
                       }}
@@ -118,7 +118,7 @@ export const ProductLivePreviewDrawer: React.FC<ProductLivePreviewDrawerProps> =
                       ))}
                     </div>
                   )}
-                </AntImage.PreviewGroup>
+                </Image.PreviewGroup>
               ) : (
                 <div className="rounded-2xl border border-dashed border-border bg-muted/20 aspect-square flex flex-col items-center justify-center text-muted-foreground gap-2 p-6 text-center">
                   <Package size={32} className="opacity-40" />

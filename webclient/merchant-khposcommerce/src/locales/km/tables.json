@@ -44,5 +44,7 @@
   "deleted_at": "កាលបរិច្ឆេទលុប",
   "table.deleted_at": "កាលបរិច្ឆេទលុប",
   "action": "សកម្មភាព",
-  "table.action": "សកម្មភាព"
+  "table.action": "សកម្មភាព",
+  "manageTable": "គ្រប់គ្រងតារាង",
+  "manageColumns": "កំណត់ជួរឈរ"
 }

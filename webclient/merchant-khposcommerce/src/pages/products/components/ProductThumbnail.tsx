@@ -5,7 +5,7 @@ import {
   DEFAULT_PRODUCT_DATA_URI,
 } from '@/utils/image'
 import { Eye } from 'lucide-react'
-import { Image as AntImage } from 'antd'
+import { Image } from '@/components/ui/image'
 
 export interface ProductThumbnailProps {
   name: string
@@ -79,7 +79,7 @@ export const ProductThumbnail: React.FC<ProductThumbnailProps> = ({
       }}
     >
       {preview ? (
-        <AntImage
+        <Image
           src={activeSrc}
           alt={alt || name}
           className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"

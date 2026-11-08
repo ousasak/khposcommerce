@@ -2,17 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import {
-  FormLayout,
-  FormContent,
-  FormCard,
-  FormHeader,
-  FormFooter,
-  FormField,
-  getFieldClass,
-  LoadingSpinner,
-  ToggleSwitch,
-} from '@/components/common'
+import { FormLayout, FormContent, FormCard, FormHeader, FormFooter, FormField, getFieldClass, LoadingSpinner, ToggleSwitch } from '@/components/common'
 import { orderReturnService } from '@/services/orderReturnService'
 import { categoryService } from '@/services/categoryService'
 import { useToast } from '@/hooks/useToast'
@@ -35,7 +25,7 @@ const AVAILABLE_CONDITION_KEYS = [
 const PRESET_DAYS = [7, 14, 30, 45, 60]
 
 export const ReturnPolicyFormPage: React.FC = () => {
-  const { t } = useTranslation(['returns', 'nav', 'sales', 'common'])
+  const { t } = useTranslation(['policies', 'returns', 'nav', 'sales', 'common'])
   const { id } = useParams<{ id?: string }>()
   const isEdit = Boolean(id)
   const policyId = id ? parseInt(id, 10) : null

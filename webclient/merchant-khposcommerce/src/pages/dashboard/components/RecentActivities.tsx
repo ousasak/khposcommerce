@@ -13,9 +13,23 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ activityLog,
 
   if (isLoading) {
     return (
-      <div className="bg-card border border-border/80 rounded-3xl p-4 sm:p-5 shadow-2xs space-y-3 animate-pulse">
-        <div className="h-4 w-32 bg-muted rounded" />
-        <div className="h-24 bg-muted rounded-xl" />
+      <div className="bg-card border border-border/80 rounded-3xl p-4 sm:p-5 shadow-2xs space-y-4 animate-pulse">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="size-4 bg-muted rounded" />
+          <div className="h-4 w-32 bg-muted rounded" />
+        </div>
+        <div className="border-l border-border/60 ml-2.5 pl-4 sm:pl-5 space-y-5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="relative space-y-1.5">
+              <span className="absolute -left-[21px] sm:-left-[25px] top-1.5 size-2 rounded-full bg-muted ring-4 ring-card" />
+              <div className="flex items-center justify-between gap-3">
+                <div className="h-3 w-32 bg-muted rounded" />
+                <div className="h-2.5 w-12 bg-muted/70 rounded" />
+              </div>
+              <div className="h-2.5 w-20 bg-muted/60 rounded" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

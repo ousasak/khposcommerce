@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Barcode, Layers, Sliders, Printer, CheckSquare, Square, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { ModalHeader } from '@/components/common/ModalHeader'
+import { ModalHeader } from '@/components/common'
 import type { Product } from '../types/productsPage.types'
 
 interface ProductBarcodePrintModalProps {
@@ -454,7 +454,7 @@ export const ProductBarcodePrintModal: React.FC<ProductBarcodePrintModalProps> =
                 {/* Realistic Label Card */}
                 <div className="bg-white text-black p-4 rounded-xl border-2 border-dashed border-zinc-400 shadow-md text-center space-y-1.5 max-w-[240px] mx-auto transition-all">
                   {showStoreName && (
-                    <p className="text-[9px] font-black uppercase tracking-wider text-zinc-500">ENTERPRISE POS</p>
+                    <p className="text-[9px] font-black uppercase tracking-wider text-zinc-500">{t('storeNamePlaceholder', 'ENTERPRISE POS')}</p>
                   )}
                   
                   {showProductName && (
@@ -462,7 +462,7 @@ export const ProductBarcodePrintModal: React.FC<ProductBarcodePrintModalProps> =
                   )}
 
                   {showSku && (
-                    <p className="text-[10px] font-mono font-bold text-zinc-700">SKU: {printTargetItem.sku}</p>
+                    <p className="text-[10px] font-mono font-bold text-zinc-700">{t('sku', 'SKU')}: {printTargetItem.sku}</p>
                   )}
 
                   {/* Barcode Visual Stripes */}

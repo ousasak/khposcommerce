@@ -11,18 +11,7 @@ import { categoryService } from '@/services/categoryService'
 import { brandService } from '@/services/brandService'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/useToast'
-import {
-  FormLayout,
-  FormContent,
-  FormCard,
-  FormHeader,
-  FormFooter,
-  FormField,
-  Input,
-  Textarea,
-  ToggleSwitch,
-  EnterpriseDateTimePicker,
-} from '@/components/common'
+import { FormLayout, FormContent, FormCard, FormHeader, FormFooter, FormField, Input, Textarea, ToggleSwitch, EnterpriseDateTimePicker } from '@/components/common'
 import { focusFirstInvalidField } from '@/utils/formValidation'
 import { formatDateTimeLocal, type ChannelScope, type PromotionCampaign } from './types'
 

@@ -4,7 +4,7 @@ import {
   Search, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight,
   Eye, FileText, Download, CheckCircle2, Clock, XCircle
 } from 'lucide-react'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import { formatCurrency } from '@/utils/formatters'
 
 export interface SaleRecord {

@@ -81,5 +81,9 @@
   "button.saving": "Saving...",
   "button.livePreview": "Live Preview",
   "button.quickAdd": "Quick Add",
-  "buttons.export": "Export"
+  "buttons.export": "Export",
+  "applyFilters": "Apply Filters",
+  "resetAllFilters": "Reset all filters",
+  "deleteSelected": "Delete Selected",
+  "deleteSelectedCount": "Delete selected ({{count}})"
 }

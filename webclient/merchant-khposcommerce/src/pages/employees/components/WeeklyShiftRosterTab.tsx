@@ -6,14 +6,23 @@ import {
 import { useTranslation } from 'react-i18next'
 import { sound } from '@/utils/sound'
 import { useToast } from '@/hooks/useToast'
-import { TableToolbar, EmptyState, Modal, ModalFooter } from '@/components/common'
+import {
+  TableToolbar,
+  EmptyState,
+  Modal,
+  ModalFooter,
+  InlineFilterSelect,
+  FilterPopover,
+  ActiveFilterChips,
+} from '@/components/common'
+import ModernSelect from '@/components/shared/ModernSelect'
 import TableWrapper from '@/components/shared/TableWrapper'
 import Pagination from '@/components/shared/Pagination'
 import type { ColumnOption } from '@/components/shared/ColumnSettingsPopover'
 import { EmployeeAvatar } from './EmployeeAvatar'
-import RosterFilterDrawer from './RosterFilterDrawer'
 import { formatShiftName } from '../utils/shiftFormatters'
 import WeeklyShiftRosterPrintModal from './WeeklyShiftRosterPrintModal'
+import RosterSearchBar from './RosterSearchBar'
 
 export interface Shift {
   id: number
@@ -106,7 +115,6 @@ export const WeeklyShiftRosterTab: React.FC<WeeklyShiftRosterTabProps> = ({
   const [branchFilter, setBranchFilter] = useState('all')
   const [shiftFilter, setShiftFilter] = useState('all')
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState('all')
-  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false)
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -415,117 +423,118 @@ export const WeeklyShiftRosterTab: React.FC<WeeklyShiftRosterTabProps> = ({
 
   return (
     <div className="space-y-3.5">
-      {/* ─── Standard TableToolbar with Column Settings Popover right next to Refresh ─── */}
-      <TableToolbar
+      {/* ─── SmartHR/Product Style Inline Weekly Shift Roster Search & Filter Bar ─── */}
+      <RosterSearchBar
+        selectedDate={selectedDate}
+        onDateChange={(val) => {
+          setSelectedDate(val)
+          setPage(1)
+        }}
         search={searchQuery}
         onSearchChange={(val) => {
           setSearchQuery(val)
           setPage(1)
         }}
-        searchPlaceholder={t('employees.search_employee_short', 'Search employee...')}
-        onFilterClick={() => setIsFilterDrawerOpen(true)}
-        isFilterActive={activeFiltersCount > 0}
-        filterActiveCount={activeFiltersCount}
-        onReset={handleResetFilters}
-        hideResetButton={activeFiltersCount === 0 && !searchQuery}
-        onRefresh={() => {
-          sound.playClick()
-          toast.success(t('employees.roster_refreshed', 'Schedule roster refreshed'))
+        departmentFilter={departmentFilter}
+        onDepartmentChange={(val) => {
+          setDepartmentFilter(val)
+          setPage(1)
         }}
+        departmentsList={departmentsList}
+        branchFilter={branchFilter}
+        onBranchChange={(val) => {
+          setBranchFilter(val)
+          setPage(1)
+        }}
+        branchesList={branchesList || []}
+        shiftFilter={shiftFilter}
+        onShiftChange={(val) => {
+          setShiftFilter(val)
+          setPage(1)
+        }}
+        shiftsList={shiftsList || []}
+        scheduleStatusFilter={scheduleStatusFilter}
+        onScheduleStatusChange={(val) => {
+          setScheduleStatusFilter(val)
+          setPage(1)
+        }}
+        onApply={() => setPage(1)}
+        onReset={handleResetFilters}
         columns={columnOptions}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
         columnSettingsTitle={t('employees.columns_visibility', 'Columns Visibility')}
       />
 
-      {/* ─── Active Filter Chips ─── */}
-      {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-1 text-xs animate-in fade-in duration-200">
-          <span className="text-muted-foreground font-medium">{t('common.activeFilters', 'Active Filters')}:</span>
-
-          {/* Date Chip */}
-          {isCustomDate && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/25">
-              <span>{weekRangeLabel}</span>
-              <button
-                type="button"
-                onClick={() => setSelectedDate(todayStr)}
-                className="hover:text-primary/70 cursor-pointer"
-              >
-                <X size={12} />
-              </button>
-            </span>
-          )}
-
-          {departmentFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/25">
-              <span>{departmentFilter}</span>
-              <button
-                type="button"
-                onClick={() => setDepartmentFilter('all')}
-                className="hover:text-primary/70 cursor-pointer"
-              >
-                <X size={12} />
-              </button>
-            </span>
-          )}
-
-          {branchFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/25">
-              <span>
-                {branchesList.find((b: any) => String(b.id) === branchFilter)?.name || `Branch #${branchFilter}`}
-              </span>
-              <button
-                type="button"
-                onClick={() => setBranchFilter('all')}
-                className="hover:text-primary/70 cursor-pointer"
-              >
-                <X size={12} />
-              </button>
-            </span>
-          )}
-
-          {shiftFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/25">
-              <span>
-                {formatShiftName(shiftsList.find((s) => String(s.id) === shiftFilter)?.name, isKm)}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShiftFilter('all')}
-                className="hover:text-primary/70 cursor-pointer"
-              >
-                <X size={12} />
-              </button>
-            </span>
-          )}
-
-          {scheduleStatusFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/25">
-              <span>
-                {scheduleStatusFilter === 'scheduled'
-                  ? t('employees.has_scheduled_shift', 'Has Scheduled Shift')
-                  : t('employees.has_off_day', 'Has Off Day')}
-              </span>
-              <button
-                type="button"
-                onClick={() => setScheduleStatusFilter('all')}
-                className="hover:text-primary/70 cursor-pointer"
-              >
-                <X size={12} />
-              </button>
-            </span>
-          )}
-
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="text-xs text-muted-foreground hover:text-foreground underline ml-1 cursor-pointer"
-          >
-            {t('common.clearAll', 'Clear All')}
-          </button>
-        </div>
-      )}
+      {/* ─── Active Filter Chips (1-Click Removal & Clear All) ─── */}
+      <ActiveFilterChips
+        items={[
+          ...(isCustomDate
+            ? [
+                {
+                  key: 'date',
+                  label: t('employees.date', 'Week'),
+                  value: selectedDate,
+                  displayValue: weekRangeLabel,
+                  icon: <Calendar size={12} />,
+                  onRemove: () => setSelectedDate(todayStr),
+                },
+              ]
+            : []),
+          ...(departmentFilter !== 'all'
+            ? [
+                {
+                  key: 'department',
+                  label: t('employees.department', 'Department'),
+                  value: departmentFilter,
+                  onRemove: () => setDepartmentFilter('all'),
+                },
+              ]
+            : []),
+          ...(shiftFilter !== 'all'
+            ? [
+                {
+                  key: 'shift',
+                  label: t('employees.shift', 'Shift'),
+                  value: shiftFilter,
+                  displayValue: formatShiftName(
+                    (shiftsList || []).find((s) => String(s.id) === shiftFilter)?.name,
+                    isKm
+                  ),
+                  onRemove: () => setShiftFilter('all'),
+                },
+              ]
+            : []),
+          ...(branchFilter !== 'all'
+            ? [
+                {
+                  key: 'branch',
+                  label: t('employees.branch', 'Branch'),
+                  value: branchFilter,
+                  displayValue:
+                    (branchesList || []).find((b: any) => String(b.id) === branchFilter)?.name ||
+                    `Branch #${branchFilter}`,
+                  onRemove: () => setBranchFilter('all'),
+                },
+              ]
+            : []),
+          ...(scheduleStatusFilter !== 'all'
+            ? [
+                {
+                  key: 'status',
+                  label: t('employees.schedule_status', 'Status'),
+                  value: scheduleStatusFilter,
+                  displayValue:
+                    scheduleStatusFilter === 'scheduled'
+                      ? t('employees.has_scheduled_shift', 'Has Scheduled Shift')
+                      : t('employees.has_off_day', 'Has Off Day'),
+                  onRemove: () => setScheduleStatusFilter('all'),
+                },
+              ]
+            : []),
+        ]}
+        onClearAll={handleResetFilters}
+      />
 
       {/* ─── Shift Legend & Live Workforce Ribbon with Current Week Indicator ─── */}
       <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-muted/30 border border-border/60 text-xs overflow-x-auto select-none shadow-2xs">
@@ -768,27 +777,6 @@ export const WeeklyShiftRosterTab: React.FC<WeeklyShiftRosterTabProps> = ({
           perPageOptions={[10, 15, 25, 50]}
         />
       )}
-
-      {/* ─── Shift Filter Drawer (Includes Date Picker) ─── */}
-      <RosterFilterDrawer
-        isOpen={isFilterDrawerOpen}
-        onClose={() => setIsFilterDrawerOpen(false)}
-        onReset={handleResetFilters}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        todayStr={todayStr}
-        departmentFilter={departmentFilter}
-        setDepartmentFilter={setDepartmentFilter}
-        shiftFilter={shiftFilter}
-        setShiftFilter={setShiftFilter}
-        branchFilter={branchFilter}
-        setBranchFilter={setBranchFilter}
-        scheduleStatusFilter={scheduleStatusFilter}
-        setScheduleStatusFilter={setScheduleStatusFilter}
-        departmentsList={departmentsList}
-        shiftsList={shiftsList}
-        branchesList={branchesList}
-      />
 
       {/* ─── Global Shift Selection Modal (Standard Header, Content & Footer) ─── */}
       <Modal

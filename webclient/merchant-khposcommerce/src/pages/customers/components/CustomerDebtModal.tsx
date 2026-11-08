@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/useToast'
 import { customerService } from '@/services/customerService'
 import { Modal } from '@/components/common'
-import { ModalFooter } from '@/components/common/ModalFooter'
+import { ModalFooter } from '@/components/common'
 import type { Customer } from '../types/customer.types'
 
 interface CustomerDebtModalProps {

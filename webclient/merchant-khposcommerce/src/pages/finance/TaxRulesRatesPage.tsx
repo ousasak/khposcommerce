@@ -6,18 +6,11 @@ import { useToast } from '@/hooks/useToast'
 import { usePermission } from '@/hooks/usePermission'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import {
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-  TableToolbar,
-  ModernSelect,
-  ConfirmModal,
-} from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, ConfirmModal } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import type { TaxForm } from './types/finance.types'
-import { TaxFormDrawer, TaxRulesRatesTable } from './components'
+import { TaxRulesRatesFormDrawer, TaxRulesRatesTable, TaxRuleSearchBar } from './components'
 
 export const TaxRulesRatesPage: React.FC = () => {
   const { t } = useTranslation(['finance', 'common', 'nav'])
@@ -207,46 +200,30 @@ export const TaxRulesRatesPage: React.FC = () => {
         </HeaderActionsGroup>
       </div>
 
-      {/* Table Toolbar */}
-      <TableToolbar
+      {/* Search & Filter Bar */}
+      <TaxRuleSearchBar
         search={search}
         onSearchChange={(val) => {
           setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('finance.search_taxes', 'Search tax rules...')}
-        filterContent={
-          <div className="flex items-center gap-2">
-            <ModernSelect
-              value={filterType}
-              onChange={(val) => {
-                setFilterType(String(val ?? ''))
-                setPage(1)
-              }}
-              options={[
-                { value: '', label: `${t('finance.filter_type', t('common.type', 'Type'))}: ${t('finance.all_types', t('common.all', 'All'))}` },
-                { value: 'fixed', label: t('finance.tax_type_fixed', 'Fixed') },
-                { value: 'percentage', label: t('finance.tax_type_percentage', 'Percentage') },
-              ]}
-              className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-            />
-            <ModernSelect
-              value={filterStatus}
-              onChange={(val) => {
-                setFilterStatus(String(val ?? ''))
-                setPage(1)
-              }}
-              options={[
-                { value: '', label: `${t('finance.filter_status', t('common.status', 'Status'))}: ${t('finance.all_status', t('common.all', 'All'))}` },
-                { value: 'active', label: t('finance.status_active', 'Active') },
-                { value: 'inactive', label: t('finance.status_inactive', 'Inactive') },
-              ]}
-              className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-            />
-          </div>
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['taxes-tab'] })}
-        refreshLoading={isFetching}
+        typeFilter={filterType}
+        onTypeChange={(val) => {
+          setFilterType(val)
+          setPage(1)
+        }}
+        statusFilter={filterStatus}
+        onStatusChange={(val) => {
+          setFilterStatus(val)
+          setPage(1)
+        }}
+        onApply={() => setPage(1)}
+        onReset={() => {
+          setSearch('')
+          setFilterType('')
+          setFilterStatus('')
+          setPage(1)
+        }}
         columns={[
           { key: 'tax_name', label: t('finance.tax_rule_name', 'Tax Rule Name') },
           { key: 'tax_rate', label: t('finance.tax_rate', 'Tax Rate (%)') },
@@ -278,7 +255,7 @@ export const TaxRulesRatesPage: React.FC = () => {
       />
 
       {/* Form Drawer */}
-      <TaxFormDrawer
+      <TaxRulesRatesFormDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         editingItem={editingItem}

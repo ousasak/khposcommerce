@@ -4,9 +4,8 @@ import { ArrowUp, ArrowDown, ArrowUpDown, Copy, Printer, Warehouse, Edit3 } from
 import { useThemeStore } from '@/stores/themeStore'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge, EmptyState } from '@/components/common'
 import { ProductThumbnail } from './ProductThumbnail'
 import type { Product } from '../types/productsPage.types'
 
@@ -15,7 +14,6 @@ interface ProductTableSectionProps {
   isLoading: boolean
   isFetching: boolean
   visibleColumns: Record<string, boolean>
-  recycleBinMode: boolean
   selectedRows: number[]
   setSelectedRows: React.Dispatch<React.SetStateAction<number[]>>
   sortBy?: string
@@ -27,8 +25,6 @@ interface ProductTableSectionProps {
   onDuplicate?: (product: Product) => void
   onPrintBarcode?: (product: Product) => void
   onQuickStockAdjust?: (product: Product) => void
-  onRestore: (id: number) => void
-  onForceDelete: (product: Product) => void
   formatCurrency: (val: number) => string
 }
 

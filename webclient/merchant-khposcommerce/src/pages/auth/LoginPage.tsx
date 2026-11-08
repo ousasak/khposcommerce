@@ -47,7 +47,7 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { useThemeStore } from '@/stores/themeStore'
 import { useCompanyStore } from '@/stores/companyStore'
-import { BrandLogo } from '@/components/common/BrandLogo'
+import { BrandLogo } from '@/components/common'
 import LanguageDropdown from '@/components/layout/LanguageDropdown'
 import ThemeSwitcher from '@/components/layout/ThemeSwitcher'
 import { authService } from '@/services/authService'
@@ -145,7 +145,7 @@ const LoginPage: React.FC = () => {
   const { t } = useTranslation(['auth', 'common', 'errors'])
   const navigate = useNavigate()
 
-  const { setAuth, darkMode } = useAuthStore()
+  const { setAuth, startDashboardTransition, darkMode } = useAuthStore()
   const { themeMode, language, setLanguage, updateThemeMode } = useThemeStore()
   const { branding, fetchBranding } = useCompanyStore()
 
@@ -358,16 +358,30 @@ const LoginPage: React.FC = () => {
       const { user, access_token, token, refresh_token } = res.data.data
       const effectiveToken = access_token || token
 
+      if (!effectiveToken || !user) {
+        throw new Error(t('auth.errors.401', 'Authentication failed: Invalid credentials received.'))
+      }
+
+      if (user.is_active === false || user.status === 'inactive') {
+        throw new Error(t('auth.errors.403', 'Your account has been deactivated. Please contact your administrator.'))
+      }
+
       setLoginProgress(100)
       setIsSuccessState(true)
+
+      // Start modern full-screen transition overlay before navigating (allows dynamic UX steps progression)
+      startDashboardTransition(
+        t('auth.preparingDashboard', 'Preparing your dashboard...')
+      )
+
+      // Preload dashboard code chunk in background
+      import('@/pages/dashboard/DashboardPage').catch(() => {})
 
       // Save auth state cleanly
       setAuth(user, effectiveToken, refresh_token)
 
-      // Smooth transition redirect
-      setTimeout(() => {
-        navigate('/dashboard')
-      }, 700)
+      // Seamlessly navigate to dashboard
+      navigate('/dashboard', { replace: true })
     } catch (err: any) {
       setLoginProgress(0)
       setIsSuccessState(false)
@@ -766,8 +780,8 @@ const LoginPage: React.FC = () => {
                       </div>
                     ) : isSubmitting ? (
                       <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-white" />
-                        <span>{t('auth.loggingIn')}</span>
+                        <Loader2 className="w-4 h-4 animate-spin text-white shrink-0" />
+                        <span>{t('auth.loggingIn', 'Signing in...')}</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 font-semibold">

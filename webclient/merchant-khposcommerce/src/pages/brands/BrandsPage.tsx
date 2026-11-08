@@ -3,27 +3,26 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ModalHeader } from '@/components/common/ModalHeader'
+import { Modal as EnterpriseModal, ModalFooter, ModalHeader, EmptyState, ResetButton } from '@/components/common'
 import { 
-  Plus, Edit2, Trash2, X, Tag, ToggleLeft, ToggleRight, Loader2, 
-  ChevronUp, ChevronDown, Download, Upload, Trash, RefreshCw, AlertCircle, 
-  Image as ImageIcon, Package, Sparkles, Save
+  Plus, Edit2, X, Tag, ToggleLeft, ToggleRight, Loader2, 
+  ChevronUp, ChevronDown, Download, Upload, Trash, AlertCircle, 
+  Image as ImageIcon, Package, Sparkles, Save, LayoutGrid, Table as TableIcon
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { brandService } from '@/services/brandService'
 import { getAbsoluteImageUrl, DEFAULT_BRAND_IMAGE } from '@/utils/image'
 import { downloadBlob } from '@/utils/export'
 import { focusFirstInvalidField } from '@/utils/formValidation'
-import { Image as AntImage } from 'antd'
+import { Image } from '@/components/ui/image'
 import { useToast } from '@/hooks/useToast'
 import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
-import EmptyState from '@/components/shared/EmptyState'
-import PageHeader from '@/components/common/PageHeader'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import StatusBadge from '@/components/common/StatusBadge'
+import { PageHeader } from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { StatusBadge } from '@/components/common'
 import { FieldError, getFieldClass } from '@/components/common'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import TableActionMenu from '@/components/shared/TableActionMenu'
@@ -33,6 +32,7 @@ import { usePermission } from '@/hooks/usePermission'
 import { ColumnSettingsPopover } from '@/components/shared/ColumnSettingsPopover'
 import { TableToolbar, AddButton, ExportButton, ImportButton, HeaderActionsGroup } from '@/components/common'
 import BrandStatsCards from './components/BrandStatsCards'
+import { BrandSearchBar } from './components/BrandSearchBar'
 import { ModernSelect } from '@/components/shared/ModernSelect'
 
 interface Brand {
@@ -105,7 +105,6 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
   const [modalOpen, setModalOpen] = useState(false)
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Brand | null>(null)
-  const [recycleBinMode, setRecycleBinMode] = useState(false)
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -160,14 +159,14 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
 
   // Query
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['brands', page, debouncedSearch, perPage, sortBy, sortOrder, recycleBinMode, statusFilter],
+    queryKey: ['brands', page, debouncedSearch, perPage, sortBy, sortOrder, statusFilter],
     queryFn: () => brandService.list({ 
       page, 
       search: debouncedSearch, 
       per_page: perPage, 
       sort_by: sortBy, 
       sort_order: sortOrder,
-      status: recycleBinMode ? 'deleted' : (statusFilter !== 'all' ? statusFilter : undefined)
+      status: statusFilter !== 'all' ? statusFilter : undefined
     }),
     placeholderData: (prev) => prev,
   })
@@ -218,30 +217,6 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
     }
   })
 
-  const restoreMutation = useMutation({
-    mutationFn: (id: number) => brandService.restore(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['brands'] })
-      toast.success(t('toast.restored'))
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const forceDeleteMutation = useMutation({
-    mutationFn: (id: number) => brandService.forceDelete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['brands'] })
-      toast.success(t('toast.deleted'))
-      setDeleteTarget(null)
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-      setDeleteTarget(null)
-    }
-  })
-
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids: number[]) => brandService.bulkDelete(ids),
     onSuccess: () => {
@@ -249,18 +224,6 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
       toast.success(t('toast.deleted'))
       setSelectedRows([])
       setBulkDeleteConfirmOpen(false)
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const bulkRestoreMutation = useMutation({
-    mutationFn: (ids: number[]) => brandService.bulkRestore(ids),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['brands'] })
-      toast.success(t('toast.restored'))
-      setSelectedRows([])
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? t('toast.error'))
@@ -318,8 +281,8 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
     return errors
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault()
     const errors = validate()
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors)
@@ -348,8 +311,8 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
     }
   }
 
-  const handleImport = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleImport = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault()
     if (!importFile) return
     setImporting(true)
     const fd = new FormData()
@@ -403,18 +366,6 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
             </div>
 
             <HeaderActionsGroup>
-              <button
-                type="button"
-                onClick={() => setRecycleBinMode(!recycleBinMode)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl border transition-all cursor-pointer ${
-                  recycleBinMode 
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20' 
-                    : 'bg-card border-border text-muted-foreground hover:text-foreground'}`}
-              >
-                <Trash size={15} />
-                {recycleBinMode ? t('products.recycleBin') : t('products.trash')}
-              </button>
-
               {canExportBrand && (
                 <ExportButton
                   onClick={handleExport}
@@ -455,42 +406,14 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
             <span>{selectedRows.length} {t('products.selectedCount')}</span>
           </div>
           <div className="flex items-center gap-2">
-            {recycleBinMode ? (
-              <>
-                {canUpdateBrand && (
-                  <button
-                    onClick={() => bulkRestoreMutation.mutate(selectedRows)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-500 transition-colors shadow-xs cursor-pointer"
-                  >
-                    <RefreshCw size={13} />
-                    {t('products.restoreSelected')}
-                  </button>
-                )}
-                {canDeleteBrand && (
-                  <button
-                    onClick={() => {
-                      if (confirm('Permanently delete selected brands? This cannot be undone.')) {
-                        selectedRows.forEach(id => forceDeleteMutation.mutate(id))
-                        setSelectedRows([])
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-xl hover:bg-red-500 transition-colors shadow-xs cursor-pointer"
-                  >
-                    <Trash size={13} />
-                    {t('products.permanentDelete')}
-                  </button>
-                )}
-              </>
-            ) : (
-              canDeleteBrand && (
-                <button
-                  onClick={() => setBulkDeleteConfirmOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-xl hover:bg-red-500 cursor-pointer transition-colors shadow-xs"
-                >
-                  <Trash size={13} />
-                  {t('products.deleteSelected')}
-                </button>
-              )
+            {canDeleteBrand && (
+              <button
+                onClick={() => setBulkDeleteConfirmOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-xl hover:bg-red-500 cursor-pointer transition-colors shadow-xs"
+              >
+                <Trash size={13} />
+                {t('products.deleteSelected')}
+              </button>
             )}
             <button
               onClick={() => setSelectedRows([])}
@@ -502,37 +425,23 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
         </div>
       )}
 
-      {/* Global Standard Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-style Unified Filter Bar */}
+      <BrandSearchBar
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder={t('products.searchBrands', 'Search brands...')}
+        statusFilter={statusFilter}
+        onStatusChange={(val) => {
+          setStatusFilter(val)
+          setPage(1)
+        }}
         onReset={() => {
           setSearch('')
           setStatusFilter('all')
           setSortBy('id')
           setSortOrder('asc')
           setPage(1)
-          setRecycleBinMode(false)
           setSelectedRows([])
         }}
-        leftActions={
-          <ModernSelect
-            value={statusFilter}
-            onChange={(val) => {
-              setStatusFilter(val as 'all' | 'active' | 'inactive')
-              setPage(1)
-            }}
-            options={[
-              { value: 'all', label: `${t('common.status', 'Status')}: ${t('common.allStatus', 'All')}` },
-              { value: 'active', label: t('common.active', 'Active') },
-              { value: 'inactive', label: t('common.inactive', 'Inactive') },
-            ]}
-            className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-          />
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['brands'] })}
-        refreshLoading={isFetching}
         columns={[
           { key: 'brand', label: t('products.colBrand', 'Brand') },
           { key: 'slug', label: t('products.colSlug', 'Slug') },
@@ -542,6 +451,8 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
+        selectedCount={selectedRows.length}
+        onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
       />
 
       {/* Brands Table */}
@@ -681,7 +592,7 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
                           <button
                             onClick={() => navigate(`/products?tab=products&brand_id=${brand.id}`)}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                            title="Filter products by this brand"
+                            title={t('products.filterProductsByBrand', 'Filter products by this brand')}
                           >
                             <Package size={13} />
                             <span>{brand.products_count ?? 0}</span>
@@ -708,40 +619,24 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
 
                       {/* Actions */}
                       <td className="py-3.5 pr-4 text-right">
-                        {recycleBinMode ? (
-                          <div className="flex items-center justify-end gap-1">
-                            {canUpdateBrand && (
-                              <button
-                                onClick={() => restoreMutation.mutate(brand.id)}
-                                className="p-1.5 hover:bg-muted rounded-lg text-indigo-500 hover:text-indigo-600 transition-colors cursor-pointer"
-                                title="Restore"
-                              >
-                                <RefreshCw size={14} />
-                              </button>
-                            )}
-                            {canDeleteBrand && (
-                              <button
-                                onClick={() => setDeleteTarget(brand)}
-                                className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-muted-foreground hover:text-red-500 transition-colors cursor-pointer"
-                                title="Permanent Delete"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          <TableActionMenu
-                            onEdit={canUpdateBrand ? () => openEditModal(brand) : undefined}
-                            onDelete={canDeleteBrand ? () => setDeleteTarget(brand) : undefined}
-                          />
-                        )}
+                        <TableActionMenu
+                          onEdit={canUpdateBrand ? () => openEditModal(brand) : undefined}
+                          onDelete={canDeleteBrand ? () => setDeleteTarget(brand) : undefined}
+                        />
                       </td>
                     </tr>
                   )
                 })
               )}
               {!isLoading && brands.length === 0 && (
-                <EmptyState cols={7} />
+                <EmptyState
+                  cols={7}
+                  icon={<Tag size={32} />}
+                  title={t('products.noBrandsFound', 'No Brands Found')}
+                  description={t('products.noBrandsDescription', 'Get started by creating your first brand or manufacturer.')}
+                  actionLabel={canCreateBrand ? t('products.addBrand', 'Add Brand') : undefined}
+                  onAction={canCreateBrand ? openCreateModal : undefined}
+                />
               )}
             </tbody>
           </table>
@@ -758,262 +653,222 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
       </div>
 
       {/* Clean Enterprise Brand Create/Edit Modal */}
-      {modalOpen && createPortal(
-        <AnimatePresence>
-          <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.96, opacity: 0, y: 8 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.96, opacity: 0, y: 8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="bg-card border border-border/80 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-            >
-              {/* Global Modal Header */}
-              <ModalHeader
-                title={editingBrand ? t('products.editBrand', 'Edit Brand') : t('products.addBrand', 'Add Brand')}
-                subtitle={editingBrand ? t('products.editBrandDesc', 'Update brand metadata and logo insignia') : t('products.addBrandDesc', 'Create a new manufacturer or brand mark')}
-                icon={<Tag size={20} />}
-                iconVariant="blue"
-                onClose={closeModal}
-              />
-
-              {/* Form Body */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-                {/* Brand Name */}
-                <div>
-                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    {t('products.colBrand', 'Brand Name')} <span className="text-rose-500 font-bold">*</span>
-                  </label>
-                  <input
-                    id="name"
-                    name="name"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value)
-                      handleClearError('name')
-                    }}
-                    placeholder={t('products.brandNamePlaceholder', 'e.g. Apple, Samsung, Nike, Logitech...')}
-                    className={getFieldClass(
-                      formErrors.name,
-                      'form-input text-sm rounded-xl py-2.5 px-3.5 bg-background border border-border/80 transition-all font-medium'
-                    )}
-                  />
-                  <FieldError error={formErrors.name} />
-                </div>
-
-                {/* Status Card */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-muted/25 border border-border/60">
-                  <div>
-                    <span className="block text-xs font-bold text-foreground">{t('products.colStatus', 'Status')}</span>
-                    <span className="text-[11px] text-muted-foreground">{isActive ? t('products.active', 'Active') : t('products.inactive', 'Inactive')}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsActive(!isActive)}
-                    className="text-primary hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                  >
-                    {isActive ? <ToggleRight size={34} /> : <ToggleLeft size={34} className="text-muted-foreground" />}
-                  </button>
-                </div>
-
-                {/* Clean Image / Logo Card */}
-                <div className="p-4 rounded-2xl bg-muted/25 border border-border/60 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-foreground uppercase tracking-wider">
-                      {t('products.colPhoto', 'Brand Logo / Icon')}
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center gap-3.5">
-                    {/* Visual Preview Box */}
-                    <div className="w-16 h-16 rounded-2xl border border-border/80 overflow-hidden bg-background flex items-center justify-center shrink-0 shadow-2xs relative group p-1">
-                      {logoPreview ? (
-                        <AntImage
-                          src={logoPreview}
-                          alt="Preview"
-                          className="w-full h-full object-contain"
-                          rootClassName="w-full h-full flex items-center justify-center cursor-pointer"
-                          fallback={DEFAULT_BRAND_IMAGE}
-                        />
-                      ) : (
-                        <img
-                          src={DEFAULT_BRAND_IMAGE}
-                          alt="Default Brand"
-                          className="w-full h-full object-contain opacity-70"
-                        />
-                      )}
-                    </div>
-
-                    {/* Logo Inputs */}
-                    <div className="flex-grow space-y-2 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoChange}
-                          className="hidden"
-                          id="clean-brand-logo-upload"
-                        />
-                        <label
-                          htmlFor="clean-brand-logo-upload"
-                          className="inline-flex items-center justify-center px-3.5 py-1.5 border border-border/80 rounded-xl text-xs font-semibold text-foreground bg-background hover:bg-muted cursor-pointer transition-colors shadow-2xs"
-                        >
-                          <Upload size={13} className="mr-1.5" />
-                          {t('products.uploadLogo', 'Choose File')}
-                        </label>
-
-                        {logoPreview && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLogoFile(null)
-                              setLogoPreview(null)
-                              setLogoUrl('')
-                              setRemoveLogo(true)
-                            }}
-                            className="px-2.5 py-1.5 text-xs text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
-                          >
-                            {t('common.remove', 'Remove')}
-                          </button>
-                        )}
-                      </div>
-
-                      <input
-                        type="url"
-                        value={logoUrl}
-                        onChange={(e) => {
-                          setLogoUrl(e.target.value)
-                          if (e.target.value) {
-                            setLogoPreview(e.target.value)
-                            setRemoveLogo(false)
-                          } else if (!logoFile) {
-                            setLogoPreview(null)
-                          }
-                        }}
-                        placeholder={t('products.pasteImageUrl', 'Or paste logo URL (https://...)')}
-                        className="form-input text-xs rounded-xl py-1.5 px-3 bg-background border-border/80 w-full"
-                      />
-                      <p className="text-[10px] text-muted-foreground">{t('products.uploadLogoRecommendation', 'Recommended 300x300 PNG, JPG or WebP')}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    {t('products.colDescription', 'Description')}
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder={t('products.brandDescPlaceholder', 'Short overview about this brand...')}
-                    rows={2}
-                    className="form-input text-sm rounded-xl py-2 px-3 bg-background border-border/80 resize-none"
-                  />
-                </div>
-
-                {/* Clean Footer Buttons */}
-                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border/60">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground rounded-xl transition-colors cursor-pointer"
-                  >
-                    {t('common.cancel', 'Cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-primary rounded-xl hover:opacity-90 shadow-md shadow-primary/20 flex items-center gap-2 transition-all cursor-pointer"
-                  >
-                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    <span>{editingBrand ? t('common.save', 'Save Changes') : t('products.addBrand', 'Create Brand')}</span>
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+      <EnterpriseModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={editingBrand ? t('products.editBrand', 'Edit Brand') : t('products.addBrand', 'Add Brand')}
+        subtitle={editingBrand ? t('products.editBrandDesc', 'Update brand metadata and logo insignia') : t('products.addBrandDesc', 'Create a new manufacturer or brand mark')}
+        icon={<Tag size={20} />}
+        iconVariant="blue"
+        size="lg"
+        footer={
+          <ModalFooter
+            onCancel={closeModal}
+            isSubmitting={isSaving}
+            isEdit={Boolean(editingBrand)}
+            submitLabel={
+              editingBrand
+                ? t('common.saveChanges', 'Save Changes')
+                : t('products.addBrand', 'Save Brand')
+            }
+            onSubmit={handleSubmit}
+          />
+        }
+      >
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+          {/* Brand Name */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('products.colBrand', 'Brand Name')} <span className="text-rose-500 font-bold">*</span>
+            </label>
+            <input
+              id="name"
+              name="name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                handleClearError('name')
+              }}
+              placeholder={t('products.brandNamePlaceholder', 'e.g. Apple, Samsung, Nike, Logitech...')}
+              className={getFieldClass(
+                formErrors.name,
+                'w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium'
+              )}
+            />
+            <FieldError error={formErrors.name} />
           </div>
-        </AnimatePresence>,
-        document.body
-      )}
 
-      {/* CSV Import Modal */}
-      {importOpen && createPortal(
-        <AnimatePresence>
-          <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
-            >
-              <ModalHeader
-                title={t('products.importCSV', 'Import CSV')}
-                subtitle={t('products.brandsImportInstruction', 'Upload CSV file to import brands in bulk')}
-                icon={<Upload size={20} />}
-                iconVariant="blue"
-                onClose={() => setImportOpen(false)}
-              />
+          {/* Clean Image / Logo Card */}
+          <div className="p-4 rounded-2xl bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200">
+                {t('products.colPhoto', 'Brand Logo / Icon')}
+              </label>
+            </div>
+            
+            <div className="flex items-center gap-3.5">
+              {/* Visual Preview Box */}
+              <div className="w-16 h-16 rounded-2xl border border-border/80 dark:border-slate-700 overflow-hidden bg-background dark:bg-slate-900 flex items-center justify-center shrink-0 shadow-2xs relative group p-1">
+                {logoPreview ? (
+                  <Image
+                    src={logoPreview}
+                    alt="Preview"
+                    className="w-full h-full object-contain"
+                    rootClassName="w-full h-full flex items-center justify-center cursor-pointer"
+                    fallback={DEFAULT_BRAND_IMAGE}
+                  />
+                ) : (
+                  <img
+                    src={DEFAULT_BRAND_IMAGE}
+                    alt="Default Brand"
+                    className="w-full h-full object-contain opacity-70"
+                  />
+                )}
+              </div>
 
-              <form onSubmit={handleImport} className="p-6 space-y-4">
-                <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center hover:bg-muted/10 transition-colors">
-                  <Upload className="mx-auto text-muted-foreground mb-2" size={32} />
+              {/* Logo Inputs */}
+              <div className="flex-grow space-y-2 min-w-0">
+                <div className="flex items-center gap-2">
                   <input
                     type="file"
-                    accept=".csv,.txt"
-                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                    accept="image/*"
+                    onChange={handleLogoChange}
                     className="hidden"
-                    id="csv-brand-upload"
-                    required
+                    id="clean-brand-logo-upload"
                   />
-                  <label htmlFor="csv-brand-upload" className="cursor-pointer font-medium text-primary hover:underline">
-                    {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to upload CSV')}
+                  <label
+                    htmlFor="clean-brand-logo-upload"
+                    className="inline-flex items-center justify-center px-3.5 py-2 border border-border/80 dark:border-slate-700 rounded-lg text-xs font-semibold text-foreground bg-background dark:bg-slate-900 hover:bg-muted cursor-pointer transition-colors shadow-2xs"
+                  >
+                    <Upload size={13} className="mr-1.5" />
+                    {t('products.uploadLogo', 'Choose File')}
                   </label>
-                  <p className="text-xs text-muted-foreground mt-1">{t('products.brandsImportInstruction', 'CSV format: Name, Description')}</p>
+
+                  {logoPreview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogoFile(null)
+                        setLogoPreview(null)
+                        setLogoUrl('')
+                        setRemoveLogo(true)
+                      }}
+                      className="px-2.5 py-2 text-xs text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                    >
+                      {t('common.remove', 'Remove')}
+                    </button>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={() => setImportOpen(false)}
-                    className="px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground rounded-xl transition-colors cursor-pointer"
-                  >
-                    {t('common.cancel', 'Cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={importing || !importFile}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-primary rounded-xl hover:opacity-90 shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {importing && <Loader2 size={14} className="animate-spin" />}
-                    {t('products.importCSV', 'Import CSV')}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+                <input
+                  type="url"
+                  value={logoUrl}
+                  onChange={(e) => {
+                    setLogoUrl(e.target.value)
+                    if (e.target.value) {
+                      setLogoPreview(e.target.value)
+                      setRemoveLogo(false)
+                    } else if (!logoFile) {
+                      setLogoPreview(null)
+                    }
+                  }}
+                  placeholder={t('products.pasteImageUrl', 'Or paste logo URL (https://...)')}
+                  className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                />
+                <p className="text-[11px] text-muted-foreground">{t('products.uploadLogoRecommendation', 'Recommended 300x300 PNG, JPG or WebP')}</p>
+              </div>
+            </div>
           </div>
-        </AnimatePresence>,
-        document.body
-      )}
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('products.colDescription', 'Description')}
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t('products.brandDescPlaceholder', 'Short overview about this brand...')}
+              rows={2}
+              className="w-full min-h-[70px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/70 dark:placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"
+            />
+          </div>
+
+          {/* Active Brand Status Card (Matches Screenshot 1 Customer Group style) */}
+          <div className="p-4 bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5">
+              <label
+                htmlFor="isActiveBrandCheckbox"
+                className="text-xs sm:text-[13px] font-bold text-foreground dark:text-slate-100 cursor-pointer select-none block"
+              >
+                {t('products.activeBrandStatus', 'Active Brand Status')}
+              </label>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                {t('products.activeBrandHelp', 'Allow this brand to be assigned to products and displayed in storefront')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isActiveBrandCheckbox"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded border-border focus:ring-primary cursor-pointer"
+            />
+          </div>
+        </form>
+      </EnterpriseModal>
+
+      {/* CSV Import Modal */}
+      <EnterpriseModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        title={t('products.importCSV', 'Import CSV')}
+        subtitle={t('products.brandsImportInstruction', 'Upload CSV file to import brands in bulk')}
+        icon={<Upload size={20} />}
+        iconVariant="blue"
+        size="md"
+        footer={
+          <ModalFooter
+            onCancel={() => setImportOpen(false)}
+            isSubmitting={importing}
+            submitLabel={t('products.importCSV', 'Import CSV')}
+            onSubmit={handleImport}
+          />
+        }
+      >
+        <form onSubmit={handleImport} className="p-5 sm:p-6 space-y-4">
+          <div className="border-2 border-dashed border-border/80 dark:border-slate-700 rounded-2xl p-6 text-center hover:bg-muted/10 transition-colors">
+            <Upload className="mx-auto text-muted-foreground mb-2" size={32} />
+            <input
+              type="file"
+              accept=".csv,.txt"
+              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              className="hidden"
+              id="csv-brand-upload"
+              required
+            />
+            <label htmlFor="csv-brand-upload" className="cursor-pointer font-medium text-xs sm:text-[13px] text-primary hover:underline">
+              {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to upload CSV')}
+            </label>
+            <p className="text-[11px] text-muted-foreground mt-1">{t('products.brandsImportInstruction', 'CSV format: Name, Description')}</p>
+          </div>
+        </form>
+      </EnterpriseModal>
 
       {/* Unified Delete Confirmation Dialog */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title="brands.deleteTitle"
+        title={t('brands.deleteTitle', 'Delete Brand')}
         itemName={deleteTarget?.name}
-        confirmText="common.confirmDelete"
-        cancelText="common.cancel"
+        confirmText={t('common.confirmDelete', 'Confirm Delete')}
+        cancelText={t('common.cancel', 'Cancel')}
         onConfirm={() => {
           if (deleteTarget) {
-            if (recycleBinMode) {
-              forceDeleteMutation.mutate(deleteTarget.id)
-            } else {
-              deleteMutation.mutate(deleteTarget.id)
-            }
+            deleteMutation.mutate(deleteTarget.id)
           }
         }}
         onCancel={() => setDeleteTarget(null)}
-        loading={deleteMutation.isPending || forceDeleteMutation.isPending}
+        loading={deleteMutation.isPending}
       />
 
       {/* Bulk Delete Confirmation Dialog */}

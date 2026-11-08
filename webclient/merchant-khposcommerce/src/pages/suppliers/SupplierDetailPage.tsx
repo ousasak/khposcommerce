@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -9,15 +9,10 @@ import {
 } from 'lucide-react'
 import { supplierService } from '@/services/supplierService'
 import { useToast } from '@/hooks/useToast'
-import {
-  FormHeader,
-  FormHeaderButton,
-  StatusBadge,
-  LoadingSpinner,
-  SupplierLogo,
-} from '@/components/common'
+import { FormHeader, FormHeaderButton, StatusBadge, LoadingSpinner, SupplierLogo } from '@/components/common'
 import CustomErrorMessage from '@/components/ui/CustomErrorMessage'
 import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
+import Pagination from '@/components/shared/Pagination'
 import { usePageTab } from '@/hooks/usePageTab'
 import type { Supplier } from './types/supplier.types'
 
@@ -38,6 +33,14 @@ export const SupplierDetailPage: React.FC = () => {
   })
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
+  // ── Pagination state for Purchases tab ────────────────────────────────────
+  const [purchasePage, setPurchasePage] = useState(1)
+  const purchasePerPage = 10
+
+  // ── Pagination state for Products/Catalog tab ─────────────────────────────
+  const [productPage, setProductPage] = useState(1)
+  const productPerPage = 10
+
   const {
     data: supplier,
     isLoading,
@@ -57,7 +60,7 @@ export const SupplierDetailPage: React.FC = () => {
       setCopiedKey(key)
       setTimeout(() => setCopiedKey(null), 1500)
     }
-    toast.success(t('suppliers.copiedToClipboard', 'បានចម្លងទៅក្ដារតម្បៀតខ្ទាស់'))
+    toast.success(t('suppliers.copiedToClipboard', 'Copied to clipboard'))
   }
 
   const formatDate = (dateStr?: string) => {
@@ -86,11 +89,11 @@ export const SupplierDetailPage: React.FC = () => {
           variant="card"
           severity="error"
           code={(error as any)?.response?.status || 404}
-          title={t('suppliers.loadErrorTitle', 'មិនអាចទាញយកទិន្នន័យអ្នកផ្គត់ផ្គង់')}
-          message={(error as any)?.response?.data?.message || t('suppliers.loadErrorDesc', 'រកមិនឃើញអ្នកផ្គត់ផ្គង់ ឬមានបញ្ហាក្នុងការទាញយកទិន្នន័យ។')}
+          title={t('suppliers.loadErrorTitle', 'Unable to load supplier details')}
+          message={(error as any)?.response?.data?.message || t('suppliers.loadErrorDesc', 'Supplier not found or error loading record.')}
           onRetry={() => refetch()}
           action={{
-            label: t('suppliers.back', 'ត្រឡប់ក្រោយ'),
+            label: t('suppliers.back', 'Back'),
             onClick: () => navigate('/suppliers'),
           }}
           className="w-full shadow-2xl"
@@ -124,25 +127,25 @@ export const SupplierDetailPage: React.FC = () => {
   const workspaceTabs: WorkspaceTabItem[] = [
     {
       id: 'overview',
-      label: t('suppliers.tabGeneral', 'ព័ត៌មានទូទៅ'),
+      label: t('suppliers.tabGeneral', 'General Information'),
     },
     {
       id: 'financials',
-      label: t('suppliers.tabBanking', 'ព័ត៌មានធនាគារ'),
+      label: t('suppliers.tabBanking', 'Banking Details'),
     },
     {
       id: 'purchases',
-      label: t('suppliers.tabPurchases', 'ប្រវត្តិបញ្ជាទិញ'),
+      label: t('suppliers.tabPurchases', 'Purchase History'),
       count: purchasesCount,
     },
     {
       id: 'products',
-      label: t('suppliers.tabProducts', 'កាតាឡុកទំនិញ'),
+      label: t('suppliers.tabProducts', 'Product Catalog'),
       count: productsCount,
     },
     {
       id: 'performance',
-      label: t('suppliers.operationalSla', 'ការវាយតម្លៃប្រសិទ្ធភាព និងកិច្ចព្រមព្រៀង SLA'),
+      label: t('suppliers.operationalSla', 'Operational SLA & Metrics'),
     },
   ]
 
@@ -151,19 +154,19 @@ export const SupplierDetailPage: React.FC = () => {
       case 'strategic':
         return (
           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shadow-2xs">
-            {t('suppliers.strategicPartner', 'ដៃគូយុទ្ធសាស្ត្រ')}
+            {t('suppliers.strategicPartner', 'Strategic Partner')}
           </span>
         )
       case 'preferred':
         return (
           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20 shadow-2xs">
-            {t('suppliers.preferred', 'អ្នកផ្គត់ផ្គង់អាទិភាព')}
+            {t('suppliers.preferred', 'Preferred Supplier')}
           </span>
         )
       default:
         return (
           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-muted text-muted-foreground border border-border shadow-2xs">
-            {t('suppliers.regular', 'ធម្មតា')}
+            {t('suppliers.regular', 'Regular')}
           </span>
         )
     }
@@ -190,7 +193,7 @@ export const SupplierDetailPage: React.FC = () => {
               type="button"
               onClick={() => handleCopy(supp.code, 'header_code')}
               className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              title={t('suppliers.copy', 'ចម្លង')}
+              title={t('suppliers.copy', 'Copy')}
             >
               {copiedKey === 'header_code' ? (
                 <Check size={12} className="text-emerald-500" />
@@ -205,27 +208,20 @@ export const SupplierDetailPage: React.FC = () => {
         }
         statusBadge={<StatusBadge status={supp.is_active} rounded="full" />}
         breadcrumbs={[
-          { label: t('suppliers.procurementVolume', 'ការទិញទំនិញ'), path: '/purchases' },
-          { label: t('suppliers.title', 'អ្នកផ្គត់ផ្គង់'), path: '/suppliers' },
+          { label: t('suppliers.procurementVolume', 'Purchases'), path: '/purchases' },
+          { label: t('suppliers.title', 'Suppliers'), path: '/suppliers' },
           { label: supp.name },
         ]}
         backPath="/suppliers"
-        backLabel={t('suppliers.back', 'ត្រឡប់ក្រោយ')}
+        backLabel={t('suppliers.back', 'Back')}
         extraActions={
           <div className="flex items-center gap-2">
-            <FormHeaderButton
-              variant="emerald"
-              icon={<ShoppingCart size={14} />}
-              onClick={() => navigate(`/purchases/create?supplier_id=${supp.id}`)}
-            >
-              {t('suppliers.createPO', 'បង្កើតការបញ្ជាទិញ')}
-            </FormHeaderButton>
             <FormHeaderButton
               variant="primary"
               icon={<Edit2 size={14} />}
               onClick={() => navigate(`/suppliers/${supp.id}/edit`)}
             >
-              {t('suppliers.editSupplier', 'កែសម្រួលអ្នកផ្គត់ផ្គង់')}
+              {t('suppliers.editSupplier', 'Edit Supplier')}
             </FormHeaderButton>
           </div>
         }
@@ -236,33 +232,33 @@ export const SupplierDetailPage: React.FC = () => {
         {/* Card 1: Total Purchased */}
         <div className="bg-card rounded-2xl border border-border shadow-xs p-5 space-y-1 transition-all hover:border-primary/40">
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {t('suppliers.totalPurchased', 'បរិមាណទិញសរុប')}
+            {t('suppliers.totalPurchased', 'Total Purchases')}
           </p>
           <p className="text-2xl font-black font-mono text-foreground tracking-tight">
             ${totalPurchased.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-xs font-medium text-muted-foreground truncate">
-            {purchasesCount} {t('suppliers.posCount', 'ការបញ្ជាទិញ')}
+            {purchasesCount} {t('suppliers.posCount', 'Orders')}
           </p>
         </div>
 
         {/* Card 2: Total Paid */}
         <div className="bg-card rounded-2xl border border-border shadow-xs p-5 space-y-1 transition-all hover:border-primary/40">
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {t('suppliers.paid', 'បានបង់')}
+            {t('suppliers.paid', 'Paid')}
           </p>
           <p className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 tracking-tight">
             ${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 truncate">
-            {t('suppliers.settledPaymentsToDate', 'ការទូទាត់ដោះស្រាយរួច')}
+            {t('suppliers.settledPaymentsToDate', 'Settled Payments to Date')}
           </p>
         </div>
 
         {/* Card 3: Outstanding AP Due */}
         <div className="bg-card rounded-2xl border border-border shadow-xs p-5 space-y-1 transition-all hover:border-primary/40">
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {t('suppliers.due', 'បំណុលជំពាក់')}
+            {t('suppliers.due', 'Outstanding Balance')}
           </p>
           <p
             className={`text-2xl font-black font-mono tracking-tight ${
@@ -274,11 +270,11 @@ export const SupplierDetailPage: React.FC = () => {
           <p className="text-xs font-medium truncate">
             {totalDue > 0 ? (
               <span className="text-rose-600 dark:text-rose-400 font-semibold">
-                {t('suppliers.pendingSettlementPayment', 'នៅសល់ទឹកប្រាក់ត្រូវទូទាត់')}
+                {t('suppliers.pendingSettlementPayment', 'Pending Settlement Balance')}
               </span>
             ) : (
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                {t('suppliers.noOutstandingBalance', 'គ្មានបំណុលត្រូវទូទាត់')}
+                {t('suppliers.noOutstandingBalance', 'No Outstanding Balance')}
               </span>
             )}
           </p>
@@ -287,13 +283,13 @@ export const SupplierDetailPage: React.FC = () => {
         {/* Card 4: Credit Limit & Terms */}
         <div className="bg-card rounded-2xl border border-border shadow-xs p-5 space-y-1 transition-all hover:border-primary/40">
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            {t('suppliers.creditLimit', 'កម្រិតឥណទាន ($)')}
+            {t('suppliers.creditLimit', 'Credit Limit ($)')}
           </p>
           <p className="text-2xl font-black font-mono text-foreground tracking-tight">
             ${creditLimit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </p>
           <p className="text-xs font-medium text-muted-foreground truncate">
-            {supp.payment_terms || 'Net 30'} · {supp.lead_time_days ?? 3} {t('suppliers.daysLeadTime', 'ថ្ងៃដឹកជញ្ជូន')}
+            {supp.payment_terms || 'Net 30'} · {supp.lead_time_days ?? 3} {t('suppliers.daysLeadTime', 'days delivery')}
           </p>
         </div>
       </div>
@@ -317,24 +313,24 @@ export const SupplierDetailPage: React.FC = () => {
               <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
                 <div className="pb-3 border-b border-border/80">
                   <h3 className="text-base font-bold text-foreground">
-                    {t('suppliers.companyProfile', 'ព័ត៌មានក្រុមហ៊ុន និងការចុះបញ្ជី')}
+                    {t('suppliers.companyProfile', 'Company Profile & Registration')}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('suppliers.companyProfileDesc', 'ព័ត៌មានអត្តសញ្ញាណក្រុមហ៊ុន និងទិន្នន័យនីតិបុគ្គលរបស់អ្នកផ្គត់ផ្គង់')}
+                    {t('suppliers.companyProfileDesc', 'Corporate identity and business legal registration details')}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.name', 'ឈ្មោះអ្នកផ្គត់ផ្គង់')}
+                      {t('suppliers.name', 'Supplier Name')}
                     </span>
                     <p className="font-bold text-foreground text-sm truncate">{supp.name}</p>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.code', 'កូដអ្នកផ្គត់ផ្គង់')}
+                      {t('suppliers.code', 'Supplier Code')}
                     </span>
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-foreground text-sm">{supp.code}</span>
@@ -342,7 +338,7 @@ export const SupplierDetailPage: React.FC = () => {
                         type="button"
                         onClick={() => handleCopy(supp.code, 'overview_code')}
                         className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                        title={t('suppliers.copy', 'ចម្លង')}
+                        title={t('suppliers.copy', 'Copy')}
                       >
                         {copiedKey === 'overview_code' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                       </button>
@@ -351,7 +347,7 @@ export const SupplierDetailPage: React.FC = () => {
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.taxNumber', 'លេខសារពើពន្ធ')}
+                      {t('suppliers.taxNumber', 'Tax ID / VAT')}
                     </span>
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-foreground text-sm">{supp.tax_number || '—'}</span>
@@ -360,7 +356,7 @@ export const SupplierDetailPage: React.FC = () => {
                           type="button"
                           onClick={() => handleCopy(supp.tax_number, 'tax_number')}
                           className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                          title={t('suppliers.copy', 'ចម្លង')}
+                          title={t('suppliers.copy', 'Copy')}
                         >
                           {copiedKey === 'tax_number' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                         </button>
@@ -370,7 +366,7 @@ export const SupplierDetailPage: React.FC = () => {
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.supplierType', 'ប្រភេទអ្នកផ្គត់ផ្គង់')}
+                      {t('suppliers.supplierType', 'Supplier Type')}
                     </span>
                     <p className="font-semibold text-foreground capitalize">
                       {supp.supplier_type ? t(`suppliers.${supp.supplier_type}`, supp.supplier_type.replace('_', ' ')) : '—'}
@@ -379,14 +375,14 @@ export const SupplierDetailPage: React.FC = () => {
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.partnershipTier', 'កម្រិតដៃគូ')}
+                      {t('suppliers.partnershipTier', 'Partnership Tier')}
                     </span>
                     <div className="pt-0.5">{getTierBadge(supp.tier)}</div>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.registeredDate', 'កាលបរិច្ឆេទចុះឈ្មោះ')}
+                      {t('suppliers.registeredDate', 'Registration Date')}
                     </span>
                     <p className="font-mono font-semibold text-foreground text-sm">
                       {formatDate(supp.created_at)}
@@ -400,10 +396,10 @@ export const SupplierDetailPage: React.FC = () => {
                 <div className="flex items-center justify-between pb-3 border-b border-border/80">
                   <div>
                     <h3 className="text-base font-bold text-foreground">
-                      {t('suppliers.recentPurchasesPreview', 'ការបញ្ជាទិញថ្មីៗ')}
+                      {t('suppliers.recentPurchasesPreview', 'Recent Purchases')}
                     </h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {t('suppliers.recentPurchasesPreviewDesc', 'បញ្ជីការបញ្ជាទិញទំនិញចុងក្រោយពីអ្នកផ្គត់ផ្គង់នេះ')}
+                      {t('suppliers.recentPurchasesPreviewDesc', 'Latest purchase orders placed with this supplier')}
                     </p>
                   </div>
 
@@ -413,7 +409,7 @@ export const SupplierDetailPage: React.FC = () => {
                       onClick={() => setActiveTab('purchases')}
                       className="text-xs font-bold text-primary hover:underline cursor-pointer"
                     >
-                      {t('suppliers.viewAllPurchases', 'មើលទាំងអស់')}
+                      {t('suppliers.viewAllPurchases', 'View All')}
                     </button>
                   )}
                 </div>
@@ -421,7 +417,7 @@ export const SupplierDetailPage: React.FC = () => {
                 {(!supp.recent_purchases || supp.recent_purchases.length === 0) ? (
                   <div className="py-8 text-center bg-muted/20 border border-dashed border-border rounded-xl">
                     <p className="text-xs font-semibold text-muted-foreground">
-                      {t('suppliers.noPurchases', 'មិនទាន់មានការបញ្ជាទិញនៅឡើយទេ')}
+                      {t('suppliers.noPurchases', 'No purchase orders yet')}
                     </p>
                     <button
                       type="button"
@@ -429,7 +425,7 @@ export const SupplierDetailPage: React.FC = () => {
                       className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:underline cursor-pointer"
                     >
                       <Plus size={13} />
-                      <span>{t('suppliers.createPO', 'បង្កើតការបញ្ជាទិញ')}</span>
+                      <span>{t('suppliers.createPO', 'Create PO')}</span>
                     </button>
                   </div>
                 ) : (
@@ -437,12 +433,12 @@ export const SupplierDetailPage: React.FC = () => {
                     <table className="w-full text-xs text-left">
                       <thead className="bg-muted/50 border-b border-border text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
                         <tr>
-                          <th className="py-2.5 px-3.5">{t('purchases.referenceNumber', 'លេខកូដ PO')}</th>
-                          <th className="py-2.5 px-3.5">{t('purchases.date', 'កាលបរិច្ឆេទ')}</th>
-                          <th className="py-2.5 px-3.5">{t('purchases.destination', 'សាខា / ឃ្លាំង')}</th>
-                          <th className="py-2.5 px-3.5 text-right">{t('purchases.grandTotal', 'សរុបរួម')}</th>
-                          <th className="py-2.5 px-3.5 text-center">{t('purchases.paymentStatus', 'ការទូទាត់')}</th>
-                          <th className="py-2.5 px-3.5 text-center">{t('common.actions', 'សកម្មភាព')}</th>
+                          <th className="py-2.5 px-3.5">{t('purchases.referenceNumber', 'PO Code')}</th>
+                          <th className="py-2.5 px-3.5">{t('purchases.date', 'Date')}</th>
+                          <th className="py-2.5 px-3.5">{t('purchases.destination', 'Branch / Warehouse')}</th>
+                          <th className="py-2.5 px-3.5 text-right">{t('purchases.grandTotal', 'Grand Total')}</th>
+                          <th className="py-2.5 px-3.5 text-center">{t('purchases.paymentStatus', 'Payment')}</th>
+                          <th className="py-2.5 px-3.5 text-center">{t('common.actions', 'Actions')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
@@ -485,7 +481,7 @@ export const SupplierDetailPage: React.FC = () => {
                                 className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
                               >
                                 <Eye size={12} />
-                                <span>{t('common.view', 'មើល')}</span>
+                                <span>{t('common.view', 'View')}</span>
                               </Link>
                             </td>
                           </tr>
@@ -500,17 +496,17 @@ export const SupplierDetailPage: React.FC = () => {
               <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
                 <div className="pb-3 border-b border-border/80">
                   <h3 className="text-base font-bold text-foreground">
-                    {t('suppliers.contactRepresentatives', 'តំណាងទំនាក់ទំនង & អ្នកគ្រប់គ្រងគណនី')}
+                    {t('suppliers.contactRepresentatives', 'Contact Representatives')}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('suppliers.contactRepresentativesDesc', 'តំណាងគណនី អ្នកសម្របសម្រួលការទិញ និងទំនាក់ទំនងបន្ទាន់')}
+                    {t('suppliers.contactRepresentativesDesc', 'Account managers, procurement liaisons, and emergency contacts')}
                   </p>
                 </div>
 
                 {contactsCount === 0 ? (
                   <div className="py-8 text-center bg-muted/20 border border-dashed border-border rounded-xl">
                     <p className="text-xs font-semibold text-muted-foreground">
-                      {t('suppliers.noContactsDesc', 'មិនទាន់មានតំណាងទំនាក់ទំនងនៅឡើយទេ។')}
+                      {t('suppliers.noContactsDesc', 'No contact representatives recorded yet.')}
                     </p>
                     <button
                       type="button"
@@ -518,7 +514,7 @@ export const SupplierDetailPage: React.FC = () => {
                       className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-primary hover:underline cursor-pointer"
                     >
                       <Plus size={13} />
-                      <span>{t('suppliers.addContactsInEdit', 'បន្ថែមទំនាក់ទំនងក្នុងការកែប្រែ')}</span>
+                      <span>{t('suppliers.addContactsInEdit', 'Add contacts via edit supplier modal')}</span>
                     </button>
                   </div>
                 ) : (
@@ -536,13 +532,13 @@ export const SupplierDetailPage: React.FC = () => {
                             <div className="min-w-0">
                               <h4 className="font-bold text-foreground text-xs truncate">{contact.name}</h4>
                               <p className="text-[11px] text-muted-foreground truncate">
-                                {contact.title || contact.position || t('suppliers.accountRep', 'តំណាងគណនី')}
+                                {contact.title || contact.position || t('suppliers.accountRep', 'Account Representative')}
                               </p>
                             </div>
                           </div>
                           {contact.is_primary && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 shrink-0">
-                              {t('suppliers.primary', 'ចម្បង')}
+                              {t('suppliers.primary', 'Primary')}
                             </span>
                           )}
                         </div>
@@ -560,7 +556,7 @@ export const SupplierDetailPage: React.FC = () => {
                                 type="button"
                                 onClick={() => handleCopy(contact.phone, `c_phone_${idx}`)}
                                 className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                                title={t('suppliers.copy', 'ចម្លង')}
+                                title={t('suppliers.copy', 'Copy')}
                               >
                                 {copiedKey === `c_phone_${idx}` ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
                               </button>
@@ -579,7 +575,7 @@ export const SupplierDetailPage: React.FC = () => {
                                 type="button"
                                 onClick={() => handleCopy(contact.email, `c_email_${idx}`)}
                                 className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                                title={t('suppliers.copy', 'ចម្លង')}
+                                title={t('suppliers.copy', 'Copy')}
                               >
                                 {copiedKey === `c_email_${idx}` ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
                               </button>
@@ -596,7 +592,7 @@ export const SupplierDetailPage: React.FC = () => {
               {supp.notes && (
                 <div className="bg-amber-500/5 rounded-2xl border border-amber-500/20 shadow-xs p-5 space-y-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                    {t('suppliers.internalRemarks', 'កំណត់ចំណាំផ្ទៃក្នុង & លក្ខខណ្ឌពិសេស')}
+                    {t('suppliers.internalRemarks', 'Internal Remarks & Terms')}
                   </h4>
                   <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap">
                     {supp.notes}
@@ -613,31 +609,31 @@ export const SupplierDetailPage: React.FC = () => {
               <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
                 <div className="pb-3 border-b border-border/80">
                   <h3 className="text-base font-bold text-foreground">
-                    {t('suppliers.bankSettlementAccount', 'គណនីធនាគារទូទាត់ប្រាក់')}
+                    {t('suppliers.bankSettlementAccount', 'Bank Settlement Account')}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('suppliers.bankSettlementAccountDesc', 'គណនីធនាគារផ្លូវការសម្រាប់ផ្ទេរប្រាក់ និងទូទាត់វិក្កយបត្រ')}
+                    {t('suppliers.bankSettlementAccountDesc', 'Official banking details for electronic fund transfers and settlements')}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.bankName', 'ឈ្មោះធនាគារ')}
+                      {t('suppliers.bankName', 'Bank Name')}
                     </span>
                     <p className="font-bold text-foreground text-sm">{supp.bank_name || '—'}</p>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.bankAccountName', 'ឈ្មោះម្ចាស់គណនី')}
+                      {t('suppliers.bankAccountName', 'Account Name')}
                     </span>
                     <p className="font-bold text-foreground text-sm uppercase">{supp.bank_account_name || supp.name}</p>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.bankAccountNumber', 'លេខគណនីធនាគារ')}
+                      {t('suppliers.bankAccountNumber', 'Account Number')}
                     </span>
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-foreground text-sm">
@@ -648,7 +644,7 @@ export const SupplierDetailPage: React.FC = () => {
                           type="button"
                           onClick={() => handleCopy(supp.bank_account_number, 'bank_acc')}
                           className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                          title={t('suppliers.copy', 'ចម្លង')}
+                          title={t('suppliers.copy', 'Copy')}
                         >
                           {copiedKey === 'bank_acc' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                         </button>
@@ -658,7 +654,7 @@ export const SupplierDetailPage: React.FC = () => {
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.swiftCode', 'កូដ SWIFT / Routing')}
+                      {t('suppliers.swiftCode', 'SWIFT / Routing Code')}
                     </span>
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-foreground text-sm uppercase">
@@ -669,7 +665,7 @@ export const SupplierDetailPage: React.FC = () => {
                           type="button"
                           onClick={() => handleCopy(supp.swift_code, 'swift')}
                           className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                          title={t('suppliers.copy', 'ចម្លង')}
+                          title={t('suppliers.copy', 'Copy')}
                         >
                           {copiedKey === 'swift' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                         </button>
@@ -683,40 +679,40 @@ export const SupplierDetailPage: React.FC = () => {
               <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
                 <div className="pb-3 border-b border-border/80">
                   <h3 className="text-base font-bold text-foreground">
-                    {t('suppliers.apCreditTerms', 'លក្ខខណ្ឌឥណទានពាណិជ្ជកម្ម (AP)')}
+                    {t('suppliers.apCreditTerms', 'AP Credit Terms')}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('suppliers.apCreditTermsDesc', 'កាលកំណត់ទូទាត់វិក្កយបត្រ និងរយៈពេលដឹកជញ្ជូនដែលបានព្រមព្រៀង')}
+                    {t('suppliers.apCreditTermsDesc', 'Agreed payment terms and delivery lead duration')}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.paymentTerms', 'លក្ខខណ្ឌទូទាត់')}
+                      {t('suppliers.paymentTerms', 'Payment Terms')}
                     </span>
                     <p className="font-bold text-foreground text-sm">{supp.payment_terms || 'Net 30'}</p>
                     <span className="text-[10px] text-muted-foreground font-mono">
-                      {supp.payment_term_days ?? 30} {t('suppliers.days', 'ថ្ងៃ')}
+                      {supp.payment_term_days ?? 30} {t('suppliers.days', 'days')}
                     </span>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.leadTimeDays', 'រយៈពេលដឹកជញ្ជូន')}
+                      {t('suppliers.leadTimeDays', 'Lead Time')}
                     </span>
                     <p className="font-bold text-foreground text-sm">
-                      {supp.lead_time_days ?? 3} {t('suppliers.days', 'ថ្ងៃ')}
+                      {supp.lead_time_days ?? 3} {t('suppliers.days', 'days')}
                     </p>
-                    <span className="text-[10px] text-muted-foreground">គិតចាប់ពីពេលចេញ PO</span>
+                    <span className="text-[10px] text-muted-foreground">{t('suppliers.fromPoIssueDate', 'From PO issue date')}</span>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-1">
                     <span className="text-[11px] font-semibold text-muted-foreground">
-                      {t('suppliers.currency', 'រូបិយប័ណ្ណទូទាត់')}
+                      {t('suppliers.currency', 'Settlement Currency')}
                     </span>
                     <p className="font-mono font-bold text-foreground text-sm">{supp.currency_code || 'USD'}</p>
-                    <span className="text-[10px] text-muted-foreground">រូបិយប័ណ្ណប្រតិបត្តិការចម្បង</span>
+                    <span className="text-[10px] text-muted-foreground">{t('suppliers.primaryTradingCurrency', 'Primary trading currency')}</span>
                   </div>
                 </div>
               </div>
@@ -729,10 +725,10 @@ export const SupplierDetailPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/80">
                 <div>
                   <h3 className="text-base font-bold text-foreground">
-                    {t('suppliers.tabPurchases', 'ប្រវត្តិបញ្ជាទិញ')}
+                    {t('suppliers.tabPurchases', 'Purchase History')}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('suppliers.purchasesDesc', 'បញ្ជីកត់ត្រាការបញ្ជាទិញទាំងអស់ដែលបានចេញទៅកាន់អ្នកផ្គត់ផ្គង់នេះ')}
+                    {t('suppliers.purchasesDesc', 'Comprehensive purchase order ledger associated with this supplier')}
                   </p>
                 </div>
                 <button
@@ -741,37 +737,43 @@ export const SupplierDetailPage: React.FC = () => {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer self-start sm:self-auto shadow-xs"
                 >
                   <Plus size={13} />
-                  <span>{t('suppliers.createPO', 'បង្កើតការបញ្ជាទិញ')}</span>
+                  <span>{t('suppliers.createPO', 'Create PO')}</span>
                 </button>
               </div>
 
               {(!supp.recent_purchases || supp.recent_purchases.length === 0) ? (
                 <div className="py-12 text-center">
                   <p className="text-sm font-bold text-foreground">
-                    {t('suppliers.noPurchases', 'មិនទាន់មានការបញ្ជាទិញនៅឡើយទេ')}
+                    {t('suppliers.noPurchases', 'No purchase orders yet')}
                   </p>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-                    {t('suppliers.noPurchasesDesc', 'លោកអ្នកមិនទាន់បានបង្កើតការបញ្ជាទិញណាមួយសម្រាប់អ្នកផ្គត់ផ្គង់នេះនៅឡើយទេ។')}
+                    {t('suppliers.noPurchasesDesc', 'You have not created any purchase orders with this supplier yet.')}
                   </p>
                 </div>
-              ) : (
+              ) : (() => {
+                const allPOs = supp.recent_purchases!
+                const totalPOs = allPOs.length
+                const lastPOPage = Math.ceil(totalPOs / purchasePerPage)
+                const pagedPOs = allPOs.slice((purchasePage - 1) * purchasePerPage, purchasePage * purchasePerPage)
+                return (
+                  <>
                 <div className="overflow-x-auto rounded-xl border border-border">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-muted/50 border-b border-border text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
                       <tr>
-                        <th className="py-2.5 px-3.5">{t('purchases.referenceNumber', 'លេខកូដ PO')}</th>
-                        <th className="py-2.5 px-3.5">{t('purchases.date', 'កាលបរិច្ឆេទ')}</th>
-                        <th className="py-2.5 px-3.5">{t('purchases.destination', 'សាខា / ឃ្លាំង')}</th>
-                        <th className="py-2.5 px-3.5 text-right">{t('purchases.grandTotal', 'សរុបរួម')}</th>
-                        <th className="py-2.5 px-3.5 text-right">{t('purchases.paidAmount', 'បានបង់')}</th>
-                        <th className="py-2.5 px-3.5 text-right">{t('purchases.dueAmount', 'ជំពាក់')}</th>
-                        <th className="py-2.5 px-3.5 text-center">{t('purchases.paymentStatus', 'ការទូទាត់')}</th>
-                        <th className="py-2.5 px-3.5 text-center">{t('purchases.status', 'ស្ថានភាព')}</th>
-                        <th className="py-2.5 px-3.5 text-center">{t('common.actions', 'សកម្មភាព')}</th>
+                        <th className="py-2.5 px-3.5">{t('purchases.referenceNumber', 'PO Code')}</th>
+                        <th className="py-2.5 px-3.5">{t('purchases.date', 'Date')}</th>
+                        <th className="py-2.5 px-3.5">{t('purchases.destination', 'Branch / Warehouse')}</th>
+                        <th className="py-2.5 px-3.5 text-right">{t('purchases.grandTotal', 'Grand Total')}</th>
+                        <th className="py-2.5 px-3.5 text-right">{t('purchases.paidAmount', 'Paid Amount')}</th>
+                        <th className="py-2.5 px-3.5 text-right">{t('purchases.dueAmount', 'Due Balance')}</th>
+                        <th className="py-2.5 px-3.5 text-center">{t('purchases.paymentStatus', 'Payment')}</th>
+                        <th className="py-2.5 px-3.5 text-center">{t('purchases.status', 'Status')}</th>
+                        <th className="py-2.5 px-3.5 text-center">{t('common.actions', 'Actions')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {supp.recent_purchases.map((po) => (
+                      {pagedPOs.map((po) => (
                         <tr key={po.id} className="hover:bg-muted/40 transition-colors">
                           <td className="py-3 px-3.5 font-mono font-bold text-foreground">
                             <Link
@@ -827,7 +829,7 @@ export const SupplierDetailPage: React.FC = () => {
                               className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline"
                             >
                               <Eye size={12} />
-                              <span>{t('common.view', 'មើល')}</span>
+                              <span>{t('common.view', 'View')}</span>
                             </Link>
                           </td>
                         </tr>
@@ -835,7 +837,16 @@ export const SupplierDetailPage: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
-              )}
+                    <Pagination
+                      currentPage={purchasePage}
+                      lastPage={lastPOPage}
+                      total={totalPOs}
+                      perPage={purchasePerPage}
+                      onPageChange={(p) => { setPurchasePage(p) }}
+                    />
+                  </>
+                )
+              })()}
             </div>
           )}
 
@@ -844,37 +855,43 @@ export const SupplierDetailPage: React.FC = () => {
             <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
               <div className="pb-3 border-b border-border/80">
                 <h3 className="text-base font-bold text-foreground">
-                  {t('suppliers.tabProducts', 'កាតាឡុកទំនិញ')}
+                  {t('suppliers.tabProducts', 'Product Catalog')}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {t('suppliers.productsDesc', 'បញ្ជីមុខទំនិញ និង SKU ដែលបានបញ្ជាទិញពីអ្នកផ្គត់ផ្គង់នេះ')}
+                  {t('suppliers.productsDesc', 'List of SKUs and catalog products supplied by this vendor')}
                 </p>
               </div>
 
               {(!supp.supplied_products || supp.supplied_products.length === 0) ? (
                 <div className="py-12 text-center">
                   <p className="text-sm font-bold text-foreground">
-                    {t('suppliers.noSuppliedProducts', 'មិនទាន់មានទិន្នន័យទំនិញផ្គត់ផ្គង់ទេ')}
+                    {t('suppliers.noSuppliedProducts', 'No supplied products recorded')}
                   </p>
                   <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
-                    {t('suppliers.noSuppliedProductsDesc', 'មុខទំនិញនឹងត្រូវកត់ត្រាដោយស្វ័យប្រវត្តិនៅពេលទទួលទំនិញពី PO។')}
+                    {t('suppliers.noSuppliedProductsDesc', 'Products are automatically linked when receiving purchase orders.')}
                   </p>
                 </div>
-              ) : (
+              ) : (() => {
+                const allProds = supp.supplied_products!
+                const totalProds = allProds.length
+                const lastProdPage = Math.ceil(totalProds / productPerPage)
+                const pagedProds = allProds.slice((productPage - 1) * productPerPage, productPage * productPerPage)
+                return (
+                  <>
                 <div className="overflow-x-auto rounded-xl border border-border">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-muted/50 border-b border-border text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
                       <tr>
-                        <th className="py-2.5 px-3.5">{t('inventory.product', 'ទំនិញ')}</th>
-                        <th className="py-2.5 px-3.5">{t('inventory.sku', 'កូដទំនិញ (SKU)')}</th>
-                        <th className="py-2.5 px-3.5">{t('inventory.category', 'ប្រភេទ')}</th>
-                        <th className="py-2.5 px-3.5 text-right">{t('purchases.lastCost', 'តម្លៃទិញចុងក្រោយ')}</th>
-                        <th className="py-2.5 px-3.5 text-right">{t('purchases.totalQty', 'បរិមាណទិញសរុប')}</th>
-                        <th className="py-2.5 px-3.5 text-right">{t('purchases.lastPurchased', 'ទិញចុងក្រោយ')}</th>
+                        <th className="py-2.5 px-3.5">{t('inventory.product', 'Product')}</th>
+                        <th className="py-2.5 px-3.5">{t('inventory.sku', 'SKU')}</th>
+                        <th className="py-2.5 px-3.5">{t('inventory.category', 'Category')}</th>
+                        <th className="py-2.5 px-3.5 text-right">{t('purchases.lastCost', 'Last Purchase Cost')}</th>
+                        <th className="py-2.5 px-3.5 text-right">{t('purchases.totalQty', 'Total Purchased Qty')}</th>
+                        <th className="py-2.5 px-3.5 text-right">{t('purchases.lastPurchased', 'Last Purchased')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {supp.supplied_products.map((prod) => (
+                      {pagedProds.map((prod) => (
                         <tr key={prod.id} className="hover:bg-muted/40 transition-colors">
                           <td className="py-3 px-3.5 font-bold text-foreground">
                             {prod.name}
@@ -900,7 +917,16 @@ export const SupplierDetailPage: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
-              )}
+                    <Pagination
+                      currentPage={productPage}
+                      lastPage={lastProdPage}
+                      total={totalProds}
+                      perPage={productPerPage}
+                      onPageChange={(p) => { setProductPage(p) }}
+                    />
+                  </>
+                )
+              })()}
             </div>
           )}
 
@@ -911,38 +937,38 @@ export const SupplierDetailPage: React.FC = () => {
               <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
                 <div className="pb-3 border-b border-border/80">
                   <h3 className="text-base font-bold text-foreground">
-                    {t('suppliers.operationalSla', 'ការវាយតម្លៃប្រសិទ្ធភាព និងកិច្ចព្រមព្រៀង SLA')}
+                    {t('suppliers.operationalSla', 'Operational SLA & Metrics')}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('suppliers.slaDesc', 'កម្រិតទំនុកចិត្តលើការដឹកជញ្ជូនទាន់ពេល និងអត្រាផ្គត់ផ្គង់ពេញលេញ')}
+                    {t('suppliers.slaDesc', 'Supplier reliability metrics for on-time delivery and fulfillment compliance')}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1">
                     <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                      {t('suppliers.fulfillmentRate', 'អត្រាផ្គត់ផ្គង់ពេញលេញ')}
+                      {t('suppliers.fulfillmentRate', 'Order Fulfillment Rate')}
                     </span>
                     <p className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">98.5%</p>
-                    <span className="text-[10px] text-muted-foreground">ទំនិញត្រូវបានដឹកជញ្ជូនគ្រប់ចំនួន</span>
+                    <span className="text-[10px] text-muted-foreground">{t('suppliers.shippedInFull', 'Items shipped in full')}</span>
                   </div>
 
                   <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 space-y-1">
                     <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400">
-                      {t('suppliers.onTimeRate', 'អត្រាដឹកជញ្ជូនទាន់ពេល')}
+                      {t('suppliers.onTimeRate', 'On-Time Delivery Rate')}
                     </span>
                     <p className="text-2xl font-black font-mono text-blue-600 dark:text-blue-400">96.0%</p>
-                    <span className="text-[10px] text-muted-foreground">មកដល់តាមកាលបរិច្ឆេទសន្យា</span>
+                    <span className="text-[10px] text-muted-foreground">{t('suppliers.expectedArrival', 'Arrived as promised')}</span>
                   </div>
 
                   <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 space-y-1">
                     <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400">
-                      {t('suppliers.returnRate', 'ការប្រគល់ទំនិញត្រឡប់')}
+                      {t('suppliers.returnRate', 'Return & Defect Rate')}
                     </span>
                     <p className="text-2xl font-black font-mono text-foreground">
                       {supp.returns_count ?? 0}
                     </p>
-                    <span className="text-[10px] text-muted-foreground">ករណីខូចខាត ឬប្រគល់ត្រឡប់</span>
+                    <span className="text-[10px] text-muted-foreground">{t('suppliers.damagedOrReturned', 'Damaged or returned cases')}</span>
                   </div>
                 </div>
               </div>
@@ -951,10 +977,10 @@ export const SupplierDetailPage: React.FC = () => {
               <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
                 <div className="pb-3 border-b border-border/80">
                   <h3 className="text-base font-bold text-foreground">
-                    {t('suppliers.internalRemarks', 'កំណត់ចំណាំផ្ទៃក្នុង & លក្ខខណ្ឌពិសេស')}
+                    {t('suppliers.internalRemarks', 'Internal Remarks & Terms')}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {t('suppliers.internalRemarksDesc', 'កំណត់ត្រាពាណិជ្ជកម្ម និងកិច្ចព្រមព្រៀងផ្ទៃក្នុង')}
+                    {t('suppliers.internalRemarksDesc', 'Commercial notes, delivery agreements, and private annotations')}
                   </p>
                 </div>
 
@@ -964,7 +990,7 @@ export const SupplierDetailPage: React.FC = () => {
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground italic py-4">
-                    {t('suppliers.noNotesDesc', 'មិនមានកំណត់ចំណាំ ឬលក្ខខណ្ឌពិសេសបន្ថែមសម្រាប់អ្នកផ្គត់ផ្គង់នេះទេ។')}
+                    {t('suppliers.noNotesDesc', 'No internal notes or custom contractual terms recorded.')}
                   </p>
                 )}
               </div>
@@ -1007,7 +1033,7 @@ export const SupplierDetailPage: React.FC = () => {
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-all active:scale-95 shadow-2xs"
                   >
                     <Phone size={13} />
-                    <span>{t('suppliers.callAction', 'ទូរស័ព្ទ')}</span>
+                    <span>{t('suppliers.callAction', 'Call')}</span>
                   </a>
                 )}
 
@@ -1017,7 +1043,7 @@ export const SupplierDetailPage: React.FC = () => {
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-all active:scale-95 shadow-2xs"
                   >
                     <Mail size={13} />
-                    <span>{t('suppliers.emailAction', 'អ៊ីមែល')}</span>
+                    <span>{t('suppliers.emailAction', 'Email')}</span>
                   </a>
                 )}
 
@@ -1029,7 +1055,7 @@ export const SupplierDetailPage: React.FC = () => {
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-all active:scale-95 shadow-2xs"
                   >
                     <Globe size={13} />
-                    <span>{t('suppliers.websiteAction', 'គេហទំព័រ')}</span>
+                    <span>{t('suppliers.websiteAction', 'Website')}</span>
                   </a>
                 )}
 
@@ -1039,7 +1065,7 @@ export const SupplierDetailPage: React.FC = () => {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-all active:scale-95 shadow-2xs cursor-pointer"
                 >
                   <Edit3 size={13} />
-                  <span>{t('suppliers.editAction', 'កែសម្រួល')}</span>
+                  <span>{t('suppliers.editAction', 'Edit')}</span>
                 </button>
               </div>
             </div>
@@ -1048,7 +1074,7 @@ export const SupplierDetailPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3 text-center">
               <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
                 <span className="text-[11px] font-semibold text-muted-foreground block">
-                  {t('suppliers.totalPOsCount', 'ការបញ្ជាទិញសរុប')}
+                  {t('suppliers.totalPOsCount', 'Total Purchase Orders')}
                 </span>
                 <span className="text-base font-black font-mono text-foreground mt-0.5 block">
                   {purchasesCount}
@@ -1056,7 +1082,7 @@ export const SupplierDetailPage: React.FC = () => {
               </div>
               <div className="p-3 rounded-xl bg-muted/40 border border-border/60">
                 <span className="text-[11px] font-semibold text-muted-foreground block">
-                  {t('suppliers.lifetimeSpend', 'ការចំណាយសរុប')}
+                  {t('suppliers.lifetimeSpend', 'Lifetime Spend')}
                 </span>
                 <span className="text-base font-black font-mono text-primary mt-0.5 block">
                   ${totalPurchased.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -1069,13 +1095,13 @@ export const SupplierDetailPage: React.FC = () => {
           <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-4">
             <div className="pb-3 border-b border-border/80">
               <h3 className="text-sm font-bold text-foreground">
-                {t('suppliers.locationWarehouse', 'ទីតាំង & ឃ្លាំងទំនិញ')}
+                {t('suppliers.locationWarehouse', 'Location & Warehouse')}
               </h3>
             </div>
 
             <div className="p-3.5 rounded-xl bg-muted/30 border border-border/60 space-y-2.5">
               <p className="text-xs text-foreground font-medium leading-relaxed">
-                {fullAddress || t('suppliers.noAddress', 'មិនទាន់មានអាសយដ្ឋានជាក់លាក់នៅឡើយទេ។')}
+                {fullAddress || t('suppliers.noAddress', 'No physical address specified.')}
               </p>
 
               {fullAddress && (
@@ -1090,7 +1116,7 @@ export const SupplierDetailPage: React.FC = () => {
                     ) : (
                       <Copy size={11} />
                     )}
-                    <span>{t('suppliers.copy', 'ចម្លង')}</span>
+                    <span>{t('suppliers.copy', 'Copy')}</span>
                   </button>
 
                   <span className="text-border">·</span>
@@ -1101,7 +1127,7 @@ export const SupplierDetailPage: React.FC = () => {
                     rel="noopener noreferrer"
                     className="text-[11px] font-bold text-muted-foreground hover:text-primary transition-colors"
                   >
-                    {t('suppliers.openMap', 'មើលលើផែនទី')}
+                    {t('suppliers.openMap', 'Open in Google Maps')}
                   </a>
                 </div>
               )}
@@ -1113,10 +1139,10 @@ export const SupplierDetailPage: React.FC = () => {
             <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-border/80">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  {t('suppliers.primaryAccountContact', 'តំណាងទំនាក់ទំនងចម្បង')}
+                  {t('suppliers.primaryAccountContact', 'Primary Account Contact')}
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-                  {t('suppliers.primary', 'ចម្បង')}
+                  {t('suppliers.primary', 'Primary')}
                 </span>
               </div>
 
@@ -1127,7 +1153,7 @@ export const SupplierDetailPage: React.FC = () => {
                 <div className="min-w-0">
                   <h4 className="font-bold text-foreground text-sm truncate">{primaryContact.name}</h4>
                   <p className="text-xs text-muted-foreground truncate">
-                    {primaryContact.title || primaryContact.position || t('suppliers.accountManager', 'អ្នកគ្រប់គ្រងគណនី')}
+                    {primaryContact.title || primaryContact.position || t('suppliers.accountManager', 'Account Manager')}
                   </p>
                 </div>
               </div>
@@ -1135,7 +1161,7 @@ export const SupplierDetailPage: React.FC = () => {
               <div className="space-y-1.5 pt-2 text-xs">
                 {primaryContact.phone && (
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{t('suppliers.phone', 'ទូរស័ព្ទ')}:</span>
+                    <span className="text-muted-foreground">{t('suppliers.phone', 'Phone')}:</span>
                     <a href={`tel:${primaryContact.phone}`} className="font-mono font-semibold text-primary hover:underline">
                       {primaryContact.phone}
                     </a>
@@ -1143,7 +1169,7 @@ export const SupplierDetailPage: React.FC = () => {
                 )}
                 {primaryContact.email && (
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{t('suppliers.email', 'អ៊ីមែល')}:</span>
+                    <span className="text-muted-foreground">{t('suppliers.email', 'Email')}:</span>
                     <a href={`mailto:${primaryContact.email}`} className="text-primary hover:underline truncate max-w-[170px]">
                       {primaryContact.email}
                     </a>
@@ -1158,25 +1184,25 @@ export const SupplierDetailPage: React.FC = () => {
             <div className="bg-card rounded-2xl border border-border shadow-xs p-6 space-y-3">
               <div className="pb-2 border-b border-border/80">
                 <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  {t('suppliers.quickBankSummary', 'គណនីធនាគារសង្ខេប')}
+                  {t('suppliers.quickBankSummary', 'Bank Account Summary')}
                 </span>
               </div>
 
               <div className="space-y-2 pt-1 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">{t('suppliers.bankName', 'ធនាគារ')}:</span>
+                  <span className="text-muted-foreground">{t('suppliers.bankName', 'Bank Name')}:</span>
                   <span className="font-bold text-foreground">{supp.bank_name}</span>
                 </div>
                 {supp.bank_account_number && (
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{t('suppliers.bankAccountNumber', 'លេខគណនី')}:</span>
+                    <span className="text-muted-foreground">{t('suppliers.bankAccountNumber', 'Account Number')}:</span>
                     <div className="flex items-center gap-1.5">
                       <span className="font-mono font-bold text-foreground">{supp.bank_account_number}</span>
                       <button
                         type="button"
                         onClick={() => handleCopy(supp.bank_account_number, 'side_bank_acc')}
                         className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                        title={t('suppliers.copy', 'ចម្លង')}
+                        title={t('suppliers.copy', 'Copy')}
                       >
                         {copiedKey === 'side_bank_acc' ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
                       </button>

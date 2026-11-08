@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ExternalLink } from 'lucide-react'
 import { cmsService } from '@/services/cmsService'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import { HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import { CMSStatsCards, AnnouncementsTable } from './components'
 

@@ -13,10 +13,9 @@ import { useToast } from '@/hooks/useToast'
 import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { usePageTab } from '@/hooks/usePageTab'
-import ResetButton from '@/components/shared/ResetButton'
 import WorkspaceTabs from '@/components/shared/WorkspaceTabs'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb, ResetButton } from '@/components/common'
 import { HeaderActionsGroup, AddButton, ExportButton, ImportButton, TableToolbar, InlineFilterSelect } from '@/components/common'
 import { getCustomerGroupDisplayName } from './utils/customerGroupFormatters'
 import ColumnSettingsPopover from '@/components/shared/ColumnSettingsPopover'
@@ -31,7 +30,7 @@ import CustomerGroupsPage from './CustomerGroupsPage'
 import CustomerAddressesPage from './CustomerAddressesPage'
 
 import { CustomerStatsCards } from './components/CustomerStatsCards'
-import { CustomerFilterDrawer } from './components/CustomerFilterDrawer'
+import { CustomerSearchBar } from './components/CustomerSearchBar'
 import { CustomerDetailDrawer } from './components/CustomerDetailDrawer'
 import { CustomerFormModal } from './components/CustomerFormModal'
 import { CustomerTableSection } from './components/CustomerTableSection'
@@ -40,6 +39,7 @@ import { CustomerDebtModal } from './components/CustomerDebtModal'
 import { CustomerStatementPrintModal } from './components/CustomerStatementPrintModal'
 import { getAbsoluteImageUrl } from '@/utils/image'
 import type { Customer, CustomerFormData } from './types/customer.types'
+import CustomerFilterDrawer from './components/CustomerFilterDrawer'
 
 const CustomersPage: React.FC = () => {
   const { language } = useThemeStore()
@@ -60,7 +60,7 @@ const CustomersPage: React.FC = () => {
   const [activeTab, setActiveTab] = usePageTab<string>({
     storageKey: 'customers_active_tab',
     defaultTab: 'customers',
-    validTabs: ['customers', 'groups'],
+    validTabs: ['customers', 'groups', 'addresses'],
   })
 
   // Filters & State
@@ -642,40 +642,18 @@ const CustomersPage: React.FC = () => {
             }
           />
 
-          {/* Global Standard Table Toolbar with Shadcn Inline Quick Filters */}
-          <TableToolbar
+          {/* SmartHR-style Unified Filter Bar */}
+          <CustomerSearchBar
             search={search}
             onSearchChange={(val) => { setSearch(val); setPage(1); }}
-            searchPlaceholder={t('customers.searchPlaceholder', 'Search customer name, email, phone...')}
-            hideFilterButton={true}
-            isFilterActive={isFilterActive}
+            groupIdFilter={groupIdFilter}
+            onGroupChange={(val) => { setGroupIdFilter(val); setPage(1); }}
+            groups={groups || []}
+            rfmFilter={rfmFilter}
+            onRfmChange={(val) => { setRfmFilter(val); setPage(1); }}
+            statusFilter={statusFilter}
+            onStatusChange={(val) => { setStatusFilter(val); setPage(1); }}
             onReset={resetAllFilters}
-            onRefresh={() => qc.invalidateQueries({ queryKey: ['customers'] })}
-            refreshLoading={isFetching}
-            filters={
-              <>
-                <InlineFilterSelect
-                  label={t('customers.customerGroup', 'Group')}
-                  value={groupIdFilter}
-                  onChange={(val) => { setGroupIdFilter(val); setPage(1); }}
-                  allLabel={t('customers.allGroups', 'All groups')}
-                  options={(groups || []).map((g: any) => ({
-                    label: getCustomerGroupDisplayName(g.name, t, language),
-                    value: g.id,
-                  }))}
-                />
-                <InlineFilterSelect
-                  label={t('common.status', 'Status')}
-                  value={statusFilter === 'all' ? '' : statusFilter}
-                  onChange={(val) => { setStatusFilter(val || 'all'); setPage(1); }}
-                  allLabel={t('common.allStatus', 'All status')}
-                  options={[
-                    { label: t('common.active', 'Active'), value: 'active' },
-                    { label: t('common.inactive', 'Inactive'), value: 'inactive' },
-                  ]}
-                />
-              </>
-            }
             columns={[
               { key: 'name', label: t('customers.name', 'Customer Profile') },
               { key: 'email', label: t('customers.email', 'Email / Phone') },
@@ -688,6 +666,8 @@ const CustomersPage: React.FC = () => {
             ]}
             visibleColumns={visibleColumns}
             onColumnChange={setVisibleColumns}
+            selectedCount={selectedRows.length}
+            onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
           />
 
           {/* Active RFM Filter Pill */}

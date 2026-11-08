@@ -15,7 +15,7 @@ import {
   Smartphone,
   Wifi,
 } from 'lucide-react'
-import { QRCode } from 'antd'
+import { QRCode } from '@/components/ui/qr-code'
 import { companyService } from '@/services/companyService'
 import { employeeService } from '@/services/employeeService'
 import { useToast } from '@/hooks/useToast'

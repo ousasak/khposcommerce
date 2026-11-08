@@ -5,19 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Loader2, Send, ExternalLink, FileText } from 'lucide-react'
 import { cmsService } from '@/services/cmsService'
 import { useToast } from '@/hooks/useToast'
-import {
-  FormLayout,
-  FormContent,
-  FormCard,
-  FormHeader,
-  FormFooter,
-  FormField,
-  getFieldClass,
-  FileUpload,
-  LoadingSpinner,
-  RichTextEditor,
-  EnterpriseDateTimePicker,
-} from '@/components/common'
+import { FormLayout, FormContent, FormCard, FormHeader, FormFooter, FormField, getFieldClass, FileUpload, LoadingSpinner, RichTextEditor, EnterpriseDateTimePicker } from '@/components/common'
 import CustomErrorMessage from '@/components/ui/CustomErrorMessage'
 import { getAbsoluteImageUrl } from '@/utils/image'
 import { generateSlug } from '@/utils/slug'

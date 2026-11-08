@@ -5,9 +5,6 @@ import {
   RotateCcw,
   Clock,
   LogOut,
-  CalendarCheck,
-  UserCheck,
-  UserX,
   LogIn,
   Edit,
   Eye,
@@ -19,11 +16,14 @@ import { employeeService } from '@/services/employeeService'
 import {
   StatusBadge,
   EmptyState,
-  FlattenStatCard,
-  FlattenStatsGrid,
   TableToolbar,
   TableActionMenu,
+  DateNavigator,
+  InlineFilterSelect,
+  FilterPopover,
+  ActiveFilterChips,
 } from '@/components/common'
+import ModernSelect from '@/components/shared/ModernSelect'
 import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
 import TableWrapper from '@/components/shared/TableWrapper'
 import Pagination from '@/components/shared/Pagination'
@@ -34,7 +34,7 @@ import { sound } from '@/utils/sound'
 import { EmployeeAvatar } from './EmployeeAvatar'
 import AttendanceDetailModal from './AttendanceDetailModal'
 import QuickAttendanceModal from './QuickAttendanceModal'
-import AttendanceFilterDrawer from './AttendanceFilterDrawer'
+import AttendanceSearchBar from './AttendanceSearchBar'
 
 interface DailyAttendanceLogsTabProps {
   getPhotoUrl?: (photo?: string) => string | null
@@ -46,7 +46,6 @@ interface DailyAttendanceLogsTabProps {
 }
 
 type StatusFilter = 'all' | 'present' | 'late' | 'pending' | 'leave' | 'absent'
-type ViewMode = 'board' | 'table'
 type SortOption = 'last_7_days' | 'recently_added' | 'ascending' | 'descending'
 
 const KM_MONTHS = [
@@ -126,9 +125,6 @@ export const DailyAttendanceLogsTab: React.FC<DailyAttendanceLogsTabProps> = ({
   }, [])
   const isKm = i18n.language === 'km' || i18n.language?.startsWith('km')
 
-  // View Mode: 'board' (Cards Grid) vs 'table' (SmartHR Table)
-  const [viewMode, setViewMode] = useState<ViewMode>('table')
-
   // Filters State
   const [selectedDate, setSelectedDate] = useState<string>(todayStr)
   const isToday = selectedDate === todayStr
@@ -167,8 +163,7 @@ export const DailyAttendanceLogsTab: React.FC<DailyAttendanceLogsTabProps> = ({
   // Selection state for checkboxes
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set())
 
-  // Modals & Drawers state
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
+  // Modals state
   const [inspectRecord, setInspectRecord] = useState<any | null>(null)
   const [editRecord, setEditRecord] = useState<any | null>(null)
   const [createModalOpen, setCreateModalOpen] = useState(false)
@@ -548,49 +543,6 @@ export const DailyAttendanceLogsTab: React.FC<DailyAttendanceLogsTabProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* ─── Flutter 3 Flatten Style KPI Summary Cards ─── */}
-      <FlattenStatsGrid columns={4} className="print:hidden">
-        {/* Present (Flatten Teal Box) */}
-        <FlattenStatCard
-          title={t('employees.present', 'Present')}
-          value={statusCounts.present}
-          useCounter={true}
-          icon={UserCheck}
-          color="teal"
-          delay={0.05}
-        />
-
-        {/* Late (Flatten Amber Box) */}
-        <FlattenStatCard
-          title={t('employees.late_login', 'Late')}
-          value={statusCounts.late}
-          useCounter={true}
-          icon={Clock}
-          color="amber"
-          delay={0.1}
-        />
-
-        {/* Leave (Flatten Cyan Box) */}
-        <FlattenStatCard
-          title={t('employees.permission', 'Leave')}
-          value={statusCounts.leave}
-          useCounter={true}
-          icon={CalendarCheck}
-          color="cyan"
-          delay={0.15}
-        />
-
-        {/* Absent (Flatten Rose Box) */}
-        <FlattenStatCard
-          title={t('employees.absent_today', 'Absent')}
-          value={statusCounts.absent}
-          useCounter={true}
-          icon={UserX}
-          color="rose"
-          delay={0.2}
-        />
-      </FlattenStatsGrid>
-
       {/* ─── Bulk Selection Banner (Appears only when rows are checked) ─── */}
       <BulkSelectionBanner
         selectedCount={selectedIds.size}
@@ -607,132 +559,126 @@ export const DailyAttendanceLogsTab: React.FC<DailyAttendanceLogsTabProps> = ({
         }
       />
 
-      {/* ─── Global Standard Table Toolbar ─── */}
-      <TableToolbar
+      {/* ─── SmartHR/Product Style Inline Attendance Search & Filter Bar ─── */}
+      <AttendanceSearchBar
+        selectedDate={selectedDate}
+        onDateChange={(val) => {
+          setSelectedDate(val)
+          setPage(1)
+        }}
         search={searchQuery}
         onSearchChange={(val) => {
           setSearchQuery(val)
           setPage(1)
         }}
-        searchPlaceholder={t('employees.search_employee_short', 'Search employee...')}
-        onFilterClick={() => setFilterDrawerOpen(true)}
-        isFilterActive={activeFiltersCount > 0}
-        filterActiveCount={activeFiltersCount}
-        onReset={handleResetFilters}
-        hideResetButton={activeFiltersCount === 0 && !searchQuery}
-        onRefresh={() => {
-          sound.playClick()
-          qc.invalidateQueries({ queryKey: ['attendances'] })
-          qc.invalidateQueries({ queryKey: ['attendance'] })
-          qc.invalidateQueries({ queryKey: ['attendance-dashboard-stats'] })
+        statusFilter={statusFilter}
+        onStatusChange={(val) => {
+          setStatusFilter((val as any) || 'all')
+          setPage(1)
         }}
-        refreshLoading={isLoading}
+        statusCounts={statusCounts}
+        departmentFilter={departmentFilter}
+        onDepartmentChange={(val) => {
+          setDepartmentFilter(val || 'all')
+          setPage(1)
+        }}
+        departmentsList={departmentsList}
+        shiftFilter={shiftFilter}
+        onShiftChange={(val) => {
+          setShiftFilter(val || 'all')
+          setPage(1)
+        }}
+        shiftsList={shiftsList}
+        branchFilter={branchFilter}
+        onBranchChange={(val) => {
+          setBranchFilter(val || 'all')
+          setPage(1)
+        }}
+        branchesList={branchesList}
+        onApply={() => setPage(1)}
+        onReset={handleResetFilters}
         columns={columnOptions}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
         columnSettingsTitle={t('employees.columns_visibility', 'Column Visibility')}
+        selectedCount={selectedIds.size}
+        onClockInSelected={() => setBatchConfirmOpen(true)}
       />
 
-      {/* ─── Active Filter Indicator Chips ─── */}
-      {(isCustomDate || statusFilter !== 'all' || departmentFilter !== 'all' || shiftFilter !== 'all' || branchFilter !== 'all') && (
-        <div className="flex flex-wrap items-center gap-2 px-1 text-xs animate-in fade-in duration-200">
-          <span className="text-muted-foreground font-medium">{t('common.activeFilters', 'Active Filters')}:</span>
-
-          {isCustomDate && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/25">
-              <Calendar size={12} />
-              <span>{formattedDateLabel}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick()
-                  setSelectedDate(todayStr)
-                }}
-                className="hover:bg-primary/20 rounded-full p-0.5 transition-colors cursor-pointer"
-                title={t('employees.reset_to_today', 'Reset to Today')}
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {statusFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-foreground font-medium border border-border">
-              <span>{t('employees.status', 'Status')}: {statusFilter}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick()
-                  setStatusFilter('all')
-                }}
-                className="hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {departmentFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-foreground font-medium border border-border">
-              <span>{t('employees.department', 'Department')}: {departmentFilter}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick()
-                  setDepartmentFilter('all')
-                }}
-                className="hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {shiftFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-foreground font-medium border border-border">
-              <span>
-                {t('employees.shift', 'Shift')}: {formatShiftName(shiftsList.find((s: any) => String(s.id) === shiftFilter)?.name, isKm)}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick()
-                  setShiftFilter('all')
-                }}
-                className="hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {branchFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-foreground font-medium border border-border">
-              <span>
-                {t('employees.branch', 'Branch')}: {branchesList.find((b: any) => String(b.id) === branchFilter)?.name || branchFilter}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick()
-                  setBranchFilter('all')
-                }}
-                className="hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="text-xs text-muted-foreground hover:text-primary transition-colors underline cursor-pointer ml-1"
-          >
-            {t('common.clearAll', 'Clear All')}
-          </button>
-        </div>
-      )}
+      {/* ─── Active Filter Indicator Chips (1-Click Removal & Clear All) ─── */}
+      <ActiveFilterChips
+        items={[
+          ...(isCustomDate
+            ? [
+                {
+                  key: 'date',
+                  label: t('employees.date', 'Date'),
+                  value: selectedDate,
+                  displayValue: formattedDateLabel,
+                  icon: <Calendar size={12} />,
+                  onRemove: () => setSelectedDate(todayStr),
+                },
+              ]
+            : []),
+          ...(statusFilter !== 'all'
+            ? [
+                {
+                  key: 'status',
+                  label: t('employees.status', 'Status'),
+                  value: statusFilter,
+                  displayValue:
+                    statusFilter === 'present'
+                      ? t('employees.present', 'Present')
+                      : statusFilter === 'late'
+                      ? t('employees.late_login', 'Late')
+                      : statusFilter === 'on_leave'
+                      ? t('employees.permission', 'On Leave')
+                      : statusFilter === 'absent'
+                      ? t('employees.absent_today', 'Absent')
+                      : statusFilter,
+                  onRemove: () => setStatusFilter('all'),
+                },
+              ]
+            : []),
+          ...(departmentFilter !== 'all'
+            ? [
+                {
+                  key: 'department',
+                  label: t('employees.department', 'Department'),
+                  value: departmentFilter,
+                  onRemove: () => setDepartmentFilter('all'),
+                },
+              ]
+            : []),
+          ...(shiftFilter !== 'all'
+            ? [
+                {
+                  key: 'shift',
+                  label: t('employees.shift', 'Shift'),
+                  value: shiftFilter,
+                  displayValue: formatShiftName(
+                    shiftsList.find((s: any) => String(s.id) === shiftFilter)?.name,
+                    isKm
+                  ),
+                  onRemove: () => setShiftFilter('all'),
+                },
+              ]
+            : []),
+          ...(branchFilter !== 'all'
+            ? [
+                {
+                  key: 'branch',
+                  label: t('employees.branch', 'Branch'),
+                  value: branchFilter,
+                  displayValue:
+                    branchesList.find((b: any) => String(b.id) === branchFilter)?.name || branchFilter,
+                  onRemove: () => setBranchFilter('all'),
+                },
+              ]
+            : []),
+        ]}
+        onClearAll={handleResetFilters}
+      />
 
       {/* Table Content */}
       <TableWrapper isFetching={isLoading}>
@@ -1053,42 +999,6 @@ export const DailyAttendanceLogsTab: React.FC<DailyAttendanceLogsTabProps> = ({
         loading={deleteMutation.isPending}
         onConfirm={() => deleteTarget?.id && deleteMutation.mutate(deleteTarget.id)}
         onCancel={() => setDeleteTarget(null)}
-      />
-
-      {/* ─── Attendance Advanced Filter Drawer ─── */}
-      <AttendanceFilterDrawer
-        isOpen={filterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-        onReset={handleResetFilters}
-        selectedDate={selectedDate}
-        setSelectedDate={(val) => {
-          setSelectedDate(val)
-          setPage(1)
-        }}
-        todayStr={todayStr}
-        statusFilter={statusFilter}
-        setStatusFilter={(val) => {
-          setStatusFilter(val as StatusFilter)
-          setPage(1)
-        }}
-        departmentFilter={departmentFilter}
-        setDepartmentFilter={(val) => {
-          setDepartmentFilter(val)
-          setPage(1)
-        }}
-        shiftFilter={shiftFilter}
-        setShiftFilter={(val) => {
-          setShiftFilter(val)
-          setPage(1)
-        }}
-        branchFilter={branchFilter}
-        setBranchFilter={(val) => {
-          setBranchFilter(val)
-          setPage(1)
-        }}
-        departmentsList={departmentsList}
-        shiftsList={shiftsList}
-        branchesList={branchesList}
       />
     </div>
   )

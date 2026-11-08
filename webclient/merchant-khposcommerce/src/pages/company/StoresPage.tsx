@@ -3,9 +3,7 @@ import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -15,16 +13,12 @@ import {
 import { useTranslation } from 'react-i18next'
 import { companyService } from '@/services/companyService'
 import { useToast } from '@/hooks/useToast'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import StatusBadge from '@/components/common/StatusBadge'
-import {
-  TableToolbar,
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-} from '@/components/common'
+import { Breadcrumb, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter } from '@/components/common'
+import { StatusBadge } from '@/components/common'
+import { TableToolbar, HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { StoreStatsCards } from './components/StoreStatsCards'
+import { BranchSearchBar } from './components/BranchSearchBar'
 import { downloadCsv } from '@/utils/export'
 
 interface StoreItem {
@@ -58,7 +52,20 @@ const StoresPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
     reset,
     adjustAfterDelete,
   } = useServerPagination({ storageKey: 'stores' })
-    const [modalOpen, setModalOpen] = useState(false)
+    // Filter states
+  const [statusFilter, setStatusFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    store: true,
+    code: true,
+    branch: true,
+    type: true,
+    domain: true,
+    status: true,
+    actions: true,
+  })
+
+  const [modalOpen, setModalOpen] = useState(false)
   const [editingStore, setEditingStore] = useState<StoreItem | null>(null)
   const [viewStore, setViewStore] = useState<StoreItem | null>(null)
 
@@ -81,8 +88,14 @@ const StoresPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
   })
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['stores', page, debouncedSearch, perPage],
-    queryFn: () => companyService.getStores({ page, search: debouncedSearch, per_page: perPage }),
+    queryKey: ['stores', page, debouncedSearch, perPage, statusFilter, typeFilter],
+    queryFn: () => companyService.getStores({ 
+      page, 
+      search: debouncedSearch, 
+      per_page: perPage,
+      status: statusFilter || undefined,
+      type: typeFilter || undefined,
+    }),
     placeholderData: (prev) => prev,
   })
 
@@ -252,15 +265,36 @@ const StoresPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
         </>
       )}
 
-      {/* Global Standard Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-style Unified Filter Bar */}
+      <BranchSearchBar
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
         searchPlaceholder={t('stores.searchPlaceholder', 'Search stores...')}
-        onReset={reset}
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['stores'] })}
-        refreshLoading={isFetching}
-        rightActions={
+        statusFilter={statusFilter}
+        onStatusChange={(val) => { setStatusFilter(val); setPage(1); }}
+        typeFilter={typeFilter}
+        onTypeChange={(val) => { setTypeFilter(val); setPage(1); }}
+        typeOptions={[
+          { label: 'Hybrid Outlet', value: 'hybrid' },
+          { label: 'Offline POS Store', value: 'offline' },
+          { label: 'Online Storefront', value: 'online' },
+        ]}
+        onReset={() => {
+          reset()
+          setStatusFilter('')
+          setTypeFilter('')
+        }}
+        columns={[
+          { key: 'store', label: t('stores.colStore', 'Store') },
+          { key: 'code', label: t('stores.colCode', 'Code') },
+          { key: 'branch', label: t('stores.colBranch', 'Branch') },
+          { key: 'type', label: t('stores.colType', 'Type') },
+          { key: 'domain', label: t('stores.colDomain', 'Domain') },
+          { key: 'status', label: t('stores.colStatus', 'Status') },
+        ]}
+        visibleColumns={visibleColumns}
+        onColumnChange={setVisibleColumns}
+        rightAction={
           isTab ? (
             <AddButton
               onClick={openCreateModal}
@@ -276,258 +310,283 @@ const StoresPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
         <table className="w-full data-table">
             <thead>
               <tr>
-                <th className="text-left">Store</th>
-                <th className="text-left">Code</th>
-                <th className="text-left">Branch</th>
-                <th className="text-left">Type</th>
-                <th className="text-left">Domain</th>
-                <th className="text-left">Status</th>
-                <th className="text-right">Actions</th>
+                {visibleColumns.store !== false && <th className="text-left">Store</th>}
+                {visibleColumns.code !== false && <th className="text-left">Code</th>}
+                {visibleColumns.branch !== false && <th className="text-left">Branch</th>}
+                {visibleColumns.type !== false && <th className="text-left">Type</th>}
+                {visibleColumns.domain !== false && <th className="text-left">Domain</th>}
+                {visibleColumns.status !== false && <th className="text-left">Status</th>}
+                {visibleColumns.actions !== false && <th className="text-right">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
-                      <td><div className="skeleton h-4 w-32 rounded" /></td>
-                      <td><div className="skeleton h-4 w-16 rounded" /></td>
-                      <td><div className="skeleton h-4 w-28 rounded" /></td>
-                      <td><div className="skeleton h-4 w-20 rounded" /></td>
-                      <td><div className="skeleton h-4 w-36 rounded" /></td>
-                      <td><div className="skeleton h-4 w-16 rounded" /></td>
-                      <td><div className="skeleton h-4 w-12 rounded ml-auto" /></td>
+                      {visibleColumns.store !== false && <td><div className="skeleton h-4 w-32 rounded" /></td>}
+                      {visibleColumns.code !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
+                      {visibleColumns.branch !== false && <td><div className="skeleton h-4 w-28 rounded" /></td>}
+                      {visibleColumns.type !== false && <td><div className="skeleton h-4 w-20 rounded" /></td>}
+                      {visibleColumns.domain !== false && <td><div className="skeleton h-4 w-36 rounded" /></td>}
+                      {visibleColumns.status !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
+                      {visibleColumns.actions !== false && <td><div className="skeleton h-4 w-12 rounded ml-auto" /></td>}
                     </tr>
                   ))
                 : stores.map((s) => (
                     <tr key={s.id} className="group hover:bg-muted/25 transition-colors">
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <Store size={16} className="text-primary flex-shrink-0" />
-                          <div>
-                            <span className="font-medium text-foreground text-sm">{s.name}</span>
-                            <div className="text-[10px] text-muted-foreground font-mono">{s.slug}</div>
+                      {visibleColumns.store !== false && (
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <Store size={16} className="text-primary flex-shrink-0" />
+                            <div>
+                              <span className="font-medium text-foreground text-sm">{s.name}</span>
+                              <div className="text-[10px] text-muted-foreground font-mono">{s.slug}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="font-mono text-xs text-muted-foreground">{s.code}</td>
-                      <td className="text-muted-foreground text-sm">{s.branch?.name ?? '—'}</td>
-                      <td>
-                        <span className={`badge-${
-                          s.type === 'online' ? 'success' :
-                          s.type === 'offline' ? 'warning' : 'info'
-                        }`}>
-                          {s.type}
-                        </span>
-                      </td>
-                      <td className="text-muted-foreground text-sm font-mono text-xs">
-                        {s.domain ? (
-                          <a href={`https://${s.domain}`} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                            <Globe size={11} /> {s.domain}
-                          </a>
-                        ) : '—'}
-                      </td>
-                      <td>
-                        <StatusBadge status={s.is_active} />
-                      </td>
-                      <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <TableActionMenu
-                          variant="inline"
-                          onView={() => setViewStore(s)}
-                          onEdit={() => openEditModal(s)}
-                          onDelete={() => {
-                            if (confirm('Are you sure you want to delete this store?')) deleteMutation.mutate(s.id)
-                          }}
-                        />
-                      </td>
+                        </td>
+                      )}
+                      {visibleColumns.code !== false && (
+                        <td className="font-mono text-xs text-muted-foreground">{s.code}</td>
+                      )}
+                      {visibleColumns.branch !== false && (
+                        <td className="text-muted-foreground text-sm">{s.branch?.name ?? '—'}</td>
+                      )}
+                      {visibleColumns.type !== false && (
+                        <td>
+                          <span className={`badge-${
+                            s.type === 'online' ? 'success' :
+                            s.type === 'offline' ? 'warning' : 'info'
+                          }`}>
+                            {s.type}
+                          </span>
+                        </td>
+                      )}
+                      {visibleColumns.domain !== false && (
+                        <td className="text-muted-foreground text-sm font-mono text-xs">
+                          {s.domain ? (
+                            <a href={`https://${s.domain}`} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                              <Globe size={11} /> {s.domain}
+                            </a>
+                          ) : '—'}
+                        </td>
+                      )}
+                      {visibleColumns.status !== false && (
+                        <td>
+                          <StatusBadge status={s.is_active} />
+                        </td>
+                      )}
+                      {visibleColumns.actions !== false && (
+                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <TableActionMenu
+                            variant="inline"
+                            onView={() => setViewStore(s)}
+                            onEdit={() => openEditModal(s)}
+                            onDelete={() => {
+                              if (confirm('Are you sure you want to delete this store?')) deleteMutation.mutate(s.id)
+                            }}
+                          />
+                        </td>
+                      )}
                     </tr>
                   ))
               }
               {!isLoading && stores.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <Store size={40} className="mx-auto mb-3 text-muted-foreground/30" />
-                    <p className="text-muted-foreground">No stores found</p>
-                  </td>
-                </tr>
+                <EmptyState
+                  cols={7}
+                  icon={<Store size={24} className="stroke-1.5" />}
+                  title={t('settings.noStores', 'No Stores Found')}
+                  description={t('settings.noStoresDesc', 'Add POS retail store outlets or online channel configurations.')}
+                  actionLabel={t('settings.addStore', 'Add Store')}
+                  onAction={openCreateModal}
+                />
               )}
             </tbody>
           </table>
       </TableWrapper>
       </div>
 
-      {/* Modal Dialog */}
-      <AnimatePresence>
-        {modalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border rounded-xl w-full max-w-lg overflow-hidden shadow-2xl"
+      {/* Store Create/Edit Modal */}
+      <EnterpriseModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={editingStore ? t('settings.editStore', 'Edit Store') : t('settings.addStore', 'Add Store')}
+        subtitle={
+          editingStore
+            ? t('settings.editStoreDesc', 'Update retail store branch, outlets, and channel configurations')
+            : t('settings.addStoreDesc', 'Create a new POS store outlet or online channel')
+        }
+        icon={<Store size={20} />}
+        iconVariant="blue"
+        size="lg"
+        footer={
+          <ModalFooter
+            onCancel={closeModal}
+            isSubmitting={createMutation.isPending || updateMutation.isPending}
+            isEdit={Boolean(editingStore)}
+            submitLabel={editingStore ? t('common.saveChanges', 'Save Changes') : t('common.create', 'Save')}
+            onSubmit={handleSubmit}
+          />
+        }
+      >
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('settings.branch', 'Branch')} <span className="text-rose-500 font-bold">*</span>
+            </label>
+            <select
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              required
+              className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <h3 className="font-semibold text-lg text-foreground">
-                  {editingStore ? 'Edit Store' : 'Add Store'}
-                </h3>
-                <button onClick={closeModal} className="text-muted-foreground hover:text-foreground">
-                  <X size={18} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Branch</label>
-                  <select
-                    value={branchId}
-                    onChange={(e) => setBranchId(e.target.value)}
-                    required
-                    className="form-input"
-                  >
-                    <option value="">Select Branch</option>
-                    {(branches ?? []).map((b: any) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Code</label>
-                    <input
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      required
-                      placeholder="ST001"
-                      className="form-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Name</label>
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      placeholder="Store Name"
-                      className="form-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Slug (URL Part)</label>
-                    <input
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                      placeholder="store-name-outlet"
-                      className="form-input font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Domain</label>
-                    <input
-                      value={domain}
-                      onChange={(e) => setDomain(e.target.value)}
-                      placeholder="shop.domain.com"
-                      className="form-input font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="store@company.com"
-                      className="form-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Phone</label>
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/[^\d+ -]/g, ''))}
-                      placeholder="012 345 678"
-                      className="form-input font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Store Type</label>
-                    <select
-                      value={type}
-                      onChange={(e) => setType(e.target.value as any)}
-                      required
-                      className="form-input"
-                    >
-                      <option value="online">Online Store</option>
-                      <option value="offline">Offline / POS Outlet</option>
-                      <option value="hybrid">Hybrid (Both)</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2 pt-6 justify-end">
-                    <span className="text-sm font-medium text-muted-foreground">Active Status</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsActive(!isActive)}
-                      className="text-primary hover:opacity-80 transition-opacity"
-                    >
-                      {isActive ? <ToggleRight size={32} /> : <ToggleLeft size={32} className="text-muted-foreground" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Address</label>
-                  <textarea
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Physical outlet coordinates"
-                    rows={2}
-                    className="form-input resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Description / Notes</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Brief description about this branch outlet"
-                    rows={2}
-                    className="form-input resize-none"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-primary rounded-lg hover:opacity-90 shadow-sm flex items-center gap-1.5"
-                  >
-                    {(createMutation.isPending || updateMutation.isPending) && <Loader2 size={14} className="animate-spin" />}
-                    {editingStore ? 'Save Changes' : 'Create'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+              <option value="">{t('settings.selectBranch', 'Select Branch')}</option>
+              {(branches ?? []).map((b: any) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
           </div>
-        )}
-      </AnimatePresence>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.code', 'Store Code')} <span className="text-rose-500 font-bold">*</span>
+              </label>
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+                placeholder="ST001"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.name', 'Store Name')} <span className="text-rose-500 font-bold">*</span>
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder={t('settings.storeNamePlaceholder', 'Store Name')}
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.slug', 'Slug (URL Part)')}
+              </label>
+              <input
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                placeholder="store-name-outlet"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.domain', 'Custom Domain')}
+              </label>
+              <input
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                placeholder="shop.domain.com"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.email', 'Email')}
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="store@company.com"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.phone', 'Phone')}
+              </label>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/[^\d+ -]/g, ''))}
+                placeholder="012 345 678"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.storeType', 'Store Type')}
+              </label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value as any)}
+                required
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              >
+                <option value="online">{t('settings.onlineStore', 'Online Store')}</option>
+                <option value="offline">{t('settings.offlineStore', 'Offline / POS Outlet')}</option>
+                <option value="hybrid">{t('settings.hybridStore', 'Hybrid (Both)')}</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('settings.address', 'Address')}
+            </label>
+            <textarea
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={t('settings.addressPlaceholder', 'Physical outlet coordinates')}
+              rows={2}
+              className="w-full min-h-[64px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/70 dark:placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('settings.description', 'Description / Notes')}
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t('settings.descriptionPlaceholder', 'Brief description about this branch outlet')}
+              rows={2}
+              className="w-full min-h-[64px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/70 dark:placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"
+            />
+          </div>
+
+          {/* Active Status Card */}
+          <div className="p-3.5 sm:p-4 bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5 pr-2">
+              <label htmlFor="isStoreActive" className="text-xs sm:text-[13px] font-bold text-foreground dark:text-slate-100 cursor-pointer select-none block">
+                {t('settings.activeStoreStatus', 'Active Store Status')}
+              </label>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                {t('settings.activeStoreStatusDesc', 'Active stores can process sales and accept online orders')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isStoreActive"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded border-border focus:ring-primary cursor-pointer"
+            />
+          </div>
+        </form>
+      </EnterpriseModal>
 
       {/* Detail Drawer */}
       <AnimatePresence>

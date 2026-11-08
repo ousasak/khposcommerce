@@ -1,5 +1,5 @@
 import React from 'react'
-import FormDrawer from '@/components/common/FormDrawer'
+import { FormDrawer } from '@/components/common'
 import type { Tab } from '../types/shipping.types'
 
 interface ShippingFormDrawerProps {

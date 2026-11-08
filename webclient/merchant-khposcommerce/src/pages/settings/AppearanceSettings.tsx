@@ -4,7 +4,7 @@ import { useThemeStore, type WidgetConfig } from '@/stores/themeStore'
 import { Palette, Type, Sliders, Layout, Grid, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { sound } from '@/utils/sound'
-import ConfirmModal from '@/components/common/modals/ConfirmModal'
+import { ConfirmModal } from '@/components/common'
 import { DEFAULT_WIDGETS_LIST } from '@/config/dashboardWidgets'
 
 import { TemplatesTab } from './components/TemplatesTab'

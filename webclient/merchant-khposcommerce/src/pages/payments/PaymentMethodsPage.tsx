@@ -10,9 +10,9 @@ import TableWrapper from '@/components/shared/TableWrapper'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { Modal, TableToolbar } from '@/components/common'
-import { ModalFooter } from '@/components/common/ModalFooter'
+import { ModalFooter } from '@/components/common'
 import { useTranslation } from 'react-i18next'
-import PaymentMethodsTab from '@/pages/finance/components/PaymentMethodsTab'
+import { PaymentMethodsGatewaysTable as PaymentMethodsTab } from '@/pages/finance/components'
 
 interface PaymentMethod {
   id: number

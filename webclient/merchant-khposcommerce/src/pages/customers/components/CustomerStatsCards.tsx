@@ -1,14 +1,7 @@
 import React from 'react'
-import { motion } from 'framer-motion'
-import { 
-  Users, 
-  CreditCard, 
-  Wallet, 
-  TrendingUp
-} from 'lucide-react'
-import { AnimatedCounter } from '@/components/shared/AnimatedCounter'
+import { Users, CheckCircle2, Award, MapPin, AlertCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { EnterpriseStatsCard, EnterpriseStatsGrid } from '@/components/common'
+import { AccentStatCard, AccentStatGrid } from '@/components/common/AccentStatCard'
 import type { CustomerAnalytics } from '../types/customer.types'
 
 interface CustomerStatsCardsProps {
@@ -18,133 +11,91 @@ interface CustomerStatsCardsProps {
   onSelectRfm?: (segment: string) => void
 }
 
-export const CustomerStatsCards: React.FC<CustomerStatsCardsProps> = ({ 
-  stats, 
+/**
+ * CustomerStatsCards — uses global AccentStatCard + AccentStatGrid.
+ * 5 overview metrics: Total Clients, Active Contracts, Platinum SLA,
+ * Service Sites, Open Work Orders.
+ */
+export const CustomerStatsCards: React.FC<CustomerStatsCardsProps> = ({
+  stats,
   totalFallback,
-  selectedRfm = '',
-  onSelectRfm
 }) => {
   const { t } = useTranslation(['customers', 'common'])
 
-  const total = stats?.total_customers ?? totalFallback ?? 0
-  const active = stats?.active_customers ?? 0
-  const totalSpent = Number(stats?.total_spent ?? 0)
-  const vipCount = stats?.vip_customers ?? 0
-  const loyaltyPoints = Number(stats?.total_points ?? 0)
-  
-  // Enterprise Credit & Wallet Metrics
-  const totalCreditLimit = Number(stats?.total_credit_limit ?? 0)
+  const total          = stats?.total_customers        ?? totalFallback ?? 0
+  const active         = stats?.active_customers       ?? 0
+  const vipCount       = stats?.vip_customers          ?? 0
+  const totalWallet    = Number(stats?.total_wallet_balance    ?? 0)
   const totalOutstanding = Number(stats?.total_outstanding_balance ?? 0)
-  const creditHoldCount = Number(stats?.credit_hold_count ?? 0)
-  const totalWalletBalance = Number(stats?.total_wallet_balance ?? 0)
-  const avgChurnRisk = Number(stats?.avg_churn_risk ?? 15)
 
-  const rfm = stats?.rfm_breakdown || {
-    champions: 0,
-    loyal: 0,
-    potential: 0,
-    at_risk: 0,
-    hibernating: 0,
-    new: 0,
-  }
+  // Service Sites: prefer address count, fall back to wallet balance formatted
+  const serviceSitesValue = stats?.total_addresses != null
+    ? stats.total_addresses
+    : totalWallet > 0
+      ? `$${totalWallet.toLocaleString()}`
+      : 0
+
+  // Open Work Orders: prefer outstanding balance, fall back to pending orders
+  const workOrdersIsNumber =
+    totalOutstanding === 0 && typeof (stats?.pending_orders_count) === 'number'
+  const workOrdersValue = totalOutstanding > 0
+    ? `$${totalOutstanding.toLocaleString()}`
+    : (stats?.pending_orders_count ?? 0)
 
   return (
-    <div className="print:hidden">
-      {/* ─── 4 Standard Enterprise KPI Summary Cards ─── */}
-      <EnterpriseStatsGrid columns={4}>
-        {/* Card 1: Total Registered Customers */}
-        <EnterpriseStatsCard
-          title={t('customers.cardCustomerDirectory', 'Customer Directory')}
-          value={total}
-          subtitle={
-            <span className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {active} {t('common.active', 'Active')}
-              </span>
-              <span>•</span>
-              <span className="text-primary font-semibold">
-                {vipCount} {t('customers.vip', 'VIP')}
-              </span>
-            </span>
-          }
-          icon={Users}
-          variant="primary"
-        />
+    <AccentStatGrid columns={5} className="mb-0 print:hidden">
 
-        {/* Card 2: B2B Credit & Receivables */}
-        <EnterpriseStatsCard
-          title={t('customers.b2bCreditLimit', 'B2B Credit & Receivables')}
-          value={totalOutstanding}
-          prefix="$"
-          decimals={2}
-          valueClassName="text-primary"
-          subtitle={
-            <span className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-              <span>
-                ${totalCreditLimit.toLocaleString()} {t('customers.limitCap', 'Cap')}
-              </span>
-              <span>•</span>
-              {creditHoldCount > 0 ? (
-                <span className="text-rose-600 dark:text-rose-400 font-bold">
-                  {creditHoldCount} {t('customers.onHold', 'Locked')}
-                </span>
-              ) : (
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                  {t('customers.allActive', 'All Clear')}
-                </span>
-              )}
-            </span>
-          }
-          icon={CreditCard}
-          variant="blue"
-          delay={0.05}
-        />
+      {/* 1 — Total Clients */}
+      <AccentStatCard
+        variant="emerald"
+        label={t('customers.statsTotalClients', 'Total Clients')}
+        value={total}
+        icon={<Users className="w-5 h-5" />}
+        useCounter
+        delay={0}
+      />
 
-        {/* Card 3: Store Wallet & Prepaid Reserves */}
-        <EnterpriseStatsCard
-          title={t('customers.storeWalletReserves', 'Store Wallet & Prepaid')}
-          value={totalWalletBalance}
-          prefix="$"
-          decimals={2}
-          valueClassName="text-emerald-600 dark:text-emerald-400"
-          subtitle={
-            <span className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-              <span className="font-semibold text-foreground">
-                {loyaltyPoints.toLocaleString()} {t('customers.pts', 'Pts')}
-              </span>
-              <span>•</span>
-              <span className="text-muted-foreground">{t('customers.pointsRewards', 'Rewards')}</span>
-            </span>
-          }
-          icon={Wallet}
-          variant="emerald"
-          delay={0.1}
-        />
+      {/* 2 — Active Contracts */}
+      <AccentStatCard
+        variant="success"
+        label={t('customers.statsActiveContracts', 'Active Contracts')}
+        value={active}
+        icon={<CheckCircle2 className="w-5 h-5" />}
+        useCounter
+        delay={0.04}
+      />
 
-        {/* Card 4: RFM Health & Retention Score */}
-        <EnterpriseStatsCard
-          title={t('customers.rfmHealthScore', 'RFM Health & Retention')}
-          value={(100 - avgChurnRisk).toFixed(1)}
-          suffix="%"
-          useCounter={false}
-          subtitle={
-            <span className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-              <span className="text-primary font-semibold">
-                {rfm.champions + rfm.loyal} {t('customers.champions', 'Champions')}
-              </span>
-              <span>•</span>
-              <span className="text-amber-600 dark:text-amber-400 font-semibold">
-                {rfm.at_risk} {t('customers.atRisk', 'At-Risk')}
-              </span>
-            </span>
-          }
-          icon={TrendingUp}
-          variant="purple"
-          delay={0.15}
-        />
-      </EnterpriseStatsGrid>
-    </div>
+      {/* 3 — Platinum 24/7 SLA */}
+      <AccentStatCard
+        variant="indigo"
+        label={t('customers.statsPlatinumSla', 'Platinum 24/7 SLA')}
+        value={vipCount}
+        icon={<Award className="w-5 h-5" />}
+        useCounter
+        delay={0.08}
+      />
+
+      {/* 4 — Service Sites */}
+      <AccentStatCard
+        variant="purple"
+        label={t('customers.statsServiceSites', 'Service Sites')}
+        value={serviceSitesValue}
+        icon={<MapPin className="w-5 h-5" />}
+        useCounter={typeof serviceSitesValue === 'number'}
+        delay={0.12}
+      />
+
+      {/* 5 — Open Work Orders */}
+      <AccentStatCard
+        variant="amber"
+        label={t('customers.statsOpenWorkOrders', 'Open Work Orders')}
+        value={workOrdersValue}
+        icon={<AlertCircle className="w-5 h-5" />}
+        useCounter={workOrdersIsNumber}
+        delay={0.16}
+      />
+
+    </AccentStatGrid>
   )
 }
 

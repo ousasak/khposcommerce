@@ -1,4 +1,4 @@
-export type Tab = 'employees' | 'departments' | 'positions' | 'attendance' | 'payrolls' | 'leaves' | 'holidays'
+export type Tab = 'employees' | 'departments' | 'positions' | 'attendance' | 'payrolls' | 'leaves'
 
 export interface HolidayItem {
   id: number | string

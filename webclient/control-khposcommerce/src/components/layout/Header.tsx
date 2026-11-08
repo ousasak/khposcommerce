@@ -44,6 +44,22 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
         return t('nav.platformSettings', 'Platform Settings')
       case 'roles':
         return t('nav.roles', 'Roles')
+      case 'super_admin':
+        return t('roles.rolesList.super_admin', 'អភិបាលជាន់ខ្ពស់')
+      case 'admin':
+        return t('roles.rolesList.admin', 'អភិបាលប្រព័ន្ធ')
+      case 'cashier':
+        return t('roles.rolesList.cashier', 'បេឡាធិការ')
+      case 'manager':
+        return t('roles.rolesList.manager', 'អ្នកគ្រប់គ្រង')
+      case 'warehouse_staff':
+        return t('roles.rolesList.warehouse_staff', 'បុគ្គលិកឃ្លាំង')
+      case 'staff':
+        return t('roles.rolesList.staff', 'បុគ្គលិកទូទៅ')
+      case 'owner':
+        return t('roles.rolesList.owner', 'ម្ចាស់អាជីវកម្ម')
+      case 'customer':
+        return t('roles.rolesList.customer', 'អតិថិជន')
       case 'permissions':
         return t('nav.permissions', 'Permissions')
       case 'notifications':

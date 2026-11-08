@@ -312,12 +312,21 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, isLoading
       return (
         <div className={`grid ${gridCols} gap-3 sm:gap-4`}>
           {Array.from({ length: cards.length }).map((_, i) => (
-            <div key={i} className="h-28 bg-card border border-border/60 rounded-2xl p-4 space-y-3 animate-pulse flex flex-col justify-between shadow-2xs">
-              <div className="flex items-center justify-between">
-                <div className="h-3 w-20 bg-muted rounded" />
-                <div className="h-7 w-7 bg-muted rounded-xl" />
+            <div
+              key={i}
+              className="bg-card border border-border/70 rounded-2xl p-3.5 sm:p-4.5 shadow-2xs flex flex-col justify-between overflow-hidden animate-pulse min-h-[105px] sm:min-h-[115px]"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-2 flex-1">
+                  <div className="h-3 w-24 bg-muted rounded-md" />
+                  <div className="h-6 w-32 bg-muted rounded-lg" />
+                </div>
+                <div className="size-9 sm:size-10 rounded-xl sm:rounded-2xl bg-muted shrink-0" />
               </div>
-              <div className="h-6 w-28 bg-muted rounded" />
+              <div className="flex items-end justify-between mt-3 gap-2">
+                <div className="h-4 w-16 bg-muted rounded-full" />
+                <div className="w-14 h-5 bg-muted/60 rounded" />
+              </div>
             </div>
           ))}
         </div>

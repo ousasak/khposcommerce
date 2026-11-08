@@ -2,10 +2,8 @@ import React from 'react'
 import { Building2, Eye, Edit2, Trash2 } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import StatusBadge from '@/components/common/StatusBadge'
-
+import { StatusBadge, EmptyState } from '@/components/common'
 interface CompaniesTabProps {
   records: any[]
   isLoading: boolean
@@ -92,8 +90,9 @@ export const CompaniesTab: React.FC<CompaniesTabProps> = ({
                       </td>
                     )}
                     {visibleColumns.actions && (
-                      <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <TableActionMenu
+                          variant="inline"
                           onView={() => setDetailDrawerItem(r)}
                           onEdit={() => openEditModal(r)}
                           onDelete={() => setDeleteTarget(r)}

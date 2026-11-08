@@ -1,26 +1,69 @@
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sparkles, CheckCircle2 } from 'lucide-react'
+import {
+  Edit2,
+  Trash2,
+  ShieldCheck,
+  RefreshCw,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+  Lock,
+} from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
-import TableActionMenu from '@/components/shared/TableActionMenu'
+import { EmptyState, RowActionGroup, EditRowButton, DeleteRowButton } from '@/components/common'
+import type { CurrencyItem, RateSource } from '../types/currency.types'
 
 export interface CurrenciesRatesTableProps {
-  currencies?: any[]
+  currencies?: CurrencyItem[]
   isLoading?: boolean
   isFetching?: boolean
-  visibleColumns?: Record<string, boolean>
-  openEditDrawer?: (row: any) => void
-  handleDelete?: (id: number, name?: string) => void
+  search: string
+  setSearch: (val: string) => void
+  statusFilter: string
+  setStatusFilter: (val: string) => void
+  sourceFilter: string
+  setSourceFilter: (val: string) => void
+  onRefresh: () => void
+  openEditDrawer: (item: CurrencyItem) => void
+  onDeleteCurrency: (id: number, name?: string) => void
+  canUpdateCurrency?: boolean
+  canDeleteCurrency?: boolean
+  nbcRate?: number
 }
 
-/**
- * Format rate cleanly with commas
- */
+const getCurrencyVisual = (code: string) => {
+  const c = (code || '').toUpperCase()
+  switch (c) {
+    case 'USD':
+      return { flag: '🇺🇸', country: 'United States' }
+    case 'KHR':
+      return { flag: '🇰🇭', country: 'Cambodia' }
+    case 'THB':
+      return { flag: '🇹🇭', country: 'Thailand' }
+    case 'EUR':
+      return { flag: '🇪🇺', country: 'European Union' }
+    case 'CNY':
+      return { flag: '🇨🇳', country: 'China' }
+    case 'SGD':
+      return { flag: '🇸🇬', country: 'Singapore' }
+    case 'JPY':
+      return { flag: '🇯🇵', country: 'Japan' }
+    case 'VND':
+      return { flag: '🇻🇳', country: 'Vietnam' }
+    case 'GBP':
+      return { flag: '🇬🇧', country: 'United Kingdom' }
+    default:
+      return { flag: '💵', country: 'Global' }
+  }
+}
+
 const formatRate = (rate: number | string): string => {
   const num = Number(rate)
-  if (isNaN(num)) return '1'
+  if (isNaN(num)) return '1.0000'
+  if (num === 1) return '1.0000'
   if (num % 1 === 0) {
     return num.toLocaleString('en-US')
   }
@@ -34,226 +77,317 @@ export const CurrenciesRatesTable: React.FC<CurrenciesRatesTableProps> = ({
   currencies = [],
   isLoading = false,
   isFetching = false,
-  visibleColumns = {
-    currency_name: true,
-    currency_code: true,
-    currency_symbol: true,
-    currency_rate: true,
-    currency_status: true,
-  },
+  search,
+  setSearch,
+  statusFilter,
+  setStatusFilter,
+  sourceFilter,
+  setSourceFilter,
+  onRefresh,
   openEditDrawer,
-  handleDelete,
+  onDeleteCurrency,
+  canUpdateCurrency = true,
+  canDeleteCurrency = true,
+  nbcRate = 4080,
 }) => {
-  const { t } = useTranslation(['finance', 'common'])
+  const { t, i18n } = useTranslation(['finance', 'common'])
+  const isKhmer = i18n.language === 'km'
 
-  // Strictly filter to the 2 active currencies: USD & KHR
-  const operationalCurrencies = useMemo(() => {
-    const list = currencies.filter((c: any) =>
-      ['USD', 'KHR'].includes((c.code || '').toUpperCase())
-    )
-    return [...list].sort((a: any, b: any) =>
-      (a.code || '').toUpperCase() === 'USD' ? -1 : 1
-    )
-  }, [currencies])
+  // Resolve rate source tag
+  const getRateSource = (item: CurrencyItem): { label: string; variant: 'blue' | 'emerald' | 'amber' | 'slate' } => {
+    const code = (item.code || '').toUpperCase()
+    if (code === 'USD' || item.is_default) {
+      return { label: isKhmer ? 'ប្រព័ន្ធគោល' : 'System Base', variant: 'blue' }
+    }
+    const numericRate = Number(item.exchange_rate)
+    if (code === 'KHR' && numericRate === nbcRate) {
+      return { label: isKhmer ? 'ធនាគារជាតិ NBC' : 'NBC Reference', variant: 'amber' }
+    }
+    if (item.rate_source === 'nbc') {
+      return { label: isKhmer ? 'ធនាគារជាតិ NBC' : 'NBC Reference', variant: 'amber' }
+    }
+    if (item.rate_source === 'api') {
+      return { label: 'Live API', variant: 'emerald' }
+    }
+    return { label: isKhmer ? 'កំណត់ដោយដៃ' : 'Manual (POS)', variant: 'slate' }
+  }
 
-  // Extract KHR rate for display
-  const khrCurrency = useMemo(() => {
-    return currencies.find((c: any) => (c.code || '').toUpperCase() === 'KHR')
-  }, [currencies])
+  // Filter list locally based on search & filters
+  const filteredCurrencies = useMemo(() => {
+    return currencies.filter((item) => {
+      // Search
+      if (search.trim()) {
+        const query = search.toLowerCase()
+        const matchesName = (item.name || '').toLowerCase().includes(query)
+        const matchesCode = (item.code || '').toLowerCase().includes(query)
+        if (!matchesName && !matchesCode) return false
+      }
 
-  const khrRateNumber = Number(khrCurrency?.exchange_rate || 4100)
-  const inverseKhr = khrRateNumber > 0 ? (1 / khrRateNumber).toFixed(5) : '0.00024'
+      // Status
+      if (statusFilter === 'active' && !item.is_active) return false
+      if (statusFilter === 'inactive' && item.is_active) return false
+
+      // Rate Source
+      if (sourceFilter) {
+        const sourceInfo = getRateSource(item)
+        if (sourceFilter === 'system' && !item.is_default && item.code !== 'USD') return false
+        if (sourceFilter === 'nbc' && !sourceInfo.label.includes('NBC')) return false
+        if (sourceFilter === 'manual' && (item.is_default || item.code === 'USD' || sourceInfo.label.includes('NBC')))
+          return false
+      }
+
+      return true
+    })
+  }, [currencies, search, statusFilter, sourceFilter, nbcRate, isKhmer])
 
   return (
-    <TableWrapper isFetching={isFetching} className="print:hidden">
-      <table className="w-full data-table border-collapse">
-        <thead className="bg-muted/40 sticky top-0 border-b border-border z-10">
-          <tr>
-            {visibleColumns.currency_name && (
-              <th className="text-left px-4 py-3.5 whitespace-nowrap text-xs font-semibold text-muted-foreground">
-                {t('finance.currency_name', 'Currency Name')}
-              </th>
-            )}
-            {visibleColumns.currency_code && (
-              <th className="text-left px-4 py-3.5 whitespace-nowrap text-xs font-semibold text-muted-foreground">
-                {t('finance.iso_code', 'ISO Code')}
-              </th>
-            )}
-            {visibleColumns.currency_symbol && (
-              <th className="text-center px-4 py-3.5 whitespace-nowrap text-xs font-semibold text-muted-foreground">
-                {t('finance.symbol_col', 'Symbol')}
-              </th>
-            )}
-            {visibleColumns.currency_rate && (
-              <th className="text-right px-4 py-3.5 whitespace-nowrap text-xs font-semibold text-muted-foreground">
-                <div className="flex items-center justify-end gap-1.5">
-                  <span>{t('finance.exchange_rate', 'Exchange Rate')}</span>
-                  <span className="text-[11px] font-mono text-primary font-normal">
-                    {t('finance.vs_base_usd', '(vs 1 USD)')}
-                  </span>
-                </div>
-              </th>
-            )}
-            {visibleColumns.currency_status && (
-              <th className="text-center px-4 py-3.5 whitespace-nowrap text-xs font-semibold text-muted-foreground">
-                {t('finance.status_col', 'Status')}
-              </th>
-            )}
-            <th className="text-right px-4 py-3.5 whitespace-nowrap text-xs font-semibold text-muted-foreground">
-              {t('finance.actions_col', t('common.actions', 'Actions'))}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/60">
-          {isLoading ? (
-            <LoadingSkeleton cols={6} />
-          ) : operationalCurrencies.length === 0 ? (
-            <EmptyState cols={6} message={t('finance.no_data_currencies', 'No currencies found.')} />
-          ) : (
-            operationalCurrencies.map((row: any) => {
-              const code = (row.code || '').toUpperCase()
-              const flag = code === 'USD' ? '🇺🇸' : code === 'KHR' ? '🇰🇭' : '💵'
-              const isBase = code === 'USD' || Boolean(row.is_default)
-              const localizedName = code === 'USD'
-                ? t('finance.currency_usd_name', row.name || 'US Dollar')
-                : code === 'KHR'
-                ? t('finance.currency_khr_name', row.name || 'Cambodian Riel')
-                : row.name
+    <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-2xs space-y-0">
+      {/* ─── Table Header ─── */}
+      <div className="p-4 sm:p-5 border-b border-border/70 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-card">
+        <div>
+          <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+            <span>{isKhmer ? 'តារាងគ្រប់គ្រងរូបិយប័ណ្ណទាំងអស់' : 'All Currencies Management'}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono font-medium">
+              {filteredCurrencies.length}
+            </span>
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {isKhmer
+              ? 'រាល់អត្រាប្តូរប្រាក់ទាំងអស់គណនាធៀបនឹងរូបិយប័ណ្ណគោល (1.0000 USD)'
+              : 'All exchange rates are calculated relative to the Base Currency (1.0000 USD)'}
+          </p>
+        </div>
+      </div>
 
-              const localizedSub = code === 'USD'
-                ? t('finance.currency_usd_sub', 'United States Dollar')
-                : code === 'KHR'
-                ? t('finance.currency_khr_sub', 'Khmer Riel')
-                : ''
+      {/* ─── Table Content ─── */}
+      <TableWrapper isFetching={isFetching} className="print:hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full data-table border-collapse text-left">
+            <thead className="bg-muted/40 sticky top-0 border-b border-border/70 z-10">
+              <tr>
+                <th className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-muted-foreground">
+                  {isKhmer ? 'រូបិយប័ណ្ណ' : 'Currency'}
+                </th>
+                <th className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-muted-foreground">
+                  {isKhmer ? 'លេខកូដ ISO' : 'ISO Code'}
+                </th>
+                <th className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-muted-foreground text-center">
+                  {isKhmer ? 'និមិត្តសញ្ញា' : 'Symbol'}
+                </th>
+                <th className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-muted-foreground text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <span>{isKhmer ? 'អត្រាប្តូរប្រាក់' : 'Exchange Rate'}</span>
+                    <span className="text-[11px] font-normal text-muted-foreground font-mono">
+                      (vs 1 USD)
+                    </span>
+                  </div>
+                </th>
+                <th className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-muted-foreground">
+                  {isKhmer ? 'ប្រភពអត្រា' : 'Rate Source'}
+                </th>
+                <th className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-muted-foreground text-center">
+                  {isKhmer ? 'ស្ថានភាព' : 'Status'}
+                </th>
+                <th className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-muted-foreground">
+                  {isKhmer ? 'កាលបរិច្ឆេទកែប្រែ' : 'Last Updated'}
+                </th>
+                <th className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-muted-foreground text-right">
+                  {isKhmer ? 'សកម្មភាព' : 'Actions'}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {isLoading ? (
+                <LoadingSkeleton cols={8} />
+              ) : filteredCurrencies.length === 0 ? (
+                <EmptyState
+                  cols={8}
+                  message={
+                    search || statusFilter || sourceFilter
+                      ? isKhmer
+                        ? 'រកមិនឃើញរូបិយប័ណ្ណដែលត្រូវនឹងលក្ខខណ្ឌស្វែងរកឡើយ។'
+                        : 'No currencies match the selected filters.'
+                      : isKhmer
+                      ? 'មិនទាន់មានរូបិយប័ណ្ណក្នុងប្រព័ន្ធនៅឡើយទេ។'
+                      : 'No currencies found.'
+                  }
+                />
+              ) : (
+                filteredCurrencies.map((row) => {
+                  const code = (row.code || '').toUpperCase()
+                  const isBase = code === 'USD' || Boolean(row.is_default)
+                  const isCoreKhr = code === 'KHR'
+                  const visual = getCurrencyVisual(code)
+                  const source = getRateSource(row)
+                  const localizedName =
+                    code === 'USD'
+                      ? isKhmer
+                        ? 'ដុល្លារអាមេរិក (US Dollar)'
+                        : 'US Dollar'
+                      : code === 'KHR'
+                      ? isKhmer
+                        ? 'រៀលកម្ពុជា (Cambodian Riel)'
+                        : 'Cambodian Riel'
+                      : row.name
 
-              return (
-                <tr
-                  key={row.id}
-                  className={`transition-colors ${
-                    isBase
-                      ? 'bg-primary/5 dark:bg-primary/10 hover:bg-primary/10'
-                      : 'hover:bg-muted/40'
-                  }`}
-                >
-                  {/* Currency Name & Localized Name */}
-                  {visibleColumns.currency_name && (
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-muted/70 dark:bg-slate-800/80 border border-border/80 flex items-center justify-center text-lg shrink-0 shadow-2xs select-none">
-                          {flag}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground text-sm">
-                              {localizedName}
-                            </span>
-                            {isBase && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-primary/15 text-primary border border-primary/25 px-2 py-0.5 rounded-full shadow-2xs">
-                                <Sparkles size={10} className="fill-primary" />
-                                <span>{t('finance.base_badge', 'Base Currency')}</span>
+                  const lastUpdatedFormatted = row.updated_at
+                    ? new Date(row.updated_at).toLocaleDateString(isKhmer ? 'km-KH' : 'en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : isKhmer
+                    ? 'បច្ចុប្បន្នភាព'
+                    : 'Current'
+
+                  return (
+                    <tr
+                      key={row.id}
+                      className={`transition-colors ${
+                        isBase
+                          ? 'bg-blue-500/5 dark:bg-blue-500/10 hover:bg-blue-500/10'
+                          : 'hover:bg-muted/40'
+                      }`}
+                    >
+                      {/* 1. Flag & Currency Name */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-muted border border-border/80 flex items-center justify-center text-lg shrink-0 shadow-2xs select-none">
+                            {visual.flag}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-foreground text-xs sm:text-sm">
+                                {localizedName}
                               </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {localizedSub}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                  )}
-
-                  {/* ISO Code Badge */}
-                  {visibleColumns.currency_code && (
-                    <td className="px-4 py-3.5">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-muted/70 dark:bg-slate-800/80 border border-border/80 font-mono text-xs font-bold text-foreground">
-                        {row.code}
-                      </span>
-                    </td>
-                  )}
-
-                  {/* Symbol Badge */}
-                  {visibleColumns.currency_symbol && (
-                    <td className="px-4 py-3.5 text-center">
-                      <span className="inline-flex items-center justify-center min-w-8 h-8 px-2 rounded-lg bg-muted/60 dark:bg-slate-800/80 border border-border/80 font-bold text-foreground text-sm shadow-2xs">
-                        {row.symbol}
-                      </span>
-                    </td>
-                  )}
-
-                  {/* Clean Exchange Rate Display */}
-                  {visibleColumns.currency_rate && (
-                    <td className="px-4 py-3.5 text-right">
-                      {isBase ? (
-                        <div className="flex flex-col items-end">
-                          <div className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-primary dark:text-emerald-400 bg-primary/10 dark:bg-primary/20 px-2.5 py-1 rounded-md border border-primary/20">
-                            <CheckCircle2 size={13} />
-                            <span>1.0000 ({t('finance.base_rate_short', 'Base')})</span>
-                          </div>
-                          <span className="text-[11px] font-mono text-muted-foreground mt-0.5">
-                            1 USD = 1.00 $
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-end">
-                          <div className="flex items-center gap-1.5 font-mono text-sm font-bold text-foreground">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {t('finance.one_usd_equals', '1 USD =')}
-                            </span>
-                            <span className="text-primary dark:text-sky-400 font-extrabold text-[15px] tabular-nums">
-                              {formatRate(row.exchange_rate)}
-                            </span>
-                            <span className="text-xs font-semibold text-foreground/90">
-                              {row.symbol || row.code}
+                              {isBase && (
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                  {isKhmer ? 'គោល' : 'Base'}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-muted-foreground block">
+                              {visual.country}
                             </span>
                           </div>
-                          <div className="text-[11px] font-mono text-muted-foreground mt-0.5">
-                            1 {row.symbol || row.code} ≈ ${inverseKhr}
-                          </div>
                         </div>
-                      )}
-                    </td>
-                  )}
+                      </td>
 
-                  {/* Status Pill */}
-                  {visibleColumns.currency_status && (
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center">
+                      {/* 2. ISO Code */}
+                      <td className="px-4 py-3.5 font-mono text-xs font-bold text-foreground">
+                        <span className="px-2 py-0.5 rounded bg-muted/60 border border-border/60">
+                          {code}
+                        </span>
+                      </td>
+
+                      {/* 3. Symbol */}
+                      <td className="px-4 py-3.5 text-center font-bold text-sm text-foreground">
+                        <span className="inline-block w-7 h-7 leading-7 rounded-md bg-muted/40 border border-border/60 text-center font-mono">
+                          {row.symbol}
+                        </span>
+                      </td>
+
+                      {/* 4. Exchange Rate */}
+                      <td className="px-4 py-3.5 text-right font-mono font-bold text-xs sm:text-sm text-foreground">
+                        <span className={isBase ? 'text-blue-600 dark:text-blue-400' : ''}>
+                          {formatRate(row.exchange_rate)}
+                        </span>
+                        <span className="text-[11px] font-normal text-muted-foreground ml-1">
+                          {row.symbol}
+                        </span>
+                      </td>
+
+                      {/* 5. Rate Source */}
+                      <td className="px-4 py-3.5">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                            source.variant === 'blue'
+                              ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20'
+                              : source.variant === 'amber'
+                              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
+                              : source.variant === 'emerald'
+                              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+                              : 'bg-muted text-muted-foreground border-border/60'
+                          }`}
+                        >
+                          {source.label}
+                        </span>
+                      </td>
+
+                      {/* 6. Status */}
+                      <td className="px-4 py-3.5 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                             row.is_active
-                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
+                              : 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20'
                           }`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
-                              row.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                              row.is_active ? 'bg-emerald-500' : 'bg-zinc-400'
                             }`}
                           />
-                          <span>
-                            {row.is_active ? t('finance.active', 'Active') : t('finance.inactive', 'Inactive')}
-                          </span>
+                          {row.is_active
+                            ? isKhmer
+                              ? 'សកម្ម'
+                              : 'Active'
+                            : isKhmer
+                            ? 'អសកម្ម'
+                            : 'Inactive'}
                         </span>
-                      </div>
-                    </td>
-                  )}
+                      </td>
 
-                  {/* Inline Action Menu */}
-                  <td className="px-4 py-3.5 text-right">
-                    <TableActionMenu
-                      variant="inline"
-                      onEdit={openEditDrawer ? () => openEditDrawer(row) : undefined}
-                    />
-                  </td>
-                </tr>
-              )
-            })
-          )}
-        </tbody>
-      </table>
-    </TableWrapper>
+                      {/* 7. Last Updated */}
+                      <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                        {lastUpdatedFormatted}
+                      </td>
+
+                      {/* 8. Actions (SmartHR shadow card action buttons) */}
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                        <RowActionGroup>
+                          {/* Edit Action */}
+                          {canUpdateCurrency && (
+                            <EditRowButton
+                              onClick={() => openEditDrawer(row)}
+                              title={isKhmer ? 'កែសម្រួល' : 'Edit Currency'}
+                            />
+                          )}
+
+                          {/* Delete Action (Protected for USD and KHR) */}
+                          {canDeleteCurrency && (
+                            <>
+                              {isBase || isCoreKhr ? (
+                                <span
+                                  className="h-8 w-8 min-w-[32px] min-h-[32px] rounded-lg border border-slate-200/60 dark:border-slate-800/60 bg-slate-100/60 dark:bg-slate-900/60 text-slate-400 flex items-center justify-center cursor-not-allowed select-none opacity-60"
+                                  title={
+                                    isKhmer
+                                      ? 'រូបិយប័ណ្ណគោល និងរៀលត្រូវបានការពារ មិនអាចលុបបានឡើយ'
+                                      : 'Base and core local currencies are protected and cannot be deleted'
+                                  }
+                                >
+                                  <Lock size={13} />
+                                </span>
+                              ) : (
+                                <DeleteRowButton
+                                  onClick={() => onDeleteCurrency(row.id, row.name)}
+                                  title={isKhmer ? 'លុប' : 'Delete Currency'}
+                                />
+                              )}
+                            </>
+                          )}
+                        </RowActionGroup>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </TableWrapper>
+    </div>
   )
 }
 
-export { CurrenciesRatesTable as CurrenciesTab, CurrenciesRatesTable as CurrenciesTable }
 export default CurrenciesRatesTable

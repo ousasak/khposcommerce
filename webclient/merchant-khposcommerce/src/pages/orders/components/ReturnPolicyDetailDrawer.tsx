@@ -25,7 +25,7 @@ export const ReturnPolicyDetailDrawer: React.FC<ReturnPolicyDetailDrawerProps> =
   onClose,
   onEdit,
 }) => {
-  const { t, i18n } = useTranslation(['returns', 'nav', 'sales', 'common'])
+  const { t, i18n } = useTranslation(['policies', 'returns', 'nav', 'sales', 'common'])
   const { language } = useThemeStore()
   const currentLang = i18n.language || language || 'km'
   const isKhmer = currentLang.startsWith('km')

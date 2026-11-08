@@ -12,8 +12,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@khposcommerce/types": "workspace:*",
-    "@khposcommerce/ui": "workspace:*",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@hookform/resolvers": "^5.4.0",
@@ -30,7 +28,6 @@
     "@tanstack/react-query": "^5.101.2",
     "@types/leaflet": "^1.9.22",
     "@zxing/library": "^0.23.0",
-    "antd": "^6.5.1",
     "axios": "^1.18.1",
     "bakong-khqr": "^1.0.20",
     "class-variance-authority": "^0.7.1",
@@ -46,6 +43,7 @@
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.81.0",
     "react-i18next": "^17.0.10",
+    "react-loading-indicators": "^1.0.1",
     "react-router-dom": "^7.18.1",
     "recharts": "^3.9.2",
     "tailwind-merge": "^3.6.0",

@@ -4,7 +4,7 @@ import { Sliders } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import Pagination from '@/components/shared/Pagination'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import { EmptyState } from '@/components/common'
 import { formatShortDate } from '@/utils/formatters'
 
@@ -118,8 +118,8 @@ export const StockAdjustmentsTable: React.FC<StockAdjustmentsTableProps> = ({
               <EmptyState
                 cols={activeColCount || 9}
                 icon={Sliders}
-                title={t('noAdjustmentsFound', 'រកមិនឃើញទិន្នន័យកែតម្រូវស្តុកទេ')}
-                description={t('empty.noAdjustmentsDesc', 'មិនមានកំណត់ត្រាកែតម្រូវស្តុកត្រូវគ្នានឹងលក្ខខណ្ឌតម្រងដែលបានកំណត់ទេ។')}
+                title={t('noAdjustmentsFound', 'No stock adjustments found')}
+                description={t('empty.noAdjustmentsDesc', 'No stock adjustment records match the selected filter criteria.')}
               />
             ) : (
               items.map((item) => {

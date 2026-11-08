@@ -14,10 +14,9 @@ import {
 } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
-import TableActionMenu from '@/components/shared/TableActionMenu'
+import { EmptyState } from '@/components/common'
 import { formatDisplayDate, CAMBODIA_TIMEZONE } from '@/utils/formatters'
-import TransactionDetailDrawer from './TransactionDetailDrawer'
+import FinancialTransactionsDetailDrawer from './FinancialTransactionsDetailDrawer'
 
 export interface FinancialTransactionsTableProps {
   transactions: any[]
@@ -210,7 +209,6 @@ export const FinancialTransactionsTable: React.FC<FinancialTransactionsTableProp
   const showCompany = visibleColumns.txn_company !== false
   const showMethod = visibleColumns.txn_method !== false
   const showRef = visibleColumns.txn_ref !== false
-  const showDesc = visibleColumns.txn_description !== false
   const showDate = visibleColumns.txn_date !== false
 
   let totalCols = 1 // Actions column
@@ -220,7 +218,6 @@ export const FinancialTransactionsTable: React.FC<FinancialTransactionsTableProp
   if (showCompany) totalCols++
   if (showMethod) totalCols++
   if (showRef) totalCols++
-  if (showDesc) totalCols++
   if (showDate) totalCols++
 
   return (
@@ -260,17 +257,12 @@ export const FinancialTransactionsTable: React.FC<FinancialTransactionsTableProp
                   {t('finance.ref_col', 'Reference')}
                 </th>
               )}
-              {showDesc && (
-                <th className="text-left px-4 py-3.5 whitespace-nowrap min-w-[220px]">
-                  {t('finance.description_col', 'Description')}
-                </th>
-              )}
               {showDate && (
                 <th className="text-left px-4 py-3.5 whitespace-nowrap min-w-[140px]">
                   {t('finance.date_col', 'Date & Time')}
                 </th>
               )}
-              <th className="text-right px-4 py-3.5 whitespace-nowrap w-24">
+              <th className="text-right px-4 py-3.5 whitespace-nowrap w-16">
                 {t('finance.actions_col', t('common.actions', 'Actions'))}
               </th>
             </tr>
@@ -358,16 +350,6 @@ export const FinancialTransactionsTable: React.FC<FinancialTransactionsTableProp
                         )}
                       </td>
                     )}
-                    {showDesc && (
-                      <td className="px-4 py-3">
-                        <div
-                          className="max-w-[220px] truncate text-xs text-muted-foreground"
-                          title={row.description}
-                        >
-                          {row.description || <span className="text-muted-foreground/40 italic">—</span>}
-                        </div>
-                      </td>
-                    )}
                     {showDate && (
                       <td className="px-4 py-3">
                         {renderDateTime(row.created_at)}
@@ -377,23 +359,15 @@ export const FinancialTransactionsTable: React.FC<FinancialTransactionsTableProp
                       className="text-right px-4 py-3"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end">
                         <button
                           type="button"
                           onClick={() => setSelectedTransaction(row)}
-                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer"
                           title={t('finance.view_detail', t('common.view_detail', 'View Details'))}
                         >
-                          <Eye size={15} />
+                          <Eye size={16} />
                         </button>
-                        <TableActionMenu
-                          onView={() => setSelectedTransaction(row)}
-                          onDelete={
-                            handleDelete
-                              ? () => handleDelete(row.id, `Transaction #${row.id}`)
-                              : undefined
-                          }
-                        />
                       </div>
                     </td>
                   </tr>
@@ -450,7 +424,6 @@ export const FinancialTransactionsTable: React.FC<FinancialTransactionsTableProp
                 {showCompany && <td className="px-4 py-3" />}
                 {showMethod && <td className="px-4 py-3" />}
                 {showRef && <td className="px-4 py-3" />}
-                {showDesc && <td className="px-4 py-3" />}
                 {showDate && <td className="px-4 py-3" />}
                 <td className="px-4 py-3" />
               </tr>
@@ -460,7 +433,7 @@ export const FinancialTransactionsTable: React.FC<FinancialTransactionsTableProp
       </TableWrapper>
 
       {/* Slide-out Transaction Detail Inspection */}
-      <TransactionDetailDrawer
+      <FinancialTransactionsDetailDrawer
         transaction={selectedTransaction}
         isOpen={!!selectedTransaction}
         onClose={() => setSelectedTransaction(null)}

@@ -2,13 +2,12 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge, EmptyState } from '@/components/common'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
 import { getAbsoluteImageUrl, getCustomerAvatarUrl, DEFAULT_AVATAR_IMAGE } from '@/utils/image'
-import { Image as AntImage } from 'antd'
+import { Image } from '@/components/ui/image'
 import { Banknote } from 'lucide-react'
 import { formatCurrency, GlobalFormat } from '@/utils/formatters'
 import { getCustomerGroupDisplayName } from '../utils/customerGroupFormatters'
@@ -168,11 +167,11 @@ export const CustomerTableSection: React.FC<CustomerTableSectionProps> = ({
                               className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-bold text-xs flex items-center justify-center border border-primary/20 shrink-0 overflow-hidden shadow-2xs cursor-pointer"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <AntImage
+                              <Image
                                 src={getCustomerAvatarUrl(cust.photo || cust.avatar, cust.id || cust.name)}
                                 alt={cust.name}
                                 className="w-full h-full object-cover"
-                                {...({ wrapperClassName: 'w-full h-full !flex items-center justify-center cursor-pointer' } as any)}
+                                rootClassName="w-full h-full !flex items-center justify-center cursor-pointer"
                                 preview={{ mask: null }}
                                 fallback={DEFAULT_AVATAR_IMAGE}
                               />
@@ -292,6 +291,9 @@ export const CustomerTableSection: React.FC<CustomerTableSectionProps> = ({
                       {visibleColumns.actions !== false && (
                         <td className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
                           <TableActionMenu
+                            variant="inline"
+                            buttonSize="sm"
+                            align="right"
                             onView={() => navigate(`/customers/${cust.id}`)}
                             onEdit={canEdit ? () => openEditModal(cust) : undefined}
                             onDelete={canDelete ? () => setDeleteTarget(cust) : undefined}

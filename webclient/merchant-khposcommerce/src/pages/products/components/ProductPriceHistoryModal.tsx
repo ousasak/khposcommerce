@@ -3,8 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { History, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
-import { ModalHeader } from '@/components/common/ModalHeader'
-
+import { ModalHeader } from '@/components/common'
 interface ProductPriceHistoryModalProps {
   isOpen: boolean
   onClose: () => void
@@ -45,7 +44,7 @@ export const ProductPriceHistoryModal: React.FC<ProductPriceHistoryModalProps> =
           {/* Content */}
           <div className="p-5 overflow-y-auto space-y-3 flex-1 text-xs">
             {isLoading ? (
-              <div className="py-8 text-center text-muted-foreground">Loading price history...</div>
+              <div className="py-8 text-center text-muted-foreground">{t('products.loadingPriceHistory', 'Loading price history...')}</div>
             ) : priceHistory.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 <DollarSign size={28} className="mx-auto mb-2 opacity-40" />

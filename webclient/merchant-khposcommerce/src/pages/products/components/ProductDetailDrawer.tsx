@@ -12,18 +12,11 @@ import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { productService } from '@/services/productService'
 import { getAbsoluteImageUrl, DEFAULT_PRODUCT_IMAGE } from '@/utils/image'
-import StatusBadge from '@/components/common/StatusBadge'
-import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerBody,
-  DetailDrawerFooter,
-  ModalHeader,
-  ActionButton,
-} from '@/components/common'
+import { StatusBadge } from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, ModalHeader, ActionButton } from '@/components/common'
 import WorkspaceTabs from '@/components/shared/WorkspaceTabs'
 import { formatDisplayDate } from '@/utils/formatters'
-import { Image as AntImage } from 'antd'
+import { Image } from '@/components/ui/image'
 import type { Product } from '../types/productsPage.types'
 import { getDynamicColorMatchedImage } from '../ProductFormPage'
 
@@ -488,11 +481,11 @@ export const ProductDetailDrawer: React.FC<ProductDetailDrawerProps> = ({
             <div className="p-5 rounded-3xl bg-muted/30 border border-border/70 shadow-2xs relative overflow-hidden">
               <div className="flex flex-col sm:flex-row gap-5">
                 {/* Product Image & Thumbnail Gallery */}
-                <AntImage.PreviewGroup items={allImages}>
+                <Image.PreviewGroup items={allImages}>
                   <div className="flex flex-col gap-2 shrink-0">
                     <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-card border border-border/80 flex items-center justify-center overflow-hidden relative shadow-2xs group">
                       {allImages[selectedImageIndex] ? (
-                        <AntImage
+                        <Image
                           src={allImages[selectedImageIndex]}
                           alt={product?.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -541,7 +534,7 @@ export const ProductDetailDrawer: React.FC<ProductDetailDrawerProps> = ({
                       </div>
                     )}
                   </div>
-                </AntImage.PreviewGroup>
+                </Image.PreviewGroup>
 
                 {/* Info & Badges */}
                 <div className="flex-1 min-w-0 flex flex-col justify-between">
@@ -574,7 +567,7 @@ export const ProductDetailDrawer: React.FC<ProductDetailDrawerProps> = ({
                         className="group flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-card hover:bg-muted border border-border/80 text-[11px] font-mono text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                         title={t('copySku', 'Copy SKU')}
                       >
-                        <span className="text-[10px] text-muted-foreground font-sans font-semibold">SKU:</span>
+                        <span className="text-[10px] text-muted-foreground font-sans font-semibold">{t('sku', 'SKU')}:</span>
                         <span className="font-bold text-foreground">{product?.sku}</span>
                         {copiedKey === 'sku' ? (
                           <Check size={12} className="text-emerald-500" />
@@ -589,7 +582,7 @@ export const ProductDetailDrawer: React.FC<ProductDetailDrawerProps> = ({
                           className="group flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-card hover:bg-muted border border-border/80 text-[11px] font-mono text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                           title={t('copyBarcode', 'Copy Barcode')}
                         >
-                          <span className="text-[10px] text-muted-foreground font-sans font-semibold">Barcode:</span>
+                          <span className="text-[10px] text-muted-foreground font-sans font-semibold">{t('barcode', 'Barcode')}:</span>
                           <span className="font-semibold text-foreground">{product.barcode}</span>
                           {copiedKey === 'barcode' ? (
                             <Check size={12} className="text-emerald-500" />
@@ -843,7 +836,7 @@ export const ProductDetailDrawer: React.FC<ProductDetailDrawerProps> = ({
                             {/* Variant Image / Icon */}
                             <div className="w-10 h-10 rounded-xl bg-muted border border-border/80 flex items-center justify-center shrink-0 overflow-hidden">
                               {v.image ? (
-                                <AntImage
+                                <Image
                                   src={getAbsoluteImageUrl(v.image)}
                                   alt={v.name}
                                   className="w-full h-full object-cover"
@@ -1243,7 +1236,7 @@ export const ProductDetailDrawer: React.FC<ProductDetailDrawerProps> = ({
                     {/* Realistic Label Card */}
                     <div className="bg-white text-black p-4 rounded-xl border-2 border-dashed border-zinc-400 shadow-md text-center space-y-1.5 max-w-[240px] mx-auto transition-all">
                       {showStoreName && (
-                        <p className="text-[9px] font-black uppercase tracking-wider text-zinc-500">ENTERPRISE POS</p>
+                        <p className="text-[9px] font-black uppercase tracking-wider text-zinc-500">{t('storeNamePlaceholder', 'ENTERPRISE POS')}</p>
                       )}
                       
                       {showProductName && (
@@ -1251,7 +1244,7 @@ export const ProductDetailDrawer: React.FC<ProductDetailDrawerProps> = ({
                       )}
 
                       {showSku && (
-                        <p className="text-[10px] font-mono font-bold text-zinc-700">SKU: {printTargetItem.sku}</p>
+                        <p className="text-[10px] font-mono font-bold text-zinc-700">{t('sku', 'SKU')}: {printTargetItem.sku}</p>
                       )}
 
                       {/* Barcode Visual Stripes */}

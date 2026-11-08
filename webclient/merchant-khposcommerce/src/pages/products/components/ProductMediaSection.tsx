@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Upload, Star, Trash2, Eye } from 'lucide-react'
-import { Image as AntImage } from 'antd'
+import { Image } from '@/components/ui/image'
 import { getAbsoluteImageUrl, DEFAULT_PRODUCT_IMAGE } from '@/utils/image'
 import { FormCard } from '@/components/common'
 import type { CreateImagePreview } from '../types/productForm.types'
@@ -86,7 +86,7 @@ export const ProductMediaSection: React.FC<ProductMediaSectionProps> = ({
       {isEdit && productDetail?.images && productDetail.images.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border/60 space-y-2.5">
           <span className="text-xs font-bold text-muted-foreground block">{t('uploadedImages', 'Uploaded Photos:')}</span>
-          <AntImage.PreviewGroup>
+          <Image.PreviewGroup>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {productDetail.images.map((img: any) => {
                 const imgUrl = getAbsoluteImageUrl(img.url || img.image)
@@ -95,7 +95,7 @@ export const ProductMediaSection: React.FC<ProductMediaSectionProps> = ({
                     key={img.id}
                     className="group relative rounded-xl overflow-hidden border border-border bg-muted/20 shadow-xs hover:shadow-md transition-all aspect-square"
                   >
-                    <AntImage
+                    <Image
                       src={imgUrl}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       rootClassName="w-full h-full flex items-center justify-center cursor-pointer"
@@ -149,7 +149,7 @@ export const ProductMediaSection: React.FC<ProductMediaSectionProps> = ({
                 )
               })}
             </div>
-          </AntImage.PreviewGroup>
+          </Image.PreviewGroup>
         </div>
       )}
 
@@ -157,11 +157,11 @@ export const ProductMediaSection: React.FC<ProductMediaSectionProps> = ({
       {createImagePreviews.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border/60 space-y-2.5">
           <span className="text-xs font-bold text-muted-foreground block">{t('newPhotos', 'New Photos to Upload:')}</span>
-          <AntImage.PreviewGroup>
+          <Image.PreviewGroup>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {createImagePreviews.map((img) => (
                 <div key={img.id} className="relative group rounded-xl border border-border overflow-hidden bg-muted/20 aspect-square shadow-xs hover:shadow-md transition-all">
-                  <AntImage
+                  <Image
                     src={img.url}
                     alt="Preview"
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -211,7 +211,7 @@ export const ProductMediaSection: React.FC<ProductMediaSectionProps> = ({
                 </div>
               ))}
             </div>
-          </AntImage.PreviewGroup>
+          </Image.PreviewGroup>
         </div>
       )}
     </FormCard>

@@ -113,12 +113,24 @@ class RolesPermissionsSeeder extends Seeder
         }
 
         // ─── Super Admin (Full Access to All API Permissions) ─────────────────
-        $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'api']);
+        $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'api'], [
+            'display_name'    => 'Super Administrator',
+            'display_name_km' => 'អភិបាលជាន់ខ្ពស់',
+            'description'     => 'Full access to every area, including billing and settings.',
+            'description_km'  => 'មានសិទ្ធិចូលដំណើរការគ្រប់ផ្នែកទាំងអស់ រួមទាំងការទូទាត់ប្រាក់ និងការកំណត់ប្រព័ន្ធ។',
+            'is_system'       => true,
+        ]);
         $allApiPermissions = Permission::where('guard_name', 'api')->get();
         $superAdmin->syncPermissions($allApiPermissions);
 
         // ─── Owner (Company Owner - Full Access across their Company & All Branches) ─
-        $owner = Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'api']);
+        $owner = Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'api'], [
+            'display_name'    => 'Owner',
+            'display_name_km' => 'ម្ចាស់អាជីវកម្ម',
+            'description'     => 'Full business owner privileges, managing store operations and financial scopes.',
+            'description_km'  => 'តួនាទីម្ចាស់អាជីវកម្ម មានសិទ្ធិពេញលេញលើការគ្រប់គ្រងហាង និងហិរញ្ញវត្ថុ។',
+            'is_system'       => true,
+        ]);
         $excludedOwnerExact = [
             'company.create', 'company.delete',
             'currency.create', 'currency.delete',
@@ -135,7 +147,13 @@ class RolesPermissionsSeeder extends Seeder
         $owner->syncPermissions($ownerPermissions);
 
         // ─── Admin (Branch Admin - Branch Operational Scope, Excluded from System/Company) ─────
-        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'api']);
+        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'api'], [
+            'display_name'    => 'Administrator',
+            'display_name_km' => 'អភិបាលប្រព័ន្ធ',
+            'description'     => 'Full access to operational modules, store settings, and branch management.',
+            'description_km'  => 'សិទ្ធិគ្រប់គ្រងលើម៉ូឌុលប្រតិបត្តិការ ការកំណត់ហាង និងការចាត់ចែងសាខា។',
+            'is_system'       => true,
+        ]);
         $excludedAdminPrefixes = [
             'role.', 'permission.', 'login_history.',
             'company.', 'setting.', 'platform.',
@@ -174,7 +192,13 @@ class RolesPermissionsSeeder extends Seeder
         $admin->syncPermissions($adminPermissions);
 
         // ─── Manager (Operational Management) ─────────────────────────────────
-        $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'api']);
+        $manager = Role::firstOrCreate(['name' => 'manager', 'guard_name' => 'api'], [
+            'display_name'    => 'Manager',
+            'display_name_km' => 'អ្នកគ្រប់គ្រង',
+            'description'     => 'Store operations oversight, inventory management, and employee management.',
+            'description_km'  => 'ត្រួតពិនិត្យប្រតិបត្តិការហាង ការគ្រប់គ្រងស្តុកទំនិញ និងការចាត់ចែងបុគ្គលិក។',
+            'is_system'       => true,
+        ]);
         $managerPermissions = [
             'dashboard.view',
             'pos.access',
@@ -223,7 +247,13 @@ class RolesPermissionsSeeder extends Seeder
         );
 
         // ─── Cashier ──────────────────────────────────────────────────────────
-        $cashier = Role::firstOrCreate(['name' => 'cashier', 'guard_name' => 'api']);
+        $cashier = Role::firstOrCreate(['name' => 'cashier', 'guard_name' => 'api'], [
+            'display_name'    => 'Cashier',
+            'display_name_km' => 'បេឡាករ',
+            'description'     => 'Point of sale order processing, cashier shift balancing, and receipt printing.',
+            'description_km'  => 'ដំណើរការការលក់នៅបញ្ជរ POS ការគ្រប់គ្រងវេនបេឡា និងការបោះពុម្ពវិក្កយបត្រ។',
+            'is_system'       => true,
+        ]);
         $cashierPermissions = [
             'dashboard.view',
             'pos.access',
@@ -243,7 +273,13 @@ class RolesPermissionsSeeder extends Seeder
         );
 
         // ─── Warehouse Staff ──────────────────────────────────────────────────
-        $warehouse = Role::firstOrCreate(['name' => 'warehouse_staff', 'guard_name' => 'api']);
+        $warehouse = Role::firstOrCreate(['name' => 'warehouse_staff', 'guard_name' => 'api'], [
+            'display_name'    => 'Warehouse Staff',
+            'display_name_km' => 'បុគ្គលិកឃ្លាំង',
+            'description'     => 'Warehouse stock intake, transfers, inventory adjustments, and supply chain tracking.',
+            'description_km'  => 'ទទួលទំនិញចូលស្តុក ការផ្ទេរទំនិញ ការកែតម្រូវចំនួនស្តុក និងតាមដានខ្សែច្រវាក់ផ្គត់ផ្គង់។',
+            'is_system'       => true,
+        ]);
         $warehousePermissions = [
             'dashboard.view',
             'product.view', 'category.view', 'brand.view', 'unit.view',
@@ -260,7 +296,13 @@ class RolesPermissionsSeeder extends Seeder
         );
 
         // ─── Staff (General Branch Frontline Staff) ───────────────────────────
-        $staff = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'api']);
+        $staff = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'api'], [
+            'display_name'    => 'Staff',
+            'display_name_km' => 'បុគ្គលិកទូទៅ',
+            'description'     => 'Standard staff duties, order fulfillment, and basic customer assistance.',
+            'description_km'  => 'បំពេញភារកិច្ចបុគ្គលិកទូទៅ ការរៀបចំទំនិញបញ្ជាទិញ និងជួយសម្រួលដល់អតិថិជន។',
+            'is_system'       => true,
+        ]);
         $staffPermissions = [
             'dashboard.view',
             'product.view', 'category.view', 'brand.view', 'unit.view',
@@ -275,7 +317,13 @@ class RolesPermissionsSeeder extends Seeder
         );
 
         // ─── Customer (Storefront Only) ───────────────────────────────────────
-        $customer = Role::firstOrCreate(['name' => 'customer', 'guard_name' => 'api']);
+        $customer = Role::firstOrCreate(['name' => 'customer', 'guard_name' => 'api'], [
+            'display_name'    => 'Customer',
+            'display_name_km' => 'អតិថិជន',
+            'description'     => 'Customer store profile, order history, loyalty points, and delivery addresses.',
+            'description_km'  => 'ព័ត៌មានគណនីអតិថិជន ប្រវត្តិបញ្ជាទិញ ពិន្ទុសន្សំ និងអាសយដ្ឋានដឹកជញ្ជូន។',
+            'is_system'       => true,
+        ]);
         $customerPermissions = [
             'cart.view', 'cart.create', 'cart.update', 'cart.delete',
             'wishlist.view', 'wishlist.create', 'wishlist.delete',

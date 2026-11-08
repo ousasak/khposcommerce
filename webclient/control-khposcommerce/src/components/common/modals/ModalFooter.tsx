@@ -5,16 +5,24 @@ import { Check, Loader2 } from 'lucide-react'
 export interface ModalFooterProps {
   /** Label for Cancel button. Defaults to t('common.cancel', 'Cancel') */
   cancelLabel?: string
+  /** Alias for cancelLabel */
+  cancelText?: string
   /** Click handler for Cancel button */
   onCancel?: () => void
   /** Whether to show the Cancel button (default: true) */
   showCancel?: boolean
   /** Label for Submit button. Defaults to Save / Save Changes */
   submitLabel?: string
+  /** Alias for submitLabel */
+  confirmText?: string
   /** Custom icon for Submit button (defaults to Check) */
   submitIcon?: React.ReactNode
+  /** Alias for submitIcon */
+  confirmIcon?: React.ReactNode | React.ElementType
   /** Click handler for submit button if not form-submitting */
-  onSubmit?: (e?: React.FormEvent) => void
+  onSubmit?: (e?: React.FormEvent | React.MouseEvent) => void
+  /** Alias for onSubmit */
+  onConfirm?: (e?: React.FormEvent | React.MouseEvent) => void
   /** Submit button HTML type ('submit' | 'button'). Defaults to 'submit' */
   submitButtonType?: 'submit' | 'button'
   /** Whether to show the Submit button (default: true) */
@@ -39,11 +47,15 @@ export interface ModalFooterProps {
 
 export const ModalFooter: React.FC<ModalFooterProps> = ({
   cancelLabel,
+  cancelText,
   onCancel,
   showCancel = true,
   submitLabel,
+  confirmText,
   submitIcon,
+  confirmIcon,
   onSubmit,
+  onConfirm,
   submitButtonType = 'submit',
   showSubmit = true,
   isSubmitting = false,
@@ -56,6 +68,28 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
   children,
 }) => {
   const { t } = useTranslation(['common'])
+
+  const effectiveCancelLabel = cancelLabel || cancelText || t('common.cancel', 'Cancel')
+  const effectiveSubmitLabel =
+    submitLabel ||
+    confirmText ||
+    (isEdit ? t('common.saveChanges', 'Save Changes') : t('common.save', 'Save'))
+  const effectiveOnSubmit = onSubmit || onConfirm
+
+  const renderSubmitIcon = () => {
+    const icon = submitIcon || confirmIcon
+    if (!icon) return <Check size={14} strokeWidth={2.5} />
+    if (React.isValidElement(icon)) return icon
+    if (
+      typeof icon === 'function' ||
+      (typeof icon === 'object' &&
+        icon !== null &&
+        ('render' in (icon as any) || '$$typeof' in (icon as any)))
+    ) {
+      return React.createElement(icon as React.ElementType, { size: 14 })
+    }
+    return icon
+  }
 
   const getSubmitVariantStyles = () => {
     switch (submitVariant) {
@@ -84,9 +118,13 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
       className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 px-5 sm:px-6 py-4 border-t border-border/80 dark:border-slate-800 bg-muted/20 dark:bg-slate-900/50 shrink-0 ${className}`}
     >
       {/* Left: Info Summary slot */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-slate-400 min-w-0">
-        {infoSummary}
-      </div>
+      {infoSummary ? (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-slate-400 min-w-0">
+          {infoSummary}
+        </div>
+      ) : (
+        <div className="hidden sm:block" />
+      )}
 
       {/* Right: Action Buttons */}
       <div className="flex items-center justify-end gap-3 shrink-0">
@@ -97,30 +135,25 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="h-10 px-5 rounded-xl border border-border/80 dark:border-slate-700 bg-card dark:bg-slate-800/80 text-xs sm:text-[13px] font-bold text-muted-foreground dark:text-slate-300 hover:text-foreground dark:hover:text-white hover:bg-muted dark:hover:bg-slate-700 transition-colors cursor-pointer active:scale-95 disabled:opacity-50"
+            className="h-10 px-5 rounded-xl border border-border/80 dark:border-slate-700 bg-card dark:bg-slate-800/80 text-xs sm:text-[13px] font-bold text-muted-foreground dark:text-slate-300 hover:text-foreground dark:hover:text-white hover:bg-muted dark:hover:bg-slate-700 transition-colors cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed select-none"
           >
-            {cancelLabel || t('common.cancel', 'Cancel')}
+            {effectiveCancelLabel}
           </button>
         )}
 
         {showSubmit && (
           <button
             type={submitButtonType}
-            onClick={onSubmit}
+            onClick={effectiveOnSubmit}
             disabled={isSubmitting || disabled}
-            className={`h-10 inline-flex items-center justify-center gap-2 px-6 rounded-xl text-xs sm:text-[13px] font-bold hover:shadow transition-all disabled:opacity-50 cursor-pointer active:scale-95 ${getSubmitVariantStyles()}`}
+            className={`h-10 inline-flex items-center justify-center gap-2 px-6 rounded-xl text-xs sm:text-[13px] font-bold hover:shadow transition-all disabled:opacity-50 cursor-pointer active:scale-95 disabled:cursor-not-allowed select-none ${getSubmitVariantStyles()}`}
           >
             {isSubmitting ? (
               <Loader2 size={14} className="animate-spin" />
             ) : (
-              submitIcon || <Check size={14} strokeWidth={2.5} />
+              renderSubmitIcon()
             )}
-            <span>
-              {submitLabel ||
-                (isEdit
-                  ? t('common.saveChanges', 'Save Changes')
-                  : t('common.save', 'Save'))}
-            </span>
+            <span>{effectiveSubmitLabel}</span>
           </button>
         )}
       </div>

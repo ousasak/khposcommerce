@@ -2,17 +2,91 @@ import React from 'react'
 import { DollarSign, Wallet, Percent, ArrowUpRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { FlattenCard } from '@/components/common/cards'
+import { FlattenCard } from '@/components/common'
 import { formatCurrency } from '@/utils/formatters'
 
 interface DashboardRow5Props {
   stats?: any
+  isLoading?: boolean
 }
 
-export const DashboardRow5: React.FC<DashboardRow5Props> = ({ stats }) => {
+export const DashboardRow5: React.FC<DashboardRow5Props> = ({ stats, isLoading }) => {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const locale = i18n.language === 'km' ? 'km-KH' : 'en-US'
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Skeleton Cash Flow */}
+        <FlattenCard
+          title={
+            <span className="flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-blue-500" />
+              <span>{t('dashboard.netCashFlow', 'Net Cash Flow')}</span>
+            </span>
+          }
+        >
+          <div className="space-y-4 animate-pulse">
+            <div>
+              <div className="h-2.5 w-24 bg-muted rounded" />
+              <div className="h-5 w-32 bg-muted rounded mt-2" />
+            </div>
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+              <div className="h-2.5 w-24 bg-muted rounded" />
+              <div className="h-5 w-32 bg-muted rounded mt-2" />
+            </div>
+          </div>
+        </FlattenCard>
+
+        {/* Skeleton Receivables & Payables */}
+        <FlattenCard
+          title={
+            <span className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-emerald-500" />
+              <span>{t('dashboard.receivablesPayables', 'Receivables & Payables')}</span>
+            </span>
+          }
+        >
+          <div className="space-y-4 animate-pulse">
+            <div>
+              <div className="h-2.5 w-28 bg-muted rounded" />
+              <div className="h-5 w-32 bg-muted rounded mt-2" />
+            </div>
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+              <div className="h-2.5 w-28 bg-muted rounded" />
+              <div className="h-5 w-32 bg-muted rounded mt-2" />
+            </div>
+          </div>
+        </FlattenCard>
+
+        {/* Skeleton Net Profit Margin */}
+        <FlattenCard
+          title={
+            <span className="flex items-center gap-2">
+              <Percent className="w-4 h-4 text-purple-500" />
+              <span>{t('dashboard.profitTrend', 'Profit Margin Trend')}</span>
+            </span>
+          }
+          className="md:col-span-2 lg:col-span-1"
+        >
+          <div className="space-y-4 animate-pulse">
+            <div>
+              <div className="h-2.5 w-20 bg-muted rounded" />
+              <div className="h-5 w-32 bg-muted rounded mt-2" />
+            </div>
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
+              <div className="h-2.5 w-20 bg-muted rounded" />
+              <div className="flex items-center gap-2 mt-2">
+                <div className="h-5 w-16 bg-muted rounded" />
+                <div className="h-4 w-14 bg-muted rounded-full" />
+              </div>
+            </div>
+          </div>
+        </FlattenCard>
+      </div>
+    )
+  }
 
   const sales = stats?.today_sales || 0
   const expenses = stats?.today_expenses || 0

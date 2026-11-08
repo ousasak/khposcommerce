@@ -5,7 +5,7 @@ import { UploadCloud, Trash2, LayoutGrid, Table as TableIcon } from 'lucide-reac
 import { cmsService } from '@/services/cmsService'
 import { useToast } from '@/hooks/useToast'
 import { downloadCsv } from '@/utils/export'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import { HeaderActionsGroup, ExportButton, TableToolbar, InlineFilterSelect } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'

@@ -13,21 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { getAbsoluteImageUrl, getCustomerAvatarUrl } from '@/utils/image'
 import { useToast } from '@/hooks/useToast'
-import { 
-  StatusBadge, 
-  UserAvatar,
-  DetailDrawer, 
-  DetailDrawerHeader, 
-  DetailDrawerTabNav, 
-  DetailDrawerBody, 
-  DetailDrawerFooter,
-  DetailDrawerCard,
-  DetailDrawerRow,
-  ActionButton,
-  CancelButton,
-  EnterpriseModal,
-  ModalFooter
-} from '@/components/common'
+import { StatusBadge, UserAvatar, DetailDrawer, DetailDrawerHeader, DetailDrawerTabNav, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, ActionButton, CancelButton, EnterpriseModal, ModalFooter } from '@/components/common'
 import { customerService } from '@/services/customerService'
 import { CustomerDebtModal } from './CustomerDebtModal'
 import { CustomerStatementPrintModal } from './CustomerStatementPrintModal'

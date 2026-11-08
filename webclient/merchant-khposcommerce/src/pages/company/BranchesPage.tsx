@@ -4,9 +4,7 @@ import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -16,19 +14,11 @@ import {
 import { companyService } from '@/services/companyService'
 import { useToast } from '@/hooks/useToast'
 import { focusFirstInvalidField } from '@/utils/formValidation'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import {
-  StatusBadge,
-  CloseButton,
-  FieldError,
-  getFieldClass,
-  TableToolbar,
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-} from '@/components/common'
+import { Breadcrumb, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter } from '@/components/common'
+import { StatusBadge, CloseButton, FieldError, getFieldClass, TableToolbar, HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { BranchStatsCards } from './components/BranchStatsCards'
+import { BranchSearchBar } from './components/BranchSearchBar'
 import { downloadCsv } from '@/utils/export'
 
 interface Branch {
@@ -61,7 +51,21 @@ const BranchesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
     reset,
     adjustAfterDelete,
   } = useServerPagination({ storageKey: 'branches' })
-    const [modalOpen, setModalOpen] = useState(false)
+    // Filter states
+  const [statusFilter, setStatusFilter] = useState('')
+  const [provinceFilter, setProvinceFilter] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    branch: true,
+    code: true,
+    contact: true,
+    location: true,
+    main: true,
+    status: true,
+    actions: true,
+  })
+
+  const [modalOpen, setModalOpen] = useState(false)
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null)
   const [viewBranch, setViewBranch] = useState<Branch | null>(null)
 
@@ -87,8 +91,15 @@ const BranchesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
   }
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['branches', page, debouncedSearch, perPage],
-    queryFn: () => companyService.getBranches({ page, search: debouncedSearch, per_page: perPage }),
+    queryKey: ['branches', page, debouncedSearch, perPage, statusFilter, provinceFilter, typeFilter],
+    queryFn: () => companyService.getBranches({ 
+      page, 
+      search: debouncedSearch, 
+      per_page: perPage,
+      status: statusFilter || undefined,
+      province: provinceFilter || undefined,
+      is_main: typeFilter === 'main' ? true : typeFilter === 'sub' ? false : undefined,
+    }),
     placeholderData: (prev) => prev,
   })
 
@@ -276,15 +287,33 @@ const BranchesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
         </>
       )}
 
-      {/* Global Standard Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-style Unified Filter Bar */}
+      <BranchSearchBar
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        searchPlaceholder={t('branches.searchPlaceholder', 'Search branches...')}
-        onReset={reset}
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['branches'] })}
-        refreshLoading={isFetching}
-        rightActions={
+        statusFilter={statusFilter}
+        onStatusChange={(val) => { setStatusFilter(val); setPage(1); }}
+        provinceFilter={provinceFilter}
+        onProvinceChange={(val) => { setProvinceFilter(val); setPage(1); }}
+        typeFilter={typeFilter}
+        onTypeChange={(val) => { setTypeFilter(val); setPage(1); }}
+        onReset={() => {
+          reset()
+          setStatusFilter('')
+          setProvinceFilter('')
+          setTypeFilter('')
+        }}
+        columns={[
+          { key: 'branch', label: t('branches.colBranch', 'Branch') },
+          { key: 'code', label: t('branches.colCode', 'Code') },
+          { key: 'contact', label: t('branches.colContact', 'Contact') },
+          { key: 'location', label: t('branches.colLocation', 'Location') },
+          { key: 'main', label: t('branches.colMain', 'Main HQ') },
+          { key: 'status', label: t('branches.colStatus', 'Status') },
+        ]}
+        visibleColumns={visibleColumns}
+        onColumnChange={setVisibleColumns}
+        rightAction={
           isTab ? (
             <AddButton
               onClick={openCreateModal}
@@ -300,260 +329,290 @@ const BranchesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
         <table className="w-full data-table">
             <thead>
               <tr>
-                <th className="text-left">Branch</th>
-                <th className="text-left">Code</th>
-                <th className="text-left">Contact</th>
-                <th className="text-left">Location</th>
-                <th className="text-left">Main</th>
-                <th className="text-left">Status</th>
-                <th className="text-right">Actions</th>
+                {visibleColumns.branch !== false && <th className="text-left">Branch</th>}
+                {visibleColumns.code !== false && <th className="text-left">Code</th>}
+                {visibleColumns.contact !== false && <th className="text-left">Contact</th>}
+                {visibleColumns.location !== false && <th className="text-left">Location</th>}
+                {visibleColumns.main !== false && <th className="text-left">Main</th>}
+                {visibleColumns.status !== false && <th className="text-left">Status</th>}
+                {visibleColumns.actions !== false && <th className="text-right">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
-                      <td><div className="skeleton h-4 w-32 rounded" /></td>
-                      <td><div className="skeleton h-4 w-16 rounded" /></td>
-                      <td><div className="skeleton h-4 w-28 rounded" /></td>
-                      <td><div className="skeleton h-4 w-36 rounded" /></td>
-                      <td><div className="skeleton h-4 w-10 rounded" /></td>
-                      <td><div className="skeleton h-4 w-16 rounded" /></td>
-                      <td><div className="skeleton h-4 w-12 rounded ml-auto" /></td>
+                      {visibleColumns.branch !== false && <td><div className="skeleton h-4 w-32 rounded" /></td>}
+                      {visibleColumns.code !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
+                      {visibleColumns.contact !== false && <td><div className="skeleton h-4 w-28 rounded" /></td>}
+                      {visibleColumns.location !== false && <td><div className="skeleton h-4 w-36 rounded" /></td>}
+                      {visibleColumns.main !== false && <td><div className="skeleton h-4 w-10 rounded" /></td>}
+                      {visibleColumns.status !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
+                      {visibleColumns.actions !== false && <td><div className="skeleton h-4 w-12 rounded ml-auto" /></td>}
                     </tr>
                   ))
                 : branches.map((b) => (
                     <tr key={b.id} className="group hover:bg-muted/25 transition-colors">
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <Building2 size={16} className="text-primary flex-shrink-0" />
-                          <div>
-                            <span className="font-medium text-foreground text-sm">{b.name}</span>
-                            {b.is_main && (
-                              <span className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-amber-500 font-medium">
-                                <Star size={10} fill="currentColor" /> Main
-                              </span>
-                            )}
+                      {visibleColumns.branch !== false && (
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <Building2 size={16} className="text-primary flex-shrink-0" />
+                            <div>
+                              <span className="font-medium text-foreground text-sm">{b.name}</span>
+                              {b.is_main && (
+                                <span className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-amber-500 font-medium">
+                                  <Star size={10} fill="currentColor" /> Main
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="font-mono text-xs text-muted-foreground">{b.code}</td>
-                      <td>
-                        <div className="text-xs space-y-0.5 text-muted-foreground">
-                          {b.email && <div className="flex items-center gap-1"><Mail size={10} /> {b.email}</div>}
-                          {b.phone && <div className="flex items-center gap-1"><Phone size={10} /> {b.phone}</div>}
-                        </div>
-                      </td>
-                      <td className="text-muted-foreground text-sm">
-                        {b.city ? `${b.city}, ${b.province}` : b.address ?? '—'}
-                      </td>
-                      <td>
-                        {b.is_main ? (
-                          <span className="text-green-500 flex items-center gap-0.5 text-xs font-semibold">
-                            <Check size={14} /> Yes
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">No</span>
-                        )}
-                      </td>
-                      <td>
-                        <StatusBadge status={b.is_active} />
-                      </td>
-                      <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <TableActionMenu
-                          variant="inline"
-                          onView={() => setViewBranch(b)}
-                          onEdit={() => openEditModal(b)}
-                          onDelete={() => {
-                            if (confirm('Are you sure you want to delete this branch?')) deleteMutation.mutate(b.id)
-                          }}
-                        />
-                      </td>
+                        </td>
+                      )}
+                      {visibleColumns.code !== false && (
+                        <td className="font-mono text-xs text-muted-foreground">{b.code}</td>
+                      )}
+                      {visibleColumns.contact !== false && (
+                        <td>
+                          <div className="text-xs space-y-0.5 text-muted-foreground">
+                            {b.email && <div className="flex items-center gap-1"><Mail size={10} /> {b.email}</div>}
+                            {b.phone && <div className="flex items-center gap-1"><Phone size={10} /> {b.phone}</div>}
+                          </div>
+                        </td>
+                      )}
+                      {visibleColumns.location !== false && (
+                        <td className="text-muted-foreground text-sm">
+                          {b.city ? `${b.city}, ${b.province}` : b.address ?? '—'}
+                        </td>
+                      )}
+                      {visibleColumns.main !== false && (
+                        <td>
+                          {b.is_main ? (
+                            <span className="text-green-500 flex items-center gap-0.5 text-xs font-semibold">
+                              <Check size={14} /> Yes
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No</span>
+                          )}
+                        </td>
+                      )}
+                      {visibleColumns.status !== false && (
+                        <td>
+                          <StatusBadge status={b.is_active} />
+                        </td>
+                      )}
+                      {visibleColumns.actions !== false && (
+                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <TableActionMenu
+                            variant="inline"
+                            onView={() => setViewBranch(b)}
+                            onEdit={() => openEditModal(b)}
+                            onDelete={() => {
+                              if (confirm('Are you sure you want to delete this branch?')) deleteMutation.mutate(b.id)
+                            }}
+                          />
+                        </td>
+                      )}
                     </tr>
-                  ))
-              }
+                  ))}
               {!isLoading && branches.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <Building2 size={40} className="mx-auto mb-3 text-muted-foreground/30" />
-                    <p className="text-muted-foreground">No branches found</p>
-                  </td>
-                </tr>
+                <EmptyState
+                  cols={7}
+                  icon={<Building2 size={24} className="stroke-1.5" />}
+                  title={t('settings.noBranches', 'No Branches Found')}
+                  description={t('settings.noBranchesDesc', 'Register branch locations to organize sales points and inventory distribution.')}
+                  actionLabel={t('settings.addBranch', 'Add Branch')}
+                  onAction={openCreateModal}
+                />
               )}
             </tbody>
           </table>
       </TableWrapper>
       </div>
 
-      {/* Modal Dialog */}
-      <AnimatePresence>
-        {modalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border rounded-xl w-full max-w-lg overflow-hidden shadow-2xl"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <h3 className="font-semibold text-lg text-foreground">
-                  {editingBranch ? 'Edit Branch' : 'Add Branch'}
-                </h3>
-                <button onClick={closeModal} className="text-muted-foreground hover:text-foreground">
-                  <X size={18} />
-                </button>
-              </div>
+      {/* Branch Create/Edit Modal */}
+      <EnterpriseModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={editingBranch ? t('settings.editBranch', 'Edit Branch') : t('settings.addBranch', 'Add Branch')}
+        subtitle={
+          editingBranch
+            ? t('settings.editBranchDesc', 'Update branch location and contact details')
+            : t('settings.addBranchDesc', 'Create a new branch location for your business')
+        }
+        icon={<Building2 size={20} />}
+        iconVariant="blue"
+        size="lg"
+        footer={
+          <ModalFooter
+            onCancel={closeModal}
+            isSubmitting={createMutation.isPending || updateMutation.isPending}
+            isEdit={Boolean(editingBranch)}
+            submitLabel={editingBranch ? t('common.saveChanges', 'Save Changes') : t('common.create', 'Save')}
+            onSubmit={handleSubmit}
+          />
+        }
+      >
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.branchCode', 'Branch Code')} <span className="text-rose-500 font-bold">*</span>
+              </label>
+              <input
+                id="code"
+                name="code"
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value)
+                  handleClearError('code')
+                }}
+                placeholder="BR001"
+                className={getFieldClass(
+                  formErrors.code,
+                  'w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium'
+                )}
+              />
+              <FieldError error={formErrors.code} />
+            </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">
-                      Code <span className="text-rose-500 font-bold">*</span>
-                    </label>
-                    <input
-                      id="code"
-                      name="code"
-                      value={code}
-                      onChange={(e) => {
-                        setCode(e.target.value)
-                        handleClearError('code')
-                      }}
-                      placeholder="BR001"
-                      className={getFieldClass(formErrors.code, 'form-input w-full')}
-                    />
-                    <FieldError error={formErrors.code} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">
-                      Name <span className="text-rose-500 font-bold">*</span>
-                    </label>
-                    <input
-                      id="name"
-                      name="name"
-                      value={name}
-                      onChange={(e) => {
-                        setName(e.target.value)
-                        handleClearError('name')
-                      }}
-                      placeholder="Branch Name"
-                      className={getFieldClass(formErrors.name, 'form-input w-full')}
-                    />
-                    <FieldError error={formErrors.name} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="branch@company.com"
-                      className="form-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Phone</label>
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/[^\d+ -]/g, ''))}
-                      placeholder="012 345 678"
-                      className="form-input font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1">Address</label>
-                  <textarea
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Physical address"
-                    rows={2}
-                    className="form-input resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">City</label>
-                    <input
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="City"
-                      className="form-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Province</label>
-                    <input
-                      value={province}
-                      onChange={(e) => setProvince(e.target.value)}
-                      placeholder="Province"
-                      className="form-input"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-muted-foreground mb-1">Postal Code</label>
-                    <input
-                      value={postalCode}
-                      onChange={(e) => setPostalCode(e.target.value)}
-                      placeholder="Postal Code"
-                      className="form-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-border pt-4 mt-2">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="isMain"
-                      checked={isMain}
-                      onChange={(e) => setIsMain(e.target.checked)}
-                      className="w-4 h-4 rounded border-border"
-                    />
-                    <label htmlFor="isMain" className="text-sm font-medium text-muted-foreground cursor-pointer">
-                      Mark as Main Branch
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground">Active Status</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsActive(!isActive)}
-                      className="text-primary hover:opacity-80 transition-opacity"
-                    >
-                      {isActive ? <ToggleRight size={32} /> : <ToggleLeft size={32} className="text-muted-foreground" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-primary rounded-lg hover:opacity-90 shadow-sm flex items-center gap-1.5"
-                  >
-                    {(createMutation.isPending || updateMutation.isPending) && <Loader2 size={14} className="animate-spin" />}
-                    {editingBranch ? 'Save Changes' : 'Create'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.branchName', 'Branch Name')} <span className="text-rose-500 font-bold">*</span>
+              </label>
+              <input
+                id="name"
+                name="name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  handleClearError('name')
+                }}
+                placeholder={t('settings.branchNamePlaceholder', 'Branch Name')}
+                className={getFieldClass(
+                  formErrors.name,
+                  'w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium'
+                )}
+              />
+              <FieldError error={formErrors.name} />
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.email', 'Email')}
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="branch@company.com"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.phone', 'Phone')}
+              </label>
+              <input
+                type="tel"
+                inputMode="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/[^\d+ -]/g, ''))}
+                placeholder="012 345 678"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-medium"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('settings.address', 'Address')}
+            </label>
+            <textarea
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={t('settings.addressPlaceholder', 'Physical address')}
+              rows={2}
+              className="w-full min-h-[64px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/70 dark:placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.city', 'City')}
+              </label>
+              <input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="City"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.province', 'Province')}
+              </label>
+              <input
+                value={province}
+                onChange={(e) => setProvince(e.target.value)}
+                placeholder="Province"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('settings.postalCode', 'Postal Code')}
+              </label>
+              <input
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                placeholder="Postal Code"
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          {/* Main Branch Option Card */}
+          <div className="p-3.5 sm:p-4 bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5 pr-2">
+              <label htmlFor="isMainBranch" className="text-xs sm:text-[13px] font-bold text-foreground dark:text-slate-100 cursor-pointer select-none block">
+                {t('settings.mainBranch', 'Mark as Main Branch')}
+              </label>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                {t('settings.mainBranchDesc', 'Designate this location as the central business headquarters')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isMainBranch"
+              checked={isMain}
+              onChange={(e) => setIsMain(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded border-border focus:ring-primary cursor-pointer"
+            />
+          </div>
+
+          {/* Status Card */}
+          <div className="p-3.5 sm:p-4 bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5 pr-2">
+              <label htmlFor="isBranchActive" className="text-xs sm:text-[13px] font-bold text-foreground dark:text-slate-100 cursor-pointer select-none block">
+                {t('settings.branchActiveStatus', 'Active Branch Status')}
+              </label>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                {t('settings.branchActiveStatusDesc', 'Active branches are visible across POS registers and order routes')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isBranchActive"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded border-border focus:ring-primary cursor-pointer"
+            />
+          </div>
+        </form>
+      </EnterpriseModal>
 
       {/* Detail Drawer */}
       <AnimatePresence>

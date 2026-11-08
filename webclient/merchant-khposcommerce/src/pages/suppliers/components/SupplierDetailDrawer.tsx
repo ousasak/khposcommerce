@@ -10,19 +10,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { getAbsoluteImageUrl } from '@/utils/image'
 import { supplierService } from '@/services/supplierService'
-import { 
-  StatusBadge, 
-  DetailDrawer, 
-  DetailDrawerHeader, 
-  DetailDrawerTabNav, 
-  DetailDrawerBody, 
-  DetailDrawerFooter,
-  DetailDrawerCard,
-  DetailDrawerRow,
-  ActionButton,
-  CancelButton,
-  SupplierLogo,
-} from '@/components/common'
+import { StatusBadge, DetailDrawer, DetailDrawerHeader, DetailDrawerTabNav, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, ActionButton, CancelButton, SupplierLogo } from '@/components/common'
 import type { Supplier } from '../types/supplier.types'
 
 interface SupplierDetailDrawerProps {

@@ -18,8 +18,7 @@ import SalesReportPage from './SalesReportPage'
 import PurchaseReportPage from './PurchaseReportPage'
 import InventoryReportPage from './InventoryReportPage'
 import { EnterpriseDatePicker, HeaderActionsGroup, ExportButton } from '@/components/common'
-import Breadcrumb from '@/components/common/Breadcrumb'
-
+import { Breadcrumb } from '@/components/common'
 interface ReportFilters {
   date_from: string
   date_to:   string

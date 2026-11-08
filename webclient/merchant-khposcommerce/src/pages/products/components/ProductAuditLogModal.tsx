@@ -3,8 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { History, FileText, User } from 'lucide-react'
-import { ModalHeader } from '@/components/common/ModalHeader'
-
+import { ModalHeader } from '@/components/common'
 interface ProductAuditLogModalProps {
   isOpen: boolean
   onClose: () => void
@@ -45,7 +44,7 @@ export const ProductAuditLogModal: React.FC<ProductAuditLogModalProps> = ({
           {/* Content */}
           <div className="p-5 overflow-y-auto space-y-3 flex-1 text-xs">
             {isLoading ? (
-              <div className="py-8 text-center text-muted-foreground">Loading audit logs...</div>
+              <div className="py-8 text-center text-muted-foreground">{t('products.loadingAuditLogs', 'Loading audit logs...')}</div>
             ) : auditLogs.length === 0 ? (
               <div className="py-8 text-center text-muted-foreground">
                 <History size={28} className="mx-auto mb-2 opacity-40" />

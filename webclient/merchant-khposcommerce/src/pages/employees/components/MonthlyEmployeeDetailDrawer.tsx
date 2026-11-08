@@ -2,13 +2,7 @@ import React, { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { employeeService } from '@/services/employeeService'
-import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerBody,
-  DetailDrawerFooter,
-  EmptyState,
-} from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, EmptyState } from '@/components/common'
 import { EmployeeAvatar } from './EmployeeAvatar'
 
 const KM_MONTHS = [

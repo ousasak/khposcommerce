@@ -54,6 +54,8 @@ build/
 # Build outputs & caches
 dist/
 **/dist/
+.next/
+**/.next/
 *.tsbuildinfo
 .phpunit.result.cache
 .vite/

@@ -190,6 +190,54 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ salesData, cha
     { id: 'branches', label: t('dashboard.salesByBranch', 'Sales by Branch'), icon: <Building2 className="w-4 h-4" /> },
   ] as const
 
+  if (isLoading) {
+    return (
+      <div className="bg-card border border-border/80 rounded-3xl p-4 sm:p-5 md:p-6 shadow-2xs flex flex-col justify-between space-y-4 animate-pulse">
+        {/* Header & Tabs Skeleton */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 border-b border-border/40 pb-4">
+          <div className="flex items-center gap-2 p-1 bg-muted/40 rounded-2xl overflow-x-auto no-scrollbar">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-8 w-24 bg-muted rounded-xl shrink-0" />
+            ))}
+          </div>
+
+          <div className="flex items-center gap-4 bg-muted/30 px-3.5 py-1.5 rounded-2xl border border-border/40 shrink-0">
+            <div className="space-y-1">
+              <div className="h-2.5 w-16 bg-muted rounded" />
+              <div className="h-4 w-20 bg-muted rounded" />
+            </div>
+            <div className="w-px h-6 bg-border/50" />
+            <div className="space-y-1">
+              <div className="h-2.5 w-16 bg-muted rounded" />
+              <div className="h-4 w-24 bg-muted rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Chart Canvas Skeleton */}
+        <div className="h-64 sm:h-80 md:h-96 w-full flex flex-col justify-between py-2">
+          {/* Grid lines and pulsing bars */}
+          <div className="flex-1 flex items-end justify-between gap-2.5 sm:gap-5 px-3 sm:px-4 pb-4 border-b border-border/40">
+            {[35, 65, 45, 80, 55, 90, 70, 85].map((pct, idx) => (
+              <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                <div
+                  className="w-full max-w-[48px] bg-gradient-to-t from-primary/20 via-primary/10 to-transparent rounded-t-xl"
+                  style={{ height: `${pct}%` }}
+                />
+              </div>
+            ))}
+          </div>
+          {/* X Axis ticks */}
+          <div className="flex items-center justify-between px-3 sm:px-4 pt-3">
+            {Array.from({ length: 7 }).map((_, idx) => (
+              <div key={idx} className="h-2.5 w-8 sm:w-10 bg-muted/70 rounded" />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-card border border-border/80 rounded-3xl p-4 sm:p-5 md:p-6 shadow-2xs flex flex-col justify-between space-y-4">
       {/* Header & Tabs */}

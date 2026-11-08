@@ -10,8 +10,7 @@ import { useThemeStore } from '@/stores/themeStore'
 import api from '@/api/client'
 import SwitchAccountModal from './SwitchAccountModal'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import UserAvatar from '@/components/common/UserAvatar'
-
+import { UserAvatar } from '@/components/common'
 interface LanguageOption {
   code: 'km' | 'en'
   name: string

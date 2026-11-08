@@ -1,16 +1,24 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Calendar, Repeat, Loader2, CalendarDays } from 'lucide-react'
+import {
+  Calendar,
+  CalendarDays,
+  Repeat,
+  Loader2,
+  Sparkles,
+  Plus,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Info,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { employeeService } from '@/services/employeeService'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'
 import { GlobalFormat } from '@/utils/formatters'
 import {
-  TableToolbar,
-  TableActionMenu,
-  StatusBadge,
-  EmptyState,
   EnterpriseModal,
   ModalFooter,
   FormField,
@@ -19,18 +27,47 @@ import {
   EnterpriseDatePicker,
   ToggleSwitch,
 } from '@/components/common'
-import TableWrapper from '@/components/shared/TableWrapper'
-import Pagination from '@/components/shared/Pagination'
-import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { usePermission } from '@/hooks/usePermission'
-import type { ColumnOption } from '@/components/shared/ColumnSettingsPopover'
 import type { HolidayItem } from '../types/employee.types'
 
 interface HolidaysTabProps {
   createModalOpen?: boolean
   setCreateModalOpen?: (open: boolean) => void
 }
+
+const KHMER_MONTH_NAMES_SHORT = [
+  'មករា',
+  'កុម្ភៈ',
+  'មីនា',
+  'មេសា',
+  'ឧសភា',
+  'មិថុនា',
+  'កក្កដា',
+  'សីហា',
+  'កញ្ញា',
+  'តុលា',
+  'វិច្ឆិកា',
+  'ធ្នូ',
+]
+
+const EN_MONTH_NAMES_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+const WEEKDAY_NAMES_KM = ['ច័ន្ទ', 'អង្គារ', 'ពុធ', 'ព្រហស្បតិ៍', 'សុក្រ', 'សៅរ៍', 'អាទិត្យ']
+const WEEKDAY_NAMES_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export const HolidaysTab: React.FC<HolidaysTabProps> = ({
   createModalOpen: propModalOpen,
@@ -46,30 +83,10 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
   const canUpdateHoliday = hasPermission('holiday.update')
   const canDeleteHoliday = hasPermission('holiday.delete')
 
-  // Pagination & Filtering
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(10)
+  // Core Calendar Navigation States
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear())
+  const [calendarMonth, setCalendarMonth] = useState<number>(() => new Date().getMonth())
   const [search, setSearch] = useState('')
-  const [selectedRows, setSelectedRows] = useState<(number | string)[]>([])
-
-  // Column Visibility State
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
-    title: true,
-    date: true,
-    day: true,
-    is_recurring: true,
-    description: true,
-    status: true,
-  })
-
-  const columnOptions: ColumnOption[] = useMemo(() => [
-    { key: 'title', label: t('employees.holiday_title', 'Title') },
-    { key: 'date', label: t('employees.holiday_date', 'Date') },
-    { key: 'day', label: t('employees.holiday_day', 'Day') },
-    { key: 'is_recurring', label: t('employees.holiday_recurring', 'Recurring Yearly') },
-    { key: 'description', label: t('employees.holiday_description', 'Description') },
-    { key: 'status', label: t('employees.holiday_status', 'Status') },
-  ], [t])
 
   // Modal states
   const [internalModalOpen, setInternalModalOpen] = useState(false)
@@ -83,7 +100,6 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
 
   const [editingItem, setEditingItem] = useState<HolidayItem | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<HolidayItem | null>(null)
-  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
 
   // Form inputs
   const [formTitleEn, setFormTitleEn] = useState('')
@@ -93,36 +109,123 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
   const [formStatus, setFormStatus] = useState<'active' | 'inactive'>('active')
   const [formRecurring, setFormRecurring] = useState(true)
 
-  const statusOptions = useMemo(
-    () => [
-      { value: 'active', label: t('employees.active_holidays', 'Active') },
-      { value: 'inactive', label: t('employees.inactive_holidays', 'Inactive') },
-    ],
-    [t]
-  )
-
-  // Current active year for HR operations
-  const currentYear = useMemo(() => new Date().getFullYear(), [])
-
-  // Fetch holidays for current year
+  // Fetch holidays for selected year
   const { data: holidaysResponse, isLoading, isFetching } = useQuery({
-    queryKey: ['holidays', page, perPage, search, currentYear],
+    queryKey: ['holidays', selectedYear],
     queryFn: () =>
       employeeService.holidays({
-        page,
-        per_page: perPage,
-        search,
-        year: currentYear,
+        page: 1,
+        per_page: 200,
+        year: selectedYear,
       }),
     staleTime: 30_000,
   })
 
-  const records: HolidayItem[] = useMemo(() => {
+  const rawRecords: HolidayItem[] = useMemo(() => {
     return holidaysResponse?.data || []
   }, [holidaysResponse])
 
-  const totalRecords = holidaysResponse?.total || 0
-  const totalPages = Math.ceil(totalRecords / perPage) || 1
+  // Sort chronologically by date
+  const sortedRecords = useMemo(() => {
+    return [...rawRecords].sort((a, b) => {
+      const da = new Date(a.date).getTime()
+      const db = new Date(b.date).getTime()
+      return da - db
+    })
+  }, [rawRecords])
+
+  // Month counts for clean month pills
+  const monthCounts = useMemo(() => {
+    const counts: Record<number, number> = {}
+    for (let m = 0; m < 12; m++) counts[m] = 0
+    sortedRecords.forEach((item) => {
+      const m = new Date(item.date).getMonth()
+      if (counts[m] !== undefined) counts[m]++
+    })
+    return counts
+  }, [sortedRecords])
+
+  // Filtered by search if active
+  const filteredRecords = useMemo(() => {
+    if (!search.trim()) return sortedRecords
+    const q = search.trim().toLowerCase()
+    return sortedRecords.filter((item) => {
+      const titleEn = (item.title_en || '').toLowerCase()
+      const titleKm = (item.title_km || '').toLowerCase()
+      const desc = (item.description || '').toLowerCase()
+      return titleEn.includes(q) || titleKm.includes(q) || desc.includes(q)
+    })
+  }, [sortedRecords, search])
+
+  // Calendar View Matrix Generation
+  const calendarDays = useMemo(() => {
+    const year = selectedYear
+    const month = calendarMonth
+    const firstDayOfMonth = new Date(year, month, 1)
+    const lastDayOfMonth = new Date(year, month + 1, 0)
+    const daysInMonth = lastDayOfMonth.getDate()
+
+    let startDayOfWeek = firstDayOfMonth.getDay()
+    startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1
+
+    const days: {
+      dayNumber: number
+      dateString: string
+      isCurrentMonth: boolean
+      isWeekend: boolean
+      holidays: HolidayItem[]
+    }[] = []
+
+    // Previous month padding
+    const prevMonthLastDay = new Date(year, month, 0).getDate()
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const d = prevMonthLastDay - i
+      const prevDate = new Date(year, month - 1, d)
+      const ds = prevDate.toISOString().split('T')[0]
+      const dayOfWeek = prevDate.getDay()
+      days.push({
+        dayNumber: d,
+        dateString: ds,
+        isCurrentMonth: false,
+        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+        holidays: filteredRecords.filter((h) => String(h.date).startsWith(ds)),
+      })
+    }
+
+    // Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const curDate = new Date(year, month, d)
+      const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      const dayOfWeek = curDate.getDay()
+      days.push({
+        dayNumber: d,
+        dateString: ds,
+        isCurrentMonth: true,
+        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+        holidays: filteredRecords.filter((h) => String(h.date).startsWith(ds)),
+      })
+    }
+
+    // Next month padding to complete grid
+    const remaining = (7 - (days.length % 7)) % 7
+    for (let d = 1; d <= remaining; d++) {
+      const nextDate = new Date(year, month + 1, d)
+      const ds = nextDate.toISOString().split('T')[0]
+      const dayOfWeek = nextDate.getDay()
+      days.push({
+        dayNumber: d,
+        dateString: ds,
+        isCurrentMonth: false,
+        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+        holidays: filteredRecords.filter((h) => String(h.date).startsWith(ds)),
+      })
+    }
+
+    return days
+  }, [selectedYear, calendarMonth, filteredRecords])
+
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const currentMonthHolidayCount = monthCounts[calendarMonth] || 0
 
   // Mutations
   const createMutation = useMutation({
@@ -171,33 +274,16 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
     },
   })
 
-  const bulkDeleteMutation = useMutation({
-    mutationFn: (ids: (number | string)[]) => employeeService.bulkDeleteHolidays(ids),
-    onSuccess: (res: any) => {
-      sound.playDelete()
-      const count = res?.data?.deleted_count ?? selectedRows.length
-      toast.success(t('employees.holiday_deleted_success', `${count} holidays deleted successfully`))
-      setSelectedRows([])
-      setBulkDeleteConfirmOpen(false)
-      qc.invalidateQueries({ queryKey: ['holidays'] })
-    },
-    onError: (err: any) => {
-      sound.playError()
-      const msg = err?.response?.data?.message || t('common.error_occurred', 'Failed to delete selected holidays')
-      toast.error(msg)
-    },
-  })
-
   const syncLiveApiMutation = useMutation({
-    mutationFn: () => employeeService.syncLiveHolidays(currentYear),
+    mutationFn: () => employeeService.syncLiveHolidays(selectedYear),
     onSuccess: (res: any) => {
       sound.playSuccess()
       const count = res?.data?.synced_count ?? 0
       toast.success(
         t('employees.sync_live_success', {
           count,
-          year: currentYear,
-          defaultValue: `Successfully synchronized ${count} public holidays for year ${currentYear}!`,
+          year: selectedYear,
+          defaultValue: `Successfully synchronized ${count} public holidays for year ${selectedYear}!`,
         })
       )
       qc.invalidateQueries({ queryKey: ['holidays'] })
@@ -209,26 +295,16 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
     },
   })
 
-
-  // Sync form inputs when modalOpen changes from outside (e.g. from EmployeesPage header Add button)
-  useEffect(() => {
-    if (modalOpen && !editingItem) {
-      setFormTitleEn('')
-      setFormTitleKm('')
-      setFormDate(new Date().toISOString().split('T')[0])
-      setFormDescription('')
-      setFormStatus('active')
-      setFormRecurring(true)
-    }
-  }, [modalOpen, editingItem])
-
   // Modal helpers
-  const openCreateModal = () => {
+  const openCreateModal = (prefilledDate?: string) => {
     sound.playClick()
     setEditingItem(null)
     setFormTitleEn('')
     setFormTitleKm('')
-    setFormDate(new Date().toISOString().split('T')[0])
+    setFormDate(
+      prefilledDate ||
+        `${selectedYear}-${String(calendarMonth + 1).padStart(2, '0')}-01`
+    )
     setFormDescription('')
     setFormStatus('active')
     setFormRecurring(true)
@@ -240,7 +316,7 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
     setEditingItem(item)
     setFormTitleEn(item.title_en || '')
     setFormTitleKm(item.title_km || '')
-    setFormDate(item.date ? String(item.date).split('T')[0] : new Date().toISOString().split('T')[0])
+    setFormDate(item.date ? String(item.date).split('T')[0] : `${selectedYear}-01-01`)
     setFormDescription(item.description || '')
     setFormStatus(item.status || 'active')
     setFormRecurring(Boolean(item.is_recurring))
@@ -285,279 +361,374 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
     }
   }
 
-  // Multi-select helpers
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedRows(records.map((r) => r.id))
-    } else {
-      setSelectedRows([])
-    }
-  }
-
-  const handleSelectRow = (id: number | string) => {
-    setSelectedRows((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    )
-  }
-
-  const handleBulkDelete = () => {
-    bulkDeleteMutation.mutate(selectedRows)
-  }
+  const isCurrentRealMonth =
+    calendarMonth === new Date().getMonth() && selectedYear === new Date().getFullYear()
 
   return (
-    <div className="space-y-4">
-      {/* ─── Global Standard Table Toolbar ─── */}
-      <TableToolbar
-        search={search}
-        onSearchChange={(val) => {
-          setSearch(val)
-          setPage(1)
-        }}
-        searchPlaceholder={t('employees.search_holiday_placeholder', 'Search holiday title, description...')}
-        onReset={() => {
-          sound.playClick()
-          setSearch('')
-          setPage(1)
-        }}
-        hideResetButton={!search}
-        onRefresh={() => {
-          sound.playClick()
-          qc.invalidateQueries({ queryKey: ['holidays'] })
-        }}
-        refreshLoading={isFetching || isLoading}
-        columns={columnOptions}
-        visibleColumns={visibleColumns}
-        onColumnChange={setVisibleColumns}
-        columnSettingsTitle={t('employees.columns_visibility', 'Column Visibility')}
-        rightActions={
+    <div className="space-y-3.5 print:hidden">
+      {/* ─── 1. INTEGRATED YEAR & MONTH FILTER BAR (Harmonious & Frictionless) ─── */}
+      <div className="flex items-center gap-2 py-0.5 overflow-x-auto no-scrollbar">
+        {/* Year Stepper Pill */}
+        <div className="flex items-center rounded-xl border border-border/80 bg-card p-0.5 shadow-2xs h-9 shrink-0">
           <button
             type="button"
-            onClick={() => syncLiveApiMutation.mutate()}
-            disabled={syncLiveApiMutation.isPending}
-            className="group h-10 min-h-[40px] px-3.5 rounded-xl border border-border/80 bg-background hover:bg-muted text-xs sm:text-[13px] font-medium text-foreground hover:text-foreground flex items-center gap-2 transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] shadow-xs hover:shadow shrink-0 whitespace-nowrap"
-            title={t('employees.sync_current_year_holidays_tooltip', {
-              year: currentYear,
-              defaultValue: `Fetch official Cambodian public holidays for ${currentYear}`,
-            })}
+            onClick={() => {
+              sound.playClick()
+              setSelectedYear((y) => y - 1)
+            }}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            title={isKhmer ? 'ឆ្នាំមុន' : 'Previous Year'}
           >
-            {syncLiveApiMutation.isPending ? (
-              <Loader2 size={14} className="animate-spin text-primary shrink-0" />
-            ) : (
-              <CalendarDays size={14} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-            )}
-            <span className="hidden sm:inline">
-              {t('employees.sync_current_year_holidays', {
-                year: currentYear,
-                defaultValue: `Sync Public Holidays (${currentYear})`,
-              })}
-            </span>
+            <ChevronLeft size={14} />
           </button>
-        }
-      />
+          <div className="px-2 text-xs sm:text-[13px] font-bold text-foreground select-none flex items-center gap-1.5">
+            <Calendar size={13} className="text-indigo-600 dark:text-indigo-400" />
+            <span>{selectedYear}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              sound.playClick()
+              setSelectedYear((y) => y + 1)
+            }}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            title={isKhmer ? 'ឆ្នាំបន្ទាប់' : 'Next Year'}
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
 
-      {/* ─── Bulk actions banner ─── */}
-      {canDeleteHoliday && (
-        <BulkSelectionBanner
-          selectedCount={selectedRows.length}
-          onDelete={() => setBulkDeleteConfirmOpen(true)}
-          onClear={() => setSelectedRows([])}
-          deleteLabel={t('employees.deleteSelected', 'Delete Selected')}
-          deleteLoading={bulkDeleteMutation.isPending}
-        />
-      )}
+        <div className="h-5 w-px bg-border/80 shrink-0 mx-0.5" />
 
-      {/* ─── Main Content: Global Standard Table ─── */}
-      <TableWrapper isFetching={isLoading || isFetching}>
-        <table className="w-full data-table">
-          <thead>
-            <tr>
-              <th className="w-8 !px-3">
-                <input
-                  type="checkbox"
-                  checked={records.length > 0 && selectedRows.length === records.length}
-                  onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="checkbox"
-                />
-              </th>
-              {visibleColumns.title && (
-                <th className="py-3.5 px-4 font-bold min-w-[200px]">
-                  {t('employees.holiday_title', 'Title')}
-                </th>
-              )}
-              {visibleColumns.date && (
-                <th className="py-3.5 px-4 font-bold min-w-[130px]">
-                  {t('employees.holiday_date', 'Date')}
-                </th>
-              )}
-              {visibleColumns.day && (
-                <th className="py-3.5 px-4 font-bold min-w-[110px]">
-                  {t('employees.holiday_day', 'Day')}
-                </th>
-              )}
-              {visibleColumns.is_recurring && (
-                <th className="py-3.5 px-4 font-bold min-w-[120px] text-center">
-                  {t('employees.holiday_recurring', 'Recurring Yearly')}
-                </th>
-              )}
-              {visibleColumns.description && (
-                <th className="py-3.5 px-4 font-bold min-w-[220px]">
-                  {t('employees.holiday_description', 'Description')}
-                </th>
-              )}
-              {visibleColumns.status && (
-                <th className="py-3.5 px-4 font-bold min-w-[100px] text-center">
-                  {t('employees.holiday_status', 'Status')}
-                </th>
-              )}
-              <th className="text-right !pr-6">{t('common.actions', 'Actions')}</th>
-            </tr>
-          </thead>
+        {/* Current Month Quick Button */}
+        <button
+          type="button"
+          onClick={() => {
+            sound.playClick()
+            setCalendarMonth(new Date().getMonth())
+            setSelectedYear(new Date().getFullYear())
+          }}
+          className={`h-9 px-3.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            isCurrentRealMonth
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'bg-card text-muted-foreground border border-border/70 hover:bg-muted hover:text-foreground'
+          }`}
+        >
+          <span>{isKhmer ? 'ខែនេះ' : 'Current'}</span>
+          <span
+            className={`text-[11px] px-1.5 py-0.2 rounded-full font-medium ${
+              isCurrentRealMonth
+                ? 'bg-white/20 text-white'
+                : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {sortedRecords.length}
+          </span>
+        </button>
 
-          <tbody className="divide-y divide-border">
-            {records.length === 0 ? (
-              <EmptyState
-                cols={8}
-                icon={<Calendar className="text-muted-foreground/50 stroke-1" size={32} />}
-                title={t('common.noRecordsFound', 'No holidays found')}
-                description={
-                  search
-                    ? t('common.tryDifferentSearch', 'Try searching for a different keyword.')
-                    : t('employees.no_holidays_for_year_desc', {
-                        year: currentYear,
-                        defaultValue: `No public holidays recorded for year ${currentYear} yet. Click below to load public holidays.`,
-                      })
-                }
-                actionLabel={
-                  !search
-                    ? t('employees.sync_current_year_holidays', {
-                        year: currentYear,
-                        defaultValue: `Sync Public Holidays (${currentYear})`,
-                      })
-                    : undefined
-                }
-                onAction={!search ? () => syncLiveApiMutation.mutate() : undefined}
+        {/* 12 Months Buttons */}
+        {KHMER_MONTH_NAMES_SHORT.map((kmName, idx) => {
+          const count = monthCounts[idx] || 0
+          const isSelected = calendarMonth === idx
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                sound.playClick()
+                setCalendarMonth(idx)
+              }}
+              className={`h-9 px-3 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                isSelected
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'bg-card text-muted-foreground border border-border/70 hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              <span>{isKhmer ? kmName : EN_MONTH_NAMES_SHORT[idx]}</span>
+              {count > 0 && (
+                <span
+                  className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isSelected
+                      ? 'bg-white/20 text-white'
+                      : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400'
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* ─── 2. MASTER UNIFIED CALENDAR CARD ─── */}
+      <div className="rounded-2xl border border-border/80 bg-card shadow-xs overflow-hidden">
+        {/* Master Calendar Bar: Sleek, Harmonious, Cohesive */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 border-b border-border/70 bg-card">
+          {/* Left: Stepper + Month Title + Clean Integrated Count Pill */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center rounded-xl border border-border/80 bg-background p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick()
+                  if (calendarMonth === 0) {
+                    setCalendarMonth(11)
+                    setSelectedYear((y) => y - 1)
+                  } else {
+                    setCalendarMonth((m) => m - 1)
+                  }
+                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                title={isKhmer ? 'ខែមុន' : 'Previous Month'}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick()
+                  if (calendarMonth === 11) {
+                    setCalendarMonth(0)
+                    setSelectedYear((y) => y + 1)
+                  } else {
+                    setCalendarMonth((m) => m + 1)
+                  }
+                }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                title={isKhmer ? 'ខែបន្ទាប់' : 'Next Month'}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Month & Year Title */}
+            <h3 className="text-base sm:text-lg font-bold text-foreground select-none">
+              {isKhmer
+                ? `ខែ${KHMER_MONTH_NAMES_SHORT[calendarMonth]}`
+                : EN_MONTH_NAMES_SHORT[calendarMonth]}{' '}
+              {selectedYear}
+            </h3>
+
+            {/* Clean Harmonious Status Pill */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50/80 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/50 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-pulse" />
+              <span>
+                {currentMonthHolidayCount} {isKhmer ? 'ថ្ងៃឈប់សម្រាក' : 'holidays'}
+              </span>
+            </div>
+
+            {!isCurrentRealMonth && (
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick()
+                  setCalendarMonth(new Date().getMonth())
+                  setSelectedYear(new Date().getFullYear())
+                }}
+                className="text-xs px-2.5 py-1 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted text-foreground font-medium transition-colors cursor-pointer"
+              >
+                {isKhmer ? 'ថ្ងៃនេះ' : 'Today'}
+              </button>
+            )}
+          </div>
+
+          {/* Right: Compact Search, Sync Button, Refresh (All h-9 height, perfectly matching) */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Search Input */}
+            <div className="relative w-44 sm:w-56">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
               />
-            ) : (
-              records.map((item) => {
-                const isSelected = selectedRows.includes(item.id)
-                return (
-                  <tr
-                    key={item.id}
-                    className={`hover:bg-muted/30 transition-colors group ${
-                      isSelected ? 'bg-primary/5' : ''
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={isKhmer ? 'ស្វែងរកថ្ងៃបុណ្យ...' : 'Search holiday...'}
+                className="w-full h-9 pl-8.5 pr-7 rounded-xl bg-background border border-border/80 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-2xs"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs p-0.5 cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Sync Public Holidays Button */}
+            <button
+              type="button"
+              onClick={() => syncLiveApiMutation.mutate()}
+              disabled={syncLiveApiMutation.isPending}
+              className="h-9 px-3.5 rounded-xl border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
+              title={t('employees.sync_current_year_holidays_tooltip', {
+                year: selectedYear,
+                defaultValue: `Fetch official Cambodian public holidays for ${selectedYear}`,
+              })}
+            >
+              {syncLiveApiMutation.isPending ? (
+                <Loader2 size={13} className="animate-spin text-indigo-600 shrink-0" />
+              ) : (
+                <CalendarDays size={13} className="text-indigo-600 shrink-0" />
+              )}
+              <span className="hidden sm:inline">
+                {isKhmer ? 'Sync ថ្ងៃបុណ្យជាតិ' : 'Sync Holidays'}
+              </span>
+            </button>
+
+            {/* Refresh */}
+            <button
+              type="button"
+              onClick={() => {
+                sound.playClick()
+                qc.invalidateQueries({ queryKey: ['holidays'] })
+              }}
+              disabled={isFetching}
+              className="h-9 w-9 rounded-xl border border-border/80 bg-background hover:bg-muted text-foreground flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0"
+              title={isKhmer ? 'ផ្ទុកឡើងវិញ' : 'Refresh'}
+            >
+              <RefreshCw
+                size={14}
+                className={isFetching ? 'animate-spin text-indigo-600' : 'text-muted-foreground'}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Empty Year Notice */}
+        {sortedRecords.length === 0 && !isLoading && (
+          <div className="p-3 mx-4 my-3 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300">
+              <Info size={15} className="shrink-0 text-amber-600" />
+              <span>
+                {isKhmer
+                  ? `មិនទាន់មានទិន្នន័យថ្ងៃឈប់សម្រាកសម្រាប់ឆ្នាំ ${selectedYear} ទេ។ ចុចទាញយកដើម្បីបញ្ចូលថ្ងៃបុណ្យជាតិកម្ពុជា។`
+                  : `No holidays found for ${selectedYear}. Click sync to load public holidays.`}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => syncLiveApiMutation.mutate()}
+              disabled={syncLiveApiMutation.isPending}
+              className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-2xs"
+            >
+              <Sparkles size={12} />
+              <span>{isKhmer ? 'ទាញយកថ្ងៃបុណ្យឥឡូវនេះ' : 'Sync Holidays'}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Weekday Header Row */}
+        <div className="grid grid-cols-7 border-b border-border/70 bg-muted/20 text-center">
+          {(isKhmer ? WEEKDAY_NAMES_KM : WEEKDAY_NAMES_EN).map((dayName, idx) => {
+            const isWeekend = idx >= 5
+            return (
+              <div
+                key={dayName}
+                className={`py-2.5 text-xs font-bold border-r last:border-r-0 border-border/50 ${
+                  isWeekend
+                    ? 'text-amber-600 dark:text-amber-400 bg-amber-500/5'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                {dayName}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Calendar Days Matrix */}
+        <div className="grid grid-cols-7 divide-x divide-y divide-border/60">
+          {calendarDays.map((cd, idx) => {
+            const isToday = cd.dateString === todayStr
+            const hasHolidays = cd.holidays.length > 0
+
+            return (
+              <div
+                key={idx}
+                className={`min-h-[110px] sm:min-h-[130px] p-2 sm:p-2.5 flex flex-col justify-between transition-colors group relative ${
+                  cd.isCurrentMonth
+                    ? isToday
+                      ? 'bg-amber-50/20 dark:bg-amber-950/15'
+                      : cd.isWeekend
+                      ? 'bg-muted/10'
+                      : 'bg-background hover:bg-muted/10'
+                    : 'bg-muted/25 opacity-35'
+                }`}
+              >
+                {/* Cell Top: Day Number + Add Button */}
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                      isToday
+                        ? 'bg-amber-500 text-white shadow-xs'
+                        : hasHolidays
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : cd.isWeekend
+                        ? 'text-amber-600 dark:text-amber-400 font-bold'
+                        : 'text-foreground'
                     }`}
                   >
-                    {/* Checkbox */}
-                    <td className="w-8 !px-3" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => handleSelectRow(item.id)}
-                        className="checkbox"
-                      />
-                    </td>
+                    {cd.dayNumber}
+                  </span>
 
-                    {/* Title */}
-                    {visibleColumns.title && (
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-foreground text-xs sm:text-sm">
-                          {item.title_km || item.title_en}
+                  {cd.isCurrentMonth && canCreateHoliday && (
+                    <button
+                      type="button"
+                      onClick={() => openCreateModal(cd.dateString)}
+                      className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded-md bg-muted hover:bg-indigo-600 hover:text-white flex items-center justify-center text-muted-foreground transition-all text-xs cursor-pointer"
+                      title={isKhmer ? 'បន្ថែមថ្ងៃបុណ្យចំថ្ងៃនេះ' : 'Add holiday on this date'}
+                    >
+                      <Plus size={12} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Holiday Event Badges (Soft Pastel Modern Badges) */}
+                <div className="space-y-1.5 my-1.5 overflow-y-auto max-h-[80px] no-scrollbar">
+                  {cd.holidays.map((h) => (
+                    <div
+                      key={h.id}
+                      onClick={() => openEditModal(h)}
+                      className="p-1.5 rounded-lg text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 cursor-pointer transition-all flex flex-col gap-0.5 shadow-2xs"
+                      title={`${h.title_km || h.title_en} (${GlobalFormat.displayDate(h.date)})`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1 truncate">
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400 shrink-0" />
+                          <span className="truncate">{h.title_km || h.title_en}</span>
                         </div>
-                        {item.title_en && item.title_en !== item.title_km && (
-                          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 font-normal">
-                            <span className="text-[10px] font-semibold text-primary/70 tracking-wider">EN:</span>
-                            <span>{item.title_en}</span>
-                          </div>
+                        {h.is_recurring && (
+                          <Repeat size={9} className="shrink-0 text-indigo-500 opacity-70" />
                         )}
-                      </td>
-                    )}
-
-                    {/* Date */}
-                    {visibleColumns.date && (
-                      <td className="py-3 px-4 text-xs font-semibold text-foreground whitespace-nowrap">
-                        {GlobalFormat.displayDate(item.date)}
-                      </td>
-                    )}
-
-                    {/* Day Name */}
-                    {visibleColumns.day && (
-                      <td className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
-                        {GlobalFormat.dayOfWeek(item.date)}
-                      </td>
-                    )}
-
-                    {/* Recurring Yearly */}
-                    {visibleColumns.is_recurring && (
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        {item.is_recurring ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40">
-                            <Repeat size={12} className="stroke-[2.5]" />
-                            {t('employees.recurring_yearly', 'Yearly')}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-muted/60 text-muted-foreground border border-border/60">
-                            {t('employees.one_time', 'One-time')}
-                          </span>
-                        )}
-                      </td>
-                    )}
-
-                    {/* Description */}
-                    {visibleColumns.description && (
-                      <td className="py-3 px-4 text-xs text-muted-foreground max-w-xs truncate">
-                        {item.description || '—'}
-                      </td>
-                    )}
-
-                    {/* Status */}
-                    {visibleColumns.status && (
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <StatusBadge status={item.status || 'active'} />
-                      </td>
-                    )}
-
-                    {/* Actions: Global TableActionMenu */}
-                    <td className="py-3 px-4 text-right whitespace-nowrap print:hidden !pr-6" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end">
-                        <TableActionMenu
-                          variant="inline"
-                          buttonSize="sm"
-                          align="right"
-                          onEdit={canUpdateHoliday ? () => openEditModal(item) : undefined}
-                          editLabel={t('common.edit', 'Edit')}
-                          onDelete={canDeleteHoliday ? () => {
-                            sound.playDelete()
-                            setDeleteTarget(item)
-                          } : undefined}
-                          deleteLabel={t('common.delete', 'Delete')}
-                        />
                       </div>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </TableWrapper>
 
-      {/* ─── Standard Pagination ─── */}
-      {totalRecords > 0 && (
-        <Pagination
-          currentPage={page}
-          lastPage={totalPages}
-          total={totalRecords}
-          perPage={perPage}
-          onPageChange={setPage}
-          onPerPageChange={(newPerPage) => {
-            sound.playClick()
-            setPerPage(newPerPage)
-            setPage(1)
-          }}
-        />
-      )}
+                      {h.title_en && h.title_en !== h.title_km && (
+                        <span className="text-[9px] text-muted-foreground truncate font-normal leading-none pl-2.5">
+                          {h.title_en}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
 
-      {/* ─── ADD / EDIT HOLIDAY MODAL (Enterprise Standard) ─── */}
+                {/* Cell Footer note */}
+                <div className="text-[10px] text-muted-foreground/60 text-right">
+                  {cd.holidays.length > 1 && (
+                    <span>{cd.holidays.length} {isKhmer ? 'បុណ្យ' : 'events'}</span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ─── ADD / EDIT HOLIDAY MODAL ─── */}
       <EnterpriseModal
         isOpen={modalOpen}
         onClose={closeModal}
@@ -595,7 +766,6 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
         }
       >
         <form id="holiday-modal-form" onSubmit={handleFormSubmit} className="p-5 sm:p-6 space-y-4">
-          {/* Holiday Title: Khmer (Primary) & English (Secondary) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <FormField
               label={t('employees.holiday_title_km', 'Holiday Title (Khmer)')}
@@ -619,7 +789,6 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
             </FormField>
           </div>
 
-          {/* Date & Status (Native Standard Select) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <FormField
               label={t('employees.holiday_date', 'Date')}
@@ -647,7 +816,6 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
             </FormField>
           </div>
 
-          {/* Description */}
           <FormField
             label={t('employees.holiday_description', 'Description')}
           >
@@ -659,7 +827,6 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
             />
           </FormField>
 
-          {/* Recurring Toggle with Global ToggleSwitch */}
           <div className="flex items-center justify-between p-3.5 rounded-xl border border-border/70 dark:border-slate-800 bg-muted/20 dark:bg-slate-900/40">
             <div className="space-y-0.5">
               <label
@@ -693,7 +860,7 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
         itemName={deleteTarget?.title_km || deleteTarget?.title_en || ''}
         message={t('employees.delete_holiday_confirm', {
           title: deleteTarget?.title_km || deleteTarget?.title_en || '',
-          defaultValue: `Are you sure you want to delete holiday «${deleteTarget?.title_km || deleteTarget?.title_en}»?`
+          defaultValue: `Are you sure you want to delete holiday «${deleteTarget?.title_km || deleteTarget?.title_en}»?`,
         })}
         confirmText={t('common.delete', 'Delete')}
         confirmLabel={t('common.delete', 'Delete')}
@@ -701,26 +868,6 @@ export const HolidaysTab: React.FC<HolidaysTabProps> = ({
         cancelLabel={t('common.cancel', 'Cancel')}
         variant="danger"
         loading={deleteMutation.isPending}
-      />
-
-      {/* ─── BULK DELETE CONFIRM DIALOG ─── */}
-      <ConfirmDialog
-        open={bulkDeleteConfirmOpen}
-        isOpen={bulkDeleteConfirmOpen}
-        onCancel={() => setBulkDeleteConfirmOpen(false)}
-        onClose={() => setBulkDeleteConfirmOpen(false)}
-        onConfirm={handleBulkDelete}
-        title={t('employees.bulkDeleteTitle', 'Delete Selected Holidays')}
-        message={t('employees.confirmBulkDeleteMessage', {
-          count: selectedRows.length,
-          defaultValue: `Are you sure you want to delete ${selectedRows.length} selected holidays?`
-        })}
-        confirmText={t('common.delete', 'Delete')}
-        confirmLabel={t('common.delete', 'Delete')}
-        cancelText={t('common.cancel', 'Cancel')}
-        cancelLabel={t('common.cancel', 'Cancel')}
-        variant="danger"
-        loading={bulkDeleteMutation.isPending}
       />
     </div>
   )

@@ -8,7 +8,7 @@ import {
 import { reportService } from '@/services/reportService'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/useToast'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import { downloadBlob } from '@/utils/export'
 
 import { InventoryFilters, type InventoryFilterState } from './components/inventory/InventoryFilters'

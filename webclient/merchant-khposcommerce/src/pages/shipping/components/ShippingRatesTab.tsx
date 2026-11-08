@@ -1,7 +1,7 @@
 import React from 'react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
+import { EmptyState } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 
 interface ShippingRatesTabProps {

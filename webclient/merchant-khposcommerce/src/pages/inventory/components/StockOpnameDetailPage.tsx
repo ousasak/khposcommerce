@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { inventoryService } from '@/services/inventoryService'
 import { useTranslation } from 'react-i18next'
-import LoadingSpinner from '@/components/common/LoadingSpinner'
-import StatusBadge from '@/components/common/StatusBadge'
+import { LoadingSpinner } from '@/components/common'
+import { StatusBadge } from '@/components/common'
 import { formatShortDate } from '@/utils/formatters'
 
 interface StockOpnameDetailPageProps {

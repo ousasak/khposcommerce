@@ -32,15 +32,7 @@ import { orderService } from '@/services/orderService'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'
 import { useThemeStore } from '@/stores/themeStore'
-import {
-  Breadcrumb,
-  StatusBadge,
-  ProductThumbnail,
-  AvatarImage,
-  LoadingSpinner,
-  FormHeader,
-  FormHeaderButton,
-} from '@/components/common'
+import { Breadcrumb, StatusBadge, ProductThumbnail, AvatarImage, LoadingSpinner, FormHeader, FormHeaderButton } from '@/components/common'
 import { SalesReceiptModal, type Sale } from './components/SalesReceiptModal'
 import { ProcessRefundModal } from './components/ProcessRefundModal'
 import { formatCurrency, GlobalFormat } from '@/utils/formatters'

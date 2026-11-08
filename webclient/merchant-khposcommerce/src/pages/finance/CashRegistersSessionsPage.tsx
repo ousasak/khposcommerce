@@ -6,18 +6,16 @@ import { useToast } from '@/hooks/useToast'
 import { usePermission } from '@/hooks/usePermission'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import {
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-  TableToolbar,
-  ModernSelect,
-  ConfirmModal,
-} from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, ConfirmModal } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import type { RegisterForm } from './types/finance.types'
-import { RegisterFormDrawer, RegisterCloseModal, CashRegistersSessionsTable } from './components'
+import {
+  CashRegistersSessionsFormDrawer,
+  CashRegistersSessionsCloseModal,
+  CashRegistersSessionsTable,
+  CashRegisterSearchBar,
+} from './components'
 
 export const CashRegistersSessionsPage: React.FC = () => {
   const { t } = useTranslation(['finance', 'common', 'nav'])
@@ -239,31 +237,27 @@ export const CashRegistersSessionsPage: React.FC = () => {
         </HeaderActionsGroup>
       </div>
 
-      {/* Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-Style Cash Registers Filter Bar */}
+      <CashRegisterSearchBar
         search={search}
         onSearchChange={(val) => {
           setSearch(val)
           setPage(1)
         }}
-        searchPlaceholder={t('finance.search_registers', 'Search registers...')}
-        filterContent={
-          <ModernSelect
-            value={filterStatus}
-            onChange={(val) => {
-              setFilterStatus(String(val ?? ''))
-              setPage(1)
-            }}
-            options={[
-              { value: '', label: `${t('finance.filter_status', t('common.status', 'Status'))}: ${t('finance.all_status', t('common.all', 'All'))}` },
-              { value: 'open', label: t('finance.status_open', 'Open') },
-              { value: 'closed', label: t('finance.status_closed', 'Closed') },
-            ]}
-            className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-          />
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['cash-registers-tab'] })}
-        refreshLoading={isFetching}
+        statusFilter={filterStatus}
+        onStatusChange={(val) => {
+          setFilterStatus(val)
+          setPage(1)
+        }}
+        onApply={() => {
+          setPage(1)
+          qc.invalidateQueries({ queryKey: ['cash-registers-tab'] })
+        }}
+        onReset={() => {
+          setSearch('')
+          setFilterStatus('')
+          setPage(1)
+        }}
         columns={[
           { key: 'register_title', label: t('finance.register_title', 'Register Title') },
           { key: 'register_opening', label: t('finance.opening_balance', 'Opening Balance') },
@@ -297,7 +291,7 @@ export const CashRegistersSessionsPage: React.FC = () => {
       />
 
       {/* Form Drawer */}
-      <RegisterFormDrawer
+      <CashRegistersSessionsFormDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         editingItem={editingItem}
@@ -323,7 +317,7 @@ export const CashRegistersSessionsPage: React.FC = () => {
       />
 
       {/* Cash Register Shift Close & Reconciliation Modal */}
-      <RegisterCloseModal
+      <CashRegistersSessionsCloseModal
         register={closeRegisterModalItem}
         isOpen={Boolean(closeRegisterModalItem)}
         onClose={() => setCloseRegisterModalItem(null)}

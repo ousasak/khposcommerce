@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ModalHeader } from '@/components/common/ModalHeader'
+import { ModalHeader, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter } from '@/components/common'
 import { 
   Plus, Edit2, Trash2, X, Scale, ToggleLeft, ToggleRight, Loader2, 
   ChevronUp, ChevronDown, Download, Upload, Trash, RefreshCw, AlertCircle,
@@ -15,13 +15,11 @@ import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
-import EmptyState from '@/components/shared/EmptyState'
-import PageHeader from '@/components/common/PageHeader'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog'
+import { PageHeader } from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { DeleteConfirmDialog } from '@/components/common'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
@@ -29,6 +27,7 @@ import { usePermission } from '@/hooks/usePermission'
 import { ColumnSettingsPopover } from '@/components/shared/ColumnSettingsPopover'
 import { TableToolbar, AddButton, ExportButton, ImportButton, HeaderActionsGroup } from '@/components/common'
 import UnitStatsCards from './components/UnitStatsCards'
+import { UnitSearchBar } from './components/UnitSearchBar'
 import { ModernSelect } from '@/components/shared/ModernSelect'
 
 interface Unit {
@@ -43,28 +42,22 @@ interface Unit {
 
 interface UnitPreset {
   symbol: string
-  names: {
-    km: string
-    en: string
-    zh: string
-    th: string
-    vi: string
-  }
+  fallback: string
 }
 
 const POPULAR_UNIT_PRESETS: UnitPreset[] = [
-  { symbol: 'pcs', names: { km: 'គ្រាប់', en: 'Piece', zh: '件', th: 'ชิ้น', vi: 'Cái' } },
-  { symbol: 'box', names: { km: 'ប្រអប់', en: 'Box', zh: '盒', th: 'กล่อง', vi: 'Hộp' } },
-  { symbol: 'pack', names: { km: 'កញ្ចប់', en: 'Pack', zh: '包', th: 'แพ็ค', vi: 'Gói' } },
-  { symbol: 'set', names: { km: 'ឈុត', en: 'Set', zh: '套', th: 'ชุด', vi: 'Bộ' } },
-  { symbol: 'pair', names: { km: 'គូ', en: 'Pair', zh: '双', th: 'คู่', vi: 'Đôi' } },
-  { symbol: 'kg', names: { km: 'គីឡូក្រាម', en: 'Kilogram', zh: '千克', th: 'กิโลกรัม', vi: 'Kilôgam' } },
-  { symbol: 'g', names: { km: 'ក្រាម', en: 'Gram', zh: '克', th: 'กรัม', vi: 'Gam' } },
-  { symbol: 'L', names: { km: 'លីត្រ', en: 'Liter', zh: '升', th: 'ลิตร', vi: 'Lít' } },
-  { symbol: 'm', names: { km: 'ម៉ែត្រ', en: 'Meter', zh: '米', th: 'เมตร', vi: 'Mét' } },
-  { symbol: 'btl', names: { km: 'ដប', en: 'Bottle', zh: '瓶', th: 'ขวด', vi: 'Chai' } },
-  { symbol: 'can', names: { km: 'កំប៉ុង', en: 'Can', zh: '罐', th: 'กระป๋อง', vi: 'Lon' } },
-  { symbol: 'bag', names: { km: 'បាវ', en: 'Bag', zh: '袋', th: 'กระสอบ', vi: 'Bao' } },
+  { symbol: 'pcs', fallback: 'Piece' },
+  { symbol: 'box', fallback: 'Box' },
+  { symbol: 'pack', fallback: 'Pack' },
+  { symbol: 'set', fallback: 'Set' },
+  { symbol: 'pair', fallback: 'Pair' },
+  { symbol: 'kg', fallback: 'Kilogram' },
+  { symbol: 'g', fallback: 'Gram' },
+  { symbol: 'L', fallback: 'Liter' },
+  { symbol: 'm', fallback: 'Meter' },
+  { symbol: 'btl', fallback: 'Bottle' },
+  { symbol: 'can', fallback: 'Can' },
+  { symbol: 'bag', fallback: 'Bag' },
 ]
 
 const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, triggerAdd }) => {
@@ -107,7 +100,6 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Unit | null>(null)
-  const [recycleBinMode, setRecycleBinMode] = useState(false)
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -149,14 +141,14 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
 
   // Query
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['units', page, debouncedSearch, perPage, sortBy, sortOrder, recycleBinMode, statusFilter],
+    queryKey: ['units', page, debouncedSearch, perPage, sortBy, sortOrder, statusFilter],
     queryFn: () => unitService.list({ 
       page, 
       search: debouncedSearch, 
       per_page: perPage, 
       sort_by: sortBy, 
       sort_order: sortOrder,
-      status: recycleBinMode ? 'deleted' : (statusFilter !== 'all' ? statusFilter : undefined)
+      status: statusFilter !== 'all' ? statusFilter : undefined
     }),
     placeholderData: (prev) => prev,
   })
@@ -191,30 +183,6 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => unitService.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['units'] })
-      toast.success(t('toast.deleted'))
-      setDeleteTarget(null)
-      adjustAfterDelete(units.length)
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const restoreMutation = useMutation({
-    mutationFn: (id: number) => unitService.restore(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['units'] })
-      toast.success(t('toast.restored'))
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const forceDeleteMutation = useMutation({
-    mutationFn: (id: number) => unitService.forceDelete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['units'] })
       toast.success(t('toast.deleted'))
@@ -275,8 +243,8 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
     setEditingUnit(null)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault()
     const payload = {
       company_id: 1,
       name,
@@ -292,8 +260,8 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
     }
   }
 
-  const handleImport = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleImport = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault()
     if (!importFile) return
     setImporting(true)
     const fd = new FormData()
@@ -313,7 +281,7 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
 
   const handleExport = () => {
     if (!canExportUnit) {
-      toast.error('Permission denied')
+      toast.error(t('errors.permissionDenied', 'Permission denied'))
       return
     }
     unitService.export()
@@ -410,37 +378,23 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
         </div>
       )}
 
-      {/* Global Standard Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-style Unified Filter Bar */}
+      <UnitSearchBar
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder={t('products.searchUnits', 'Search units...')}
+        statusFilter={statusFilter}
+        onStatusChange={(val) => {
+          setStatusFilter(val)
+          setPage(1)
+        }}
         onReset={() => {
           setSearch('')
           setStatusFilter('all')
           setSortBy('created_at')
           setSortOrder('desc')
           setPage(1)
-          setRecycleBinMode(false)
           setSelectedRows([])
         }}
-        leftActions={
-          <ModernSelect
-            value={statusFilter}
-            onChange={(val) => {
-              setStatusFilter(val as 'all' | 'active' | 'inactive')
-              setPage(1)
-            }}
-            options={[
-              { value: 'all', label: `${t('common.status', 'Status')}: ${t('common.allStatus', 'All')}` },
-              { value: 'active', label: t('common.active', 'Active') },
-              { value: 'inactive', label: t('common.inactive', 'Inactive') },
-            ]}
-            className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-          />
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['units'] })}
-        refreshLoading={isFetching}
         columns={[
           { key: 'name', label: t('products.colUnitName', 'Unit Name') },
           { key: 'symbol', label: t('products.colSymbol', 'Symbol') },
@@ -449,6 +403,8 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
+        selectedCount={selectedRows.length}
+        onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
       />
 
       {/* Table */}
@@ -551,7 +507,14 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
                 ))
               )}
               {!isLoading && units.length === 0 && (
-                <EmptyState cols={6} />
+                <EmptyState
+                  cols={6}
+                  icon={<Scale size={32} />}
+                  title={t('products.noUnitsFound', 'No Units Found')}
+                  description={t('products.noUnitsDescription', 'Get started by creating your first unit of measurement.')}
+                  actionLabel={canCreateUnit ? t('products.addUnit', 'Add Unit') : undefined}
+                  onAction={canCreateUnit ? openCreateModal : undefined}
+                />
               )}
             </tbody>
           </table>
@@ -568,239 +531,178 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
       </div>
 
       {/* Unit Create/Edit Modal */}
-      {modalOpen && createPortal(
-        <AnimatePresence>
-          <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="bg-card border border-border/80 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
-            >
-              {/* Modal Header */}
-              <ModalHeader
-                title={editingUnit ? t('products.editUnit', 'Edit Unit') : t('products.addUnit', 'Add Unit')}
-                subtitle={editingUnit ? t('products.editUnitDesc', 'Modify measurement unit attributes and notation') : t('products.addUnitDesc', 'Create a new measurement unit for inventory tracking')}
-                icon={<Scale size={20} />}
-                iconVariant="blue"
-                onClose={closeModal}
+      <EnterpriseModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={editingUnit ? t('products.editUnit', 'Edit Unit') : t('products.addUnit', 'Add Unit')}
+        subtitle={
+          editingUnit
+            ? t('products.editUnitDesc', 'Modify measurement unit attributes and notation')
+            : t('products.addUnitDesc', 'Create a new measurement unit for inventory tracking')
+        }
+        icon={<Scale size={20} />}
+        iconVariant="blue"
+        size="lg"
+        footer={
+          <ModalFooter
+            onCancel={closeModal}
+            isSubmitting={isSaving}
+            isEdit={Boolean(editingUnit)}
+            submitLabel={editingUnit ? t('common.saveChanges', 'Save Changes') : t('products.addUnit', 'Create Unit')}
+            onSubmit={handleSubmit}
+          />
+        }
+      >
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+          {/* Popular Quick Presets */}
+          {!editingUnit && (
+            <div className="p-3 bg-muted/20 dark:bg-slate-900/40 rounded-2xl border border-border/70 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <Sparkles size={13} className="text-primary" />
+                <span>{t('products.quickPresets', 'Popular Presets')}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {POPULAR_UNIT_PRESETS.map((p) => {
+                  const isSelected = symbol === p.symbol
+                  const displayName = t(`products.presets.${p.symbol}`, p.fallback)
+                  return (
+                    <button
+                      key={p.symbol}
+                      type="button"
+                      onClick={() => {
+                        setName(displayName)
+                        setSymbol(p.symbol)
+                      }}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                          : 'bg-background text-foreground border-border/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30'
+                      }`}
+                    >
+                      {displayName} <span className="opacity-70 font-mono text-[10px]">({p.symbol})</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Unit Name */}
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('products.colUnitName', 'Unit Name')} <span className="text-rose-500 font-bold">*</span>
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder={t('products.unitNamePlaceholder', 'e.g. Pieces, Kilograms, Boxes, Sets...')}
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
               />
+            </div>
 
-              {/* Modal Body Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-4.5 max-h-[calc(85vh-130px)] overflow-y-auto">
-                {/* Popular Quick Presets */}
-                {!editingUnit && (
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                      <Sparkles size={13} className="text-primary" />
-                      <span>{t('products.quickPresets', 'Popular Presets')}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {POPULAR_UNIT_PRESETS.map((p) => {
-                        const isSelected = symbol === p.symbol
-                        const currentLang = (language || i18n.language || 'km') as 'km' | 'en' | 'zh' | 'th' | 'vi'
-                        const displayName = p.names[currentLang] || p.names.en || p.symbol
-                        return (
-                          <button
-                            key={p.symbol}
-                            type="button"
-                            onClick={() => {
-                              setName(displayName)
-                              setSymbol(p.symbol)
-                            }}
-                            className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
-                              isSelected
-                                ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                                : 'bg-muted/50 text-foreground border-border/60 hover:bg-primary/10 hover:text-primary hover:border-primary/30'
-                            }`}
-                          >
-                            {displayName} <span className="opacity-70 font-mono text-[10px]">({p.symbol})</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Unit Name */}
-                <div>
-                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    {t('products.colUnitName', 'Unit Name')} <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    placeholder={t('products.unitNamePlaceholder', 'e.g. Pieces, Kilograms, Boxes, Sets...')}
-                    className="form-input text-sm h-11 px-3.5 rounded-xl bg-background border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium w-full"
-                  />
-                </div>
-
-                {/* Side-by-side: Unit Symbol + Status Toggle Card */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                      {t('products.colSymbol', 'Symbol')} <span className="text-destructive">*</span>
-                    </label>
-                    <input
-                      value={symbol}
-                      onChange={(e) => setSymbol(e.target.value)}
-                      required
-                      placeholder={t('products.unitSymbolPlaceholder', 'e.g. pcs, kg, box')}
-                      className="form-input font-mono text-sm h-11 px-3.5 rounded-xl bg-background border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-semibold w-full"
-                    />
-                  </div>
-
-                  {/* Status Toggle Card */}
-                  <div>
-                    <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                      {t('products.colStatus', 'Status')}
-                    </label>
-                    <div className="flex items-center justify-between px-3.5 rounded-xl bg-muted/30 border border-border/80 h-11 w-full">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'}`} />
-                        <span className="text-xs font-semibold text-foreground">
-                          {isActive ? t('products.active', 'Active') : t('products.inactive', 'Inactive')}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsActive(!isActive)}
-                        className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          isActive ? 'bg-primary' : 'bg-muted-foreground/30'
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                            isActive ? 'translate-x-5' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    {t('products.colDescription', 'Description')}
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder={t('products.unitDescPlaceholder', 'Short overview about this measurement unit...')}
-                    rows={3}
-                    className="form-input text-sm py-2.5 px-3.5 rounded-xl bg-background border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
-                  />
-                </div>
-
-                {/* Footer Buttons */}
-                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border/60">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all cursor-pointer"
-                  >
-                    {t('common.cancel', 'Cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-gradient-primary rounded-xl hover:opacity-90 shadow-md hover:shadow-primary/20 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
-                  >
-                    {isSaving ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Save size={14} />
-                    )}
-                    <span>{editingUnit ? t('common.save', 'Save Changes') : t('products.addUnit', 'Create Unit')}</span>
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+            {/* Symbol */}
+            <div>
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+                {t('products.colSymbol', 'Symbol')} <span className="text-rose-500 font-bold">*</span>
+              </label>
+              <input
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value)}
+                required
+                placeholder={t('products.unitSymbolPlaceholder', 'e.g. pcs, kg, box')}
+                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-semibold"
+              />
+            </div>
           </div>
-        </AnimatePresence>,
-        document.body
-      )}
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('products.colDescription', 'Description')}
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t('products.unitDescPlaceholder', 'Short overview about this measurement unit...')}
+              rows={2}
+              className="w-full min-h-[64px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/70 dark:placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"
+            />
+          </div>
+
+          {/* Active Status Card */}
+          <div className="p-3.5 sm:p-4 bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5 pr-2">
+              <label htmlFor="isUnitActive" className="text-xs sm:text-[13px] font-bold text-foreground dark:text-slate-100 cursor-pointer select-none block">
+                {t('products.activeUnitStatus', 'Active Unit Status')}
+              </label>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                {t('products.activeUnitStatusDesc', 'Active units are available when assigning measurement units to products')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isUnitActive"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded border-border focus:ring-primary cursor-pointer"
+            />
+          </div>
+        </form>
+      </EnterpriseModal>
 
       {/* CSV Import Modal */}
-      {importOpen && createPortal(
-        <AnimatePresence>
-          <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-card border border-border/80 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
-            >
-              <ModalHeader
-                title={t('products.importCSV', 'Import CSV')}
-                subtitle={t('products.importCSVDesc', 'Batch import measurement units via CSV/TXT file')}
-                icon={<Upload size={18} />}
-                iconVariant="blue"
-                onClose={() => setImportOpen(false)}
-              />
-
-              <form onSubmit={handleImport} className="p-6 space-y-4">
-                <div className="border-2 border-dashed border-border/80 rounded-2xl p-6 text-center hover:bg-muted/10 transition-colors">
-                  <Upload className="mx-auto text-primary mb-2 opacity-80" size={32} />
-                  <input
-                    type="file"
-                    accept=".csv,.txt"
-                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="csv-unit-upload"
-                    required
-                  />
-                  <label htmlFor="csv-unit-upload" className="cursor-pointer font-bold text-xs text-primary hover:underline block">
-                    {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to browse CSV / TXT file')}
-                  </label>
-                  <p className="text-[11px] text-muted-foreground mt-1">UTF-8 CSV format (name, symbol, description)</p>
-                </div>
-
-                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={() => setImportOpen(false)}
-                    className="px-4 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all cursor-pointer"
-                  >
-                    {t('common.cancel', 'Cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={importing || !importFile}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-primary rounded-xl hover:opacity-90 shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                    {t('products.importCSV', 'Import CSV')}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+      <EnterpriseModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        title={t('products.importCSV', 'Import CSV')}
+        subtitle={t('products.importCSVDesc', 'Batch import measurement units via CSV/TXT file')}
+        icon={<Upload size={20} />}
+        iconVariant="blue"
+        size="md"
+        footer={
+          <ModalFooter
+            onCancel={() => setImportOpen(false)}
+            isSubmitting={importing}
+            submitLabel={t('products.importCSV', 'Import CSV')}
+            onSubmit={handleImport}
+          />
+        }
+      >
+        <form onSubmit={handleImport} className="p-5 sm:p-6 space-y-4">
+          <div className="border-2 border-dashed border-border/80 rounded-2xl p-6 text-center hover:bg-muted/10 transition-colors">
+            <Upload className="mx-auto text-primary mb-2 opacity-80" size={32} />
+            <input
+              type="file"
+              accept=".csv,.txt"
+              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              className="hidden"
+              id="csv-unit-upload"
+              required
+            />
+            <label htmlFor="csv-unit-upload" className="cursor-pointer font-bold text-xs text-primary hover:underline block">
+              {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to browse CSV / TXT file')}
+            </label>
+            <p className="text-[11px] text-muted-foreground mt-1">UTF-8 CSV format (name, symbol, description)</p>
           </div>
-        </AnimatePresence>,
-        document.body
-      )}
+        </form>
+      </EnterpriseModal>
 
       {/* Unified Delete Confirmation Dialog */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title="units.deleteTitle"
+        title={t('units.deleteTitle', 'Delete Unit')}
         itemName={deleteTarget?.name}
-        confirmText="common.confirmDelete"
-        cancelText="common.cancel"
+        confirmText={t('common.confirmDelete', 'Confirm Delete')}
+        cancelText={t('common.cancel', 'Cancel')}
         onConfirm={() => {
           if (deleteTarget) {
-            if (recycleBinMode) {
-              forceDeleteMutation.mutate(deleteTarget.id)
-            } else {
-              deleteMutation.mutate(deleteTarget.id)
-            }
+            deleteMutation.mutate(deleteTarget.id)
           }
         }}
         onCancel={() => setDeleteTarget(null)}
-        loading={deleteMutation.isPending || forceDeleteMutation.isPending}
+        loading={deleteMutation.isPending}
       />
 
       {/* Bulk Delete Confirmation Dialog */}
@@ -823,3 +725,4 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
 }
 
 export default UnitsPage
+

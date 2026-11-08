@@ -1306,5 +1306,32 @@
   "sending": "កំពុងផ្ញើ...",
   "loadingData": "កំពុងទាញយកទិន្នន័យពី Database...",
   "khmer": "ភាសាខ្មែរ",
-  "english": "English"
+  "english": "English",
+  "clearSearch": "លុបការស្វែងរក",
+  "decrease": "បន្ថយ",
+  "increase": "បង្កើន",
+  "allCountries": "គ្រប់ប្រទេស",
+  "countries": {
+    "cambodia": "កម្ពុជា",
+    "thailand": "ថៃ",
+    "vietnam": "វៀតណាម",
+    "china": "ចិន",
+    "singapore": "សិង្ហបុរី",
+    "malaysia": "ម៉ាឡេស៊ី",
+    "usa": "សហរដ្ឋអាមេរិក"
+  },
+  "searchNameCodePhone": "ស្វែងរកឈ្មោះ, លេខកូដ, ទូរស័ព្ទ...",
+  "allLocations": "គ្រប់រាជធានី/ខេត្ត",
+  "provinces": {
+    "phnomPenh": "រាជធានីភ្នំពេញ",
+    "siemReap": "ខេត្តសៀមរាប",
+    "battambang": "ខេត្តបាត់ដំបង",
+    "sihanoukville": "ខេត្តព្រះសីហនុ",
+    "kampot": "ខេត្តកំពត",
+    "kandal": "ខេត្តកណ្តាល"
+  },
+  "allTypes": "គ្រប់ប្រភេទ",
+  "mainHq": "ការិយាល័យធំ (HQ)",
+  "subBranch": "សាខារង (Branch)",
+  "searchCompanyPlaceholder": "ស្វែងរកឈ្មោះក្រុមហ៊ុន, លេខកូដ, NPWP..."
 }

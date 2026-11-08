@@ -14,12 +14,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { employeeService } from '@/services/employeeService'
 import { useToast } from '@/hooks/useToast'
-import {
-  EnterpriseModal,
-  ModalFooter,
-  EnterpriseMonthPicker,
-  ModernSelect,
-} from '@/components/common'
+import { EnterpriseModal, ModalFooter, EnterpriseMonthPicker, ModernSelect } from '@/components/common'
 
 interface AutoGeneratePayrollModalProps {
   isOpen: boolean

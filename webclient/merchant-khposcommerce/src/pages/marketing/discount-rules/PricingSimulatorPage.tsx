@@ -1,7 +1,7 @@
 import React from 'react'
 import { Calculator } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import { PricingSimulatorSection } from './components/PricingSimulatorSection'
 
 export const PricingSimulatorPage: React.FC = () => {

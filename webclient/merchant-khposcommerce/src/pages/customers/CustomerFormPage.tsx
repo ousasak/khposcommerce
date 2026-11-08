@@ -14,19 +14,7 @@ import { customerService } from '@/services/customerService'
 import { companyService } from '@/services/companyService'
 import { userService } from '@/services/userService'
 import { useToast } from '@/hooks/useToast'
-import {
-  FormLayout,
-  FormContent,
-  FormCard,
-  FormHeader,
-  FormFooter,
-  LoadingSpinner,
-  FormField,
-  FieldLabel,
-  EnterpriseDatePicker,
-  FieldError,
-  getFieldClass,
-} from '@/components/common'
+import { FormLayout, FormContent, FormCard, FormHeader, FormFooter, LoadingSpinner, FormField, FieldLabel, EnterpriseDatePicker, FieldError, getFieldClass } from '@/components/common'
 import CustomErrorMessage from '@/components/ui/CustomErrorMessage'
 import { focusFirstInvalidField } from '@/utils/formValidation'
 import { getAbsoluteImageUrl } from '@/utils/image'

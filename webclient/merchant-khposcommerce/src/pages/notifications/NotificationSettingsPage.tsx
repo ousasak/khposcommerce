@@ -14,7 +14,7 @@ import notificationService from '@/services/notificationService'
 import type { NotificationSettings } from './types/notification.types'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import { HeaderActionsGroup } from '@/components/common'
 import { useThemeStore } from '@/stores/themeStore'
 

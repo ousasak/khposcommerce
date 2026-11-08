@@ -15,6 +15,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
 import { downloadSampleCsvTemplate } from '@/utils/export'
+import { ModalFooter } from '@/components/common'
 
 export interface ImportResult {
   success_count: number
@@ -217,14 +218,14 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
     downloadSampleCsvTemplate(resourceName || 'sample', headers, sampleRecord)
   }
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleFormSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault()
     if (!currentFile) return
 
     if (onImport) {
       await onImport(currentFile)
     } else if (onSubmit) {
-      onSubmit(e)
+      onSubmit(e as any)
     }
   }
 
@@ -447,36 +448,22 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
               )}
             </div>
 
-            {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-2.5 p-4 sm:p-5 pt-3 border-t border-border/70 shrink-0 bg-muted/10">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isImporting}
-                className="px-4 py-2 text-xs font-semibold rounded-xl border border-border bg-card hover:bg-muted/80 text-foreground transition-all cursor-pointer disabled:opacity-50"
-              >
-                {importResult && importResult.errors.length === 0 ? getText('close') : getText('cancel')}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleFormSubmit}
-                disabled={!currentFile || isImporting}
-                className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold rounded-xl bg-primary text-primary-foreground shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isImporting ? (
-                  <>
-                    <Loader2 size={14} className="animate-spin" />
-                    <span>{getText('processing')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload size={14} />
-                    <span>{getText('uploadAndProcess')}</span>
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Global Enterprise Modal Footer */}
+            <ModalFooter
+              onCancel={onClose}
+              cancelLabel={
+                importResult && importResult.errors.length === 0
+                  ? getText('close')
+                  : getText('cancel')
+              }
+              showCancel={true}
+              onSubmit={handleFormSubmit}
+              submitButtonType="button"
+              submitLabel={isImporting ? getText('processing') : getText('uploadAndProcess')}
+              submitIcon={<Upload size={16} />}
+              isSubmitting={isImporting}
+              disabled={!currentFile || isImporting}
+            />
           </motion.div>
         </div>
       )}

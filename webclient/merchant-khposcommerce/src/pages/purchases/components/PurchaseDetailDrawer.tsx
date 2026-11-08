@@ -6,15 +6,7 @@ import {
   Building2, Mail, Phone, MapPin, Package, CreditCard, RotateCcw,
   Printer, CheckCircle, DollarSign, Warehouse as WarehouseIcon, ExternalLink
 } from 'lucide-react'
-import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerBody,
-  DetailDrawerFooter,
-  DetailDrawerCard,
-  DetailDrawerRow,
-  ActionButton,
-} from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, ActionButton } from '@/components/common'
 import { STATUS_BADGE, PAYMENT_BADGE, getDeliveryStatusLabel, getPaymentStatusLabel, type Purchase } from '../types/purchase.types'
 import { getDetailDualValues } from '../utils/purchaseCurrency'
 import { PurchasePrintVoucher } from './PurchasePrintVoucher'

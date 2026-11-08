@@ -3,7 +3,7 @@ import {
   Zap, Edit2, Trash2, Eye, Copy, Lock, Unlock, Store, Globe, Smartphone, Barcode, Flame, Boxes
 } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import { useTranslation } from 'react-i18next'
 import TableActionMenu from '@/components/shared/TableActionMenu'

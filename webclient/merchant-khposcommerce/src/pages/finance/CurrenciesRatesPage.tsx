@@ -1,30 +1,39 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import {
+  Coins,
+  RefreshCw,
+  Plus,
+  ArrowRightLeft,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { financeService } from '@/services/financeService'
 import { useToast } from '@/hooks/useToast'
+import { sound } from '@/utils/sound'
 import { usePermission } from '@/hooks/usePermission'
-import { useServerPagination } from '@/hooks/useServerPagination'
-import { downloadCsv } from '@/utils/export'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import {
   HeaderActionsGroup,
   AddButton,
-  ExportButton,
-  TableToolbar,
-  ModernSelect,
   ConfirmModal,
 } from '@/components/common'
-import Pagination from '@/components/shared/Pagination'
-import type { CurrencyForm } from './types/finance.types'
+import type { CurrencyForm, CurrencyItem } from './types/currency.types'
 import {
-  CurrencyStatsCards,
-  CurrencyFormDrawer,
+  CurrenciesRatesStatsCards,
+  CurrenciesRatesOverviewPanels,
   CurrenciesRatesTable,
+  CurrenciesRatesConverter,
+  CurrenciesRatesFormDrawer,
+  CurrencySearchBar,
 } from './components'
 
+// Official National Bank of Cambodia indicative daily reference rate
+const NBC_REFERENCE_RATE = 4080
+
 export const CurrenciesRatesPage: React.FC = () => {
-  const { t } = useTranslation(['finance', 'common', 'nav'])
+  const { t, i18n } = useTranslation(['finance', 'common', 'nav'])
+  const isKhmer = i18n.language === 'km'
   const qc = useQueryClient()
   const toast = useToast()
   const { hasPermission } = usePermission()
@@ -34,33 +43,14 @@ export const CurrenciesRatesPage: React.FC = () => {
   const canUpdateCurrency = hasPermission('currency.update')
   const canDeleteCurrency = hasPermission('currency.delete')
 
-  // Pagination & Search
-  const {
-    page,
-    setPage,
-    perPage,
-    setPerPage,
-    search,
-    setSearch,
-    debouncedSearch,
-    adjustAfterDelete,
-  } = useServerPagination({ storageKey: 'finance_currencies' })
+  // Search & Filter State for Table
+  const [search, setSearch] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [sourceFilter, setSourceFilter] = useState<string>('')
 
-  // Filters
-  const [filterStatus, setFilterStatus] = useState('')
-
-  // Visible Columns
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
-    currency_name: true,
-    currency_code: true,
-    currency_symbol: true,
-    currency_rate: true,
-    currency_status: true,
-  })
-
-  // Drawer & Form State
+  // Drawer / Modal State
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<any | null>(null)
+  const [editingItem, setEditingItem] = useState<CurrencyItem | null>(null)
   const [currencyForm, setCurrencyForm] = useState<CurrencyForm>({
     name: '',
     code: '',
@@ -68,36 +58,118 @@ export const CurrenciesRatesPage: React.FC = () => {
     exchange_rate: '1.00',
     is_active: true,
     is_default: false,
+    rate_source: 'manual',
+    decimal_precision: 2,
   })
 
-  // Delete Confirm
-  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: number | null; name?: string }>({
+  // Delete Confirm Modal State
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    open: boolean
+    id: number | null
+    name?: string
+  }>({
     open: false,
     id: null,
     name: '',
   })
 
-  // Query
+  // Fetch Currencies from API
   const {
     data: currenciesData,
     isLoading,
     isFetching,
+    refetch,
   } = useQuery({
-    queryKey: ['currencies-tab', page, debouncedSearch, perPage, filterStatus],
-    queryFn: () =>
-      financeService.getCurrencies({
-        page,
-        search: debouncedSearch,
-        per_page: perPage,
-        status: filterStatus || undefined,
-      }),
-    placeholderData: (prev) => prev,
+    queryKey: ['currencies-tab'],
+    queryFn: () => financeService.getCurrencies({ per_page: 50 }),
+    staleTime: 30_000,
   })
 
-  const currencies = currenciesData?.data ?? []
-  const pagination = currenciesData?.pagination ?? { total: currencies.length, current_page: 1, last_page: 1 }
+  const currencies: CurrencyItem[] = useMemo(() => {
+    return currenciesData?.data ?? []
+  }, [currenciesData])
 
-  // Mutations
+  // Existing ISO codes for uniqueness check
+  const existingCodes = useMemo(() => {
+    return currencies.map((c) => (c.code || '').toUpperCase())
+  }, [currencies])
+
+  // Identify Core Currencies (USD & KHR)
+  const usdCurrency: CurrencyItem = useMemo(() => {
+    return (
+      currencies.find((c) => (c.code || '').toUpperCase() === 'USD') || {
+        id: 1,
+        code: 'USD',
+        symbol: '$',
+        name: isKhmer ? 'ដុល្លារអាមេរិក (US Dollar)' : 'US Dollar',
+        exchange_rate: 1,
+        is_active: true,
+        is_default: true,
+      }
+    )
+  }, [currencies, isKhmer])
+
+  const khrCurrency: CurrencyItem = useMemo(() => {
+    return (
+      currencies.find((c) => (c.code || '').toUpperCase() === 'KHR') || {
+        id: 2,
+        code: 'KHR',
+        symbol: '៛',
+        name: isKhmer ? 'រៀលកម្ពុជា (Cambodian Riel)' : 'Cambodian Riel',
+        exchange_rate: 4100,
+        is_active: true,
+        is_default: false,
+      }
+    )
+  }, [currencies, isKhmer])
+
+  // Inline Rate Editor State for KHR Panel
+  const [khrInputRate, setKhrInputRate] = useState<string>('4100')
+
+  useEffect(() => {
+    if (khrCurrency?.exchange_rate) {
+      setKhrInputRate(String(Number(khrCurrency.exchange_rate) || 4100))
+    }
+  }, [khrCurrency?.exchange_rate])
+
+  // Quick Currency Rate Update Mutation (1-click inline or NBC sync)
+  const quickUpdateRateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: any }) =>
+      financeService.updateCurrency(id, payload),
+    onSuccess: (_, variables) => {
+      sound.playSuccess()
+      qc.invalidateQueries({ queryKey: ['currencies-tab'] })
+      toast.success(
+        isKhmer
+          ? `បានកែសម្រួលអត្រាប្តូរប្រាក់ 1 USD = ${Number(variables.payload.exchange_rate).toLocaleString()} ៛ ដោយជោគជ័យ!`
+          : `Successfully updated exchange rate to 1 USD = ${Number(variables.payload.exchange_rate).toLocaleString()} KHR!`
+      )
+    },
+    onError: (err: any) => {
+      sound.playError()
+      toast.error(
+        err?.response?.data?.message ||
+          (isKhmer ? 'មិនអាចកែប្រែអត្រាប្តូរប្រាក់បានទេ' : 'Failed to update exchange rate.')
+      )
+    },
+  })
+
+  const handleSaveKhrRate = (newRate: number) => {
+    if (!khrCurrency?.id) return
+    quickUpdateRateMutation.mutate({
+      id: khrCurrency.id,
+      payload: {
+        name: khrCurrency.name,
+        code: khrCurrency.code,
+        symbol: khrCurrency.symbol,
+        exchange_rate: newRate,
+        is_active: khrCurrency.is_active,
+        is_default: false,
+      },
+    })
+  }
+
+  // Full Save Mutation (from Drawer)
   const saveMutation = useMutation({
     mutationFn: (payload: CurrencyForm) => {
       if (editingItem) {
@@ -107,31 +179,52 @@ export const CurrenciesRatesPage: React.FC = () => {
       }
     },
     onSuccess: () => {
+      sound.playSuccess()
       qc.invalidateQueries({ queryKey: ['currencies-tab'] })
-      toast.success(editingItem ? t('finance.update_success', 'Updated successfully.') : t('finance.save_success', 'Saved successfully.'))
+      toast.success(
+        editingItem
+          ? isKhmer
+            ? 'បានកែសម្រួលរូបិយប័ណ្ណដោយជោគជ័យ'
+            : 'Currency updated successfully'
+          : isKhmer
+          ? 'បានបង្កើតរូបិយប័ណ្ណថ្មីដោយជោគជ័យ'
+          : 'Currency created successfully'
+      )
       setDrawerOpen(false)
       setEditingItem(null)
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('finance.save_error', 'Failed to save details.'))
+      sound.playError()
+      toast.error(
+        err?.response?.data?.message ||
+          (isKhmer ? 'ប្រតិបត្តិការបរាជ័យ' : 'Operation failed')
+      )
     },
   })
 
+  // Delete Mutation (for non-core currencies)
   const deleteMutation = useMutation({
     mutationFn: (id: number) => financeService.deleteCurrency(id),
     onSuccess: () => {
+      sound.playSuccess()
       qc.invalidateQueries({ queryKey: ['currencies-tab'] })
-      toast.success(t('finance.delete_success', 'Record deleted successfully.'))
+      toast.success(
+        isKhmer ? 'បានលុបរូបិយប័ណ្ណដោយជោគជ័យ' : 'Currency deleted successfully'
+      )
       setDeleteConfirm({ open: false, id: null, name: '' })
-      adjustAfterDelete(1)
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('finance.delete_error', 'Failed to delete record.'))
+      sound.playError()
+      toast.error(
+        err?.response?.data?.message ||
+          (isKhmer ? 'មិនអាចលុបរូបិយប័ណ្ណបានទេ' : 'Failed to delete currency')
+      )
     },
   })
 
-  // Handlers
-  const openCreateDrawer = () => {
+  // Open Drawer for Add
+  const handleOpenAdd = () => {
+    sound.playClick()
     setEditingItem(null)
     setCurrencyForm({
       name: '',
@@ -140,176 +233,197 @@ export const CurrenciesRatesPage: React.FC = () => {
       exchange_rate: '1.00',
       is_active: true,
       is_default: false,
+      rate_source: 'manual',
+      decimal_precision: 2,
     })
     setDrawerOpen(true)
   }
 
-  const openEditDrawer = (item: any) => {
+  // Open Drawer for Edit
+  const handleOpenEdit = (item: CurrencyItem) => {
+    sound.playClick()
     setEditingItem(item)
     setCurrencyForm({
-      name: item.name || '',
-      code: item.code || '',
-      symbol: item.symbol || '',
-      exchange_rate: String(item.exchange_rate ?? '1.00'),
-      is_active: Boolean(item.is_active ?? true),
-      is_default: Boolean(item.is_default ?? false),
+      name: item.name,
+      code: item.code,
+      symbol: item.symbol,
+      exchange_rate: String(item.exchange_rate),
+      is_active: item.is_active,
+      is_default: item.is_default,
+      rate_source: item.rate_source || 'manual',
+      decimal_precision: item.decimal_precision ?? (item.code === 'KHR' ? 0 : 2),
     })
     setDrawerOpen(true)
   }
 
-  const handleExportCsv = () => {
-    const toastId = toast.loading(t('finance.exporting', 'Exporting CSV dataset...'))
-    setTimeout(() => {
-      try {
-        const headers = [
-          t('finance.code_col', 'Code'),
-          t('finance.currency_name', 'Currency Name'),
-          t('finance.symbol', 'Symbol'),
-          t('finance.exchange_rate', 'Exchange Rate'),
-          t('finance.status_col', 'Status'),
-        ]
-        const rows = (currencies || []).map((cur: any) => [
-          cur.code || '',
-          cur.name || '',
-          cur.symbol || '',
-          cur.exchange_rate || 1,
-          cur.is_active ? t('finance.status_active', 'Active') : t('finance.status_inactive', 'Inactive'),
-        ])
-        downloadCsv('finance_currencies', headers, rows)
-        toast.dismiss(toastId)
-        toast.success(t('finance.export_success', 'Dataset exported successfully.'))
-      } catch {
-        toast.dismiss(toastId)
-        toast.error(t('finance.export_error', 'Failed to export dataset.'))
-      }
-    }, 300)
+  // Trigger Delete Modal
+  const handleDeleteTrigger = (id: number, name?: string) => {
+    sound.playClick()
+    setDeleteConfirm({ open: true, id, name })
   }
 
-  return (
-    <div className="space-y-5 print:p-0">
-      <Breadcrumb
-        items={[
-          { label: t('nav.financeManagement', t('finance.financial_management', 'Finance')), path: '/finance/expenses' },
-          { label: t('finance.currencies_title', 'Currencies & Rates') },
-        ]}
-      />
+  // Handle Refresh
+  const handleRefresh = () => {
+    sound.playClick()
+    refetch()
+    toast.success(
+      isKhmer
+        ? 'បានទាញយកទិន្នន័យអត្រាប្តូរប្រាក់ចុងក្រោយ'
+        : 'Exchange rates refreshed successfully'
+    )
+  }
 
-      {/* Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 py-1 print:hidden">
-        <div className="space-y-1 min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
-            {t('finance.currencies_title', 'Currencies & Exchange Rates')}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-            {t('finance.currencies_subtitle', 'Manage operational currencies (USD, KHR), symbols, and daily exchange rates.')}
+  const khrNumericRate = Number(khrCurrency?.exchange_rate || 4100)
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
+      {/* ─── SECTION A: PAGE HEADER ─── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Breadcrumb
+            items={[
+              { label: isKhmer ? 'ហិរញ្ញវត្ថុ' : 'Finance', href: '/finance' },
+              { label: isKhmer ? 'រូបិយប័ណ្ណ' : 'Currencies' },
+            ]}
+          />
+          <div className="flex items-center gap-3 mt-1.5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              {isKhmer ? 'រូបិយប័ណ្ណ & អត្រាប្តូរប្រាក់' : 'Currencies'}
+            </h1>
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-primary/10 text-primary border border-primary/20">
+              {isKhmer ? 'រូបិយប័ណ្ណទ្វេ (Dual-Currency)' : 'Dual Currency Hub'}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isKhmer
+              ? 'គ្រប់គ្រងរូបិយប័ណ្ណប្រតិបត្តិការ និងអត្រាប្តូរប្រាក់ប្រចាំថ្ងៃសម្រាប់ប្រព័ន្ធ POS'
+              : 'Manage currencies and daily exchange rates for POS operations'}
           </p>
         </div>
-        <HeaderActionsGroup>
-          <ExportButton
-            onClick={handleExportCsv}
-            label={t('finance.export_csv', 'Export CSV')}
-          />
+
+        {/* Actions Group */}
+        <div className="flex items-center gap-2">
+          {/* Secondary Action: Refresh Rates */}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isFetching}
+            className="h-9 px-3.5 rounded-lg border border-border/80 bg-background hover:bg-muted text-xs font-semibold text-foreground transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+            title={isKhmer ? 'ផ្ទុកទិន្នន័យឡើងវិញ' : 'Refresh Rates'}
+          >
+            <RefreshCw
+              size={14}
+              className={isFetching ? 'animate-spin text-primary' : 'text-muted-foreground'}
+            />
+            <span>{isKhmer ? 'ផ្ទុកទិន្នន័យឡើងវិញ' : 'Refresh Rates'}</span>
+          </button>
+
+          {/* Primary Action: + Add Currency */}
           {canCreateCurrency && (
             <AddButton
-              onClick={openCreateDrawer}
-              label={t('finance.add_currency', 'Add Currency')}
+              onClick={handleOpenAdd}
+              label={isKhmer ? 'បន្ថែមរូបិយប័ណ្ណ' : 'Add Currency'}
+              className="h-9 text-xs font-semibold shadow-2xs"
             />
           )}
-        </HeaderActionsGroup>
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <CurrencyStatsCards
-        currencies={currencies}
-        isLoading={isLoading}
+      {/* ─── SECTION B: COMPACT SUMMARY CARDS (4 CARDS) ─── */}
+      <CurrenciesRatesStatsCards currencies={currencies} isLoading={isLoading} />
+
+      {/* ─── SECTION C: BASE CURRENCY (USD) & LOCAL CURRENCY (KHR) OVERVIEW PANELS ─── */}
+      <CurrenciesRatesOverviewPanels
+        usdCurrency={usdCurrency}
+        khrCurrency={khrCurrency}
+        khrInputRate={khrInputRate}
+        setKhrInputRate={setKhrInputRate}
+        isSaving={quickUpdateRateMutation.isPending}
+        onSaveKhrRate={handleSaveKhrRate}
+        nbcRate={NBC_REFERENCE_RATE}
+        canUpdateCurrency={canUpdateCurrency}
       />
 
-      {/* Table Toolbar */}
-      <TableToolbar
-        search={search}
-        onSearchChange={(val) => {
-          setSearch(val)
-          setPage(1)
-        }}
-        searchPlaceholder={t('finance.search_currencies', 'Search currencies...')}
-        filterContent={
-          <ModernSelect
-            value={filterStatus}
-            onChange={(val) => {
-              setFilterStatus(String(val ?? ''))
-              setPage(1)
-            }}
-            options={[
-              { value: '', label: `${t('finance.filter_status', t('common.status', 'Status'))}: ${t('finance.all_status', t('common.all', 'All'))}` },
-              { value: 'active', label: t('finance.status_active', 'Active') },
-              { value: 'inactive', label: t('finance.status_inactive', 'Inactive') },
-            ]}
-            className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-          />
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['currencies-tab'] })}
-        refreshLoading={isFetching}
-        columns={[
-          { key: 'currency_name', label: t('finance.currency_name', 'Currency Name') },
-          { key: 'currency_code', label: t('finance.code_col', 'Code') },
-          { key: 'currency_symbol', label: t('finance.symbol', 'Symbol') },
-          { key: 'currency_rate', label: t('finance.exchange_rate', 'Exchange Rate') },
-          { key: 'currency_status', label: t('finance.status_col', 'Status') },
-        ]}
-        visibleColumns={visibleColumns}
-        onColumnChange={setVisibleColumns}
-      />
-
-      {/* Main Table */}
-      <CurrenciesRatesTable
-        currencies={currencies}
-        isLoading={isLoading}
-        isFetching={isFetching}
-        visibleColumns={visibleColumns}
-        openEditDrawer={canUpdateCurrency ? openEditDrawer : undefined}
-        handleDelete={canDeleteCurrency ? (id, name) => setDeleteConfirm({ open: true, id, name }) : undefined}
-      />
-
-      {/* Pagination */}
-      {pagination.total > perPage && (
-        <Pagination
-          currentPage={pagination.current_page}
-          lastPage={pagination.last_page}
-          total={pagination.total}
-          perPage={perPage}
-          onPageChange={setPage}
-          onPerPageChange={setPerPage}
+      {/* ─── SECTION D: ALL CURRENCIES MANAGEMENT (ENTERPRISE TABLE) ─── */}
+      <div className="space-y-3">
+        <CurrencySearchBar
+          search={search}
+          onSearchChange={setSearch}
+          statusFilter={statusFilter}
+          onStatusChange={setStatusFilter}
+          sourceFilter={sourceFilter}
+          onSourceChange={setSourceFilter}
+          onReset={() => {
+            setSearch('')
+            setStatusFilter('')
+            setSourceFilter('')
+          }}
         />
-      )}
 
-      {/* Form Drawer */}
-      <CurrencyFormDrawer
+        <CurrenciesRatesTable
+          currencies={currencies}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          search={search}
+          setSearch={setSearch}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          sourceFilter={sourceFilter}
+          setSourceFilter={setSourceFilter}
+          onRefresh={handleRefresh}
+          openEditDrawer={handleOpenEdit}
+          onDeleteCurrency={handleDeleteTrigger}
+          canUpdateCurrency={canUpdateCurrency}
+          canDeleteCurrency={canDeleteCurrency}
+          nbcRate={NBC_REFERENCE_RATE}
+        />
+      </div>
+
+      {/* ─── SECTION F & G: INTERACTIVE POS CONVERTER & QUICK CHANGE REFERENCE ─── */}
+      <CurrenciesRatesConverter
+        currencies={currencies.length > 0 ? currencies : [usdCurrency, khrCurrency]}
+        khrRate={khrNumericRate}
+      />
+
+      {/* ─── SECTION E: ADD / EDIT CURRENCY DRAWER / MODAL ─── */}
+      <CurrenciesRatesFormDrawer
         isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          sound.playClick()
+          setDrawerOpen(false)
+          setEditingItem(null)
+        }}
         editingItem={editingItem}
         onSubmit={() => saveMutation.mutate(currencyForm)}
         isPending={saveMutation.isPending}
         currencyForm={currencyForm}
         setCurrencyForm={setCurrencyForm}
+        existingCodes={existingCodes}
       />
 
-      {/* Delete Confirmation */}
+      {/* ─── DELETE CONFIRM MODAL ─── */}
       <ConfirmModal
         isOpen={deleteConfirm.open}
         variant="danger"
         actionType="delete"
-        title={t('finance.delete_confirm_title', 'Delete Record')}
-        message={t('finance.delete_confirm_msg', 'Are you sure you want to delete this record? This action cannot be undone.')}
-        itemName={deleteConfirm.name}
-        confirmText={t('common.confirmDelete', 'Delete')}
-        cancelText={t('common.cancel', 'Cancel')}
-        loading={deleteMutation.isPending}
-        onConfirm={() => deleteConfirm.id && deleteMutation.mutate(deleteConfirm.id)}
+        title={isKhmer ? 'លុបរូបិយប័ណ្ណ?' : 'Delete Currency?'}
+        message={
+          isKhmer
+            ? `តើអ្នកពិតជាចង់លុបរូបិយប័ណ្ណ "${deleteConfirm.name}" មែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់ក្រោយបានឡើយ។`
+            : `Are you sure you want to delete the currency "${deleteConfirm.name}"? This action cannot be undone.`
+        }
+        confirmLabel={isKhmer ? 'លុបចេញ' : 'Delete'}
+        cancelLabel={isKhmer ? 'បោះបង់' : 'Cancel'}
+        onConfirm={() => {
+          if (deleteConfirm.id) {
+            deleteMutation.mutate(deleteConfirm.id)
+          }
+        }}
         onCancel={() => setDeleteConfirm({ open: false, id: null, name: '' })}
+        isPending={deleteMutation.isPending}
       />
     </div>
   )
 }
 
-export const FinanceCurrenciesPage = CurrenciesRatesPage
 export default CurrenciesRatesPage

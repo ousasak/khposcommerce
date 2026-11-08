@@ -1,6 +1,5 @@
 import React from 'react'
-import DatePicker, { type DatePickerProps } from '@/components/common/DatePicker'
-
+import { DatePicker, type DatePickerProps } from '@/components/common'
 export type ModernDatePickerProps = DatePickerProps
 
 export const ModernDatePicker: React.FC<ModernDatePickerProps> = (props) => {

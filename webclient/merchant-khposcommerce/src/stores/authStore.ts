@@ -70,6 +70,11 @@ interface AuthState {
   activeCompanyId:    number | null
   activeBranchId:     number | null
   accessibleBranches: AccessibleBranch[]
+  isDashboardTransitioning: boolean
+  transitionMessage?: string
+  transitionSubMessage?: string
+  startDashboardTransition: (message?: string, subMessage?: string) => void
+  endDashboardTransition: () => void
   setAuth:            (user: User, accessToken: string, refreshToken?: string | null) => void
   setTokens:          (accessToken: string, refreshToken?: string | null) => void
   updateUser:         (user: Partial<User>) => void
@@ -96,6 +101,25 @@ export const useAuthStore = create<AuthState>()(
       activeCompanyId:    null,
       activeBranchId:     null,
       accessibleBranches: [],
+      isDashboardTransitioning: false,
+      transitionMessage: undefined,
+      transitionSubMessage: undefined,
+
+      startDashboardTransition: (message, subMessage) => {
+        set({
+          isDashboardTransitioning: true,
+          transitionMessage: message,
+          transitionSubMessage: subMessage,
+        })
+      },
+
+      endDashboardTransition: () => {
+        set({
+          isDashboardTransitioning: false,
+          transitionMessage: undefined,
+          transitionSubMessage: undefined,
+        })
+      },
 
       setAuth: (user, accessToken, refreshToken = null) => {
         const sanitizedUser: User = {
@@ -189,6 +213,9 @@ export const useAuthStore = create<AuthState>()(
           activeCompanyId: null,
           activeBranchId: null,
           accessibleBranches: [],
+          isDashboardTransitioning: false,
+          transitionMessage: undefined,
+          transitionSubMessage: undefined,
         })
       },
 

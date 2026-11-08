@@ -11,15 +11,9 @@ import { useToast } from '@/hooks/useToast'
 import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { usePageTab } from '@/hooks/usePageTab'
-import ResetButton from '@/components/shared/ResetButton'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import {
-  TableToolbar,
-  HeaderActionsGroup,
-  AddButton,
-  ExportButton,
-} from '@/components/common'
+import { Breadcrumb, ResetButton } from '@/components/common'
+import { TableToolbar, HeaderActionsGroup, AddButton, ExportButton, InlineFilterSelect } from '@/components/common'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -27,7 +21,7 @@ import BranchesPage from './BranchesPage'
 import StoresPage from './StoresPage'
 import WarehousesPage from './WarehousesPage'
 import { CompanyStatsCards } from './components/CompanyStatsCards'
-import { CompanyFilterDrawer } from './components/CompanyFilterDrawer'
+import { CompanySearchBar } from './components/CompanySearchBar'
 import { CompanyDetailDrawer } from './components/CompanyDetailDrawer'
 import { CompanyFormModal } from './components/CompanyFormModal'
 import { CompaniesTab } from './components/CompaniesTab'
@@ -91,7 +85,6 @@ const CompanyPage: React.FC<CompanyPageProps> = ({ activeTab: initialTab }) => {
 
   // Modal & Drawer States
   const [modalOpen, setModalOpen] = useState(false)
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [detailDrawerItem, setDetailDrawerItem] = useState<any | null>(null)
   const [editingItem, setEditingItem] = useState<any | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null)
@@ -478,16 +471,15 @@ const CompanyPage: React.FC<CompanyPageProps> = ({ activeTab: initialTab }) => {
         />
       ) : (
         <>
-          {/* Toolbar for Companies */}
-          <TableToolbar
+          {/* SmartHR-style Unified Filter Bar for Companies */}
+          <CompanySearchBar
             search={search}
             onSearchChange={(val) => { setSearch(val); setPage(1); }}
-            searchPlaceholder={t('company.search_placeholder', 'Search company name, code, NPWP...')}
-            onFilterClick={() => setFilterDrawerOpen(true)}
-            isFilterActive={filterStatus !== 'all' || !!filterCountry || !!filterProvince || !!filterStartDate || !!filterEndDate}
+            statusFilter={filterStatus === 'all' ? '' : filterStatus}
+            onStatusChange={(val) => { setFilterStatus(val || 'all'); setPage(1); }}
+            countryFilter={filterCountry}
+            onCountryChange={(val) => { setFilterCountry(val); setPage(1); }}
             onReset={resetAllFilters}
-            onRefresh={() => qc.invalidateQueries({ queryKey: [currentTab] })}
-            refreshLoading={isFetching}
             columns={[
               { key: 'name', label: t('common.name', 'Name') },
               { key: 'code', label: t('common.code', 'Code') },
@@ -521,23 +513,6 @@ const CompanyPage: React.FC<CompanyPageProps> = ({ activeTab: initialTab }) => {
           />
         </>
       )}
-
-      {/* Filter Drawer */}
-      <CompanyFilterDrawer
-        isOpen={filterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-        filterStatus={filterStatus}
-        setFilterStatus={setFilterStatus}
-        filterCountry={filterCountry}
-        setFilterCountry={setFilterCountry}
-        filterProvince={filterProvince}
-        setFilterProvince={setFilterProvince}
-        filterStartDate={filterStartDate}
-        setFilterStartDate={setFilterStartDate}
-        filterEndDate={filterEndDate}
-        setFilterEndDate={setFilterEndDate}
-        onReset={resetAllFilters}
-      />
 
       {/* Detail Drawer */}
       <CompanyDetailDrawer

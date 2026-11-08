@@ -147,11 +147,10 @@
   "paper80mmDesc": "Standard POS thermal paper roll (80mm)",
   "paper58mm": "58mm Compact",
   "paper58mmDesc": "Compact / Mobile handheld POS roll (58mm)",
-  "paperWidth80mm": "80MM STANDARD PAPER",
+  "paperWidth80mm": "80MM PAPER",
   "paperWidth58mm": "58MM COMPACT PAPER",
   "thermalPreviewTitle": "LIVE THERMAL RECEIPT PREVIEW",
   "saveReceiptBtn": "Save Receipt Template",
-  "paperWidth80mm": "80MM PAPER",
   "taxRulesTitle": "Tax Rules & Regulations",
   "unitsTitle": "Measurement Units",
   "locationsTitle": "Geographic Location Master",
@@ -457,5 +456,21 @@
     "nameRequired": "Please enter user full name",
     "emailRequired": "Please enter valid email address",
     "passwordRequired": "Please enter user password"
+  },
+  "usersSearchPlaceholder": "Search username, email, display name...",
+  "allRoles": "All Roles",
+  "blocked": "Blocked",
+  "branchSearchPlaceholder": "Search branch name, code, city...",
+  "allLocations": "All Locations",
+  "mainHq": "Main HQ",
+  "subBranch": "Sub Branch",
+  "companySearchPlaceholder": "Search company name, tax ID, email...",
+  "locations": {
+    "phnomPenh": "Phnom Penh",
+    "siemReap": "Siem Reap",
+    "battambang": "Battambang",
+    "sihanoukville": "Sihanoukville",
+    "kampot": "Kampot",
+    "kandal": "Kandal"
   }
 }

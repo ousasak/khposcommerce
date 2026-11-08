@@ -12,16 +12,13 @@ import notificationService from '@/services/notificationService'
 import type { NotificationTemplateItem } from './types/notification.types'
 import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Breadcrumb } from '@/components/common'
 import { HeaderActionsGroup, AddButton } from '@/components/common'
-import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog'
+import { DeleteConfirmDialog } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import TemplateEditorModal from './components/TemplateEditorModal'
 import TemplatePreviewDrawer from './components/TemplatePreviewDrawer'
-import ToggleSwitch from '@/components/common/ToggleSwitch'
-
-
-// ─── Modern Card Helpers ──────────────────────────────────────────────────
+import { ToggleSwitch } from '@/components/common'// ─── Modern Card Helpers ──────────────────────────────────────────────────
 
 const getPresetTypeConfig = (type: string) => {
   switch (type?.toLowerCase()) {

@@ -14,9 +14,10 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import ModernSelect from '@/components/shared/ModernSelect'
 import ColumnSettingsPopover from '@/components/shared/ColumnSettingsPopover'
-import ResetButton from '@/components/shared/ResetButton'
 import { useTranslation } from 'react-i18next'
-import { CustomerGroupModal, PercentBadge, StatusBadge, type CustomerGroup, HeaderActionsGroup, AddButton, ExportButton, TableToolbar } from '@/components/common'
+import { CustomerGroupModal, type CustomerGroup } from './components/CustomerGroupModal'
+import { PercentBadge, StatusBadge, HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
+import { CustomerGroupSearchBar } from './components/CustomerGroupSearchBar'
 import { getCustomerGroupDisplayName, getCustomerGroupDisplayDescription } from './utils/customerGroupFormatters'
 
 interface CustomerGroupsPageProps {
@@ -269,27 +270,13 @@ const CustomerGroupsPage: React.FC<CustomerGroupsPageProps> = ({ isTab = false, 
         </div>
       )}
 
-      {/* Global Standard Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-style Customer Groups Search & Filter Bar */}
+      <CustomerGroupSearchBar
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        searchPlaceholder={t('customers.searchGroups', 'Search groups...')}
+        statusFilter={statusFilter}
+        onStatusChange={(val) => { setStatusFilter(val); setPage(1); }}
         onReset={handleResetFilters}
-        leftActions={
-          <ModernSelect
-            value={statusFilter}
-            onChange={(val) => { setStatusFilter(val); setPage(1); }}
-            options={[
-              { value: 'all', label: `${t('common.status', 'Status')}: ${t('common.active', 'Active')} / ${t('common.inactive', 'Inactive')}` },
-              { value: 'active', label: t('common.active', 'Active') },
-              { value: 'inactive', label: t('common.inactive', 'Inactive') },
-              { value: 'deleted', label: t('common.archived', 'Archived') }
-            ]}
-            className="w-52"
-          />
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['customer-groups'] })}
-        refreshLoading={isFetching}
         columns={[
           { key: 'id', label: t('customers.id', 'ID') },
           { key: 'name', label: t('customers.groupName', 'Group Name') },
@@ -299,6 +286,8 @@ const CustomerGroupsPage: React.FC<CustomerGroupsPageProps> = ({ isTab = false, 
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={(cols: Record<string, boolean>) => setVisibleColumns(cols as any)}
+        selectedCount={selectedRows.length}
+        onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
       />
 
       {/* Bulk actions panel */}
@@ -424,6 +413,9 @@ const CustomerGroupsPage: React.FC<CustomerGroupsPageProps> = ({ isTab = false, 
                       {visibleColumns.actions && (
                         <td className="p-4 text-right">
                           <TableActionMenu
+                            variant="inline"
+                            buttonSize="sm"
+                            align="right"
                             onEdit={() => openEditModal(group)}
                             onDelete={() => setDeleteTarget(group)}
                           />

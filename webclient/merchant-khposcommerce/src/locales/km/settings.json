@@ -146,11 +146,10 @@
   "paper80mmDesc": "ក្រដាសកម្ដៅទូទៅសម្រាប់ម៉ាស៊ីន POS (80mm)",
   "paper58mm": "58mm ខ្នាតតូច",
   "paper58mmDesc": "ក្រដាសកម្ដៅខ្នាតតូច / POS ចល័ត (58mm)",
-  "paperWidth80mm": "ក្រដាស 80MM ស្តង់ដារ",
+  "paperWidth80mm": "ក្រដាស 80MM",
   "paperWidth58mm": "ក្រដាស 58MM ខ្នាតតូច",
   "thermalPreviewTitle": "ទិដ្ឋភាពផ្សាយផ្ទាល់នៃវិក្កយបត្រ POS",
   "saveReceiptBtn": "រក្សាទុកទម្រង់វិក្កយបត្រ",
-  "paperWidth80mm": "ក្រដាស 80MM",
   "taxRulesTitle": "ច្បាប់ពន្ធដារ",
   "unitsTitle": "ខ្នាតវាស់វែងទំនិញ",
   "locationsTitle": "គ្រប់គ្រងទីតាំងភូមិសាស្ត្រ",
@@ -456,5 +455,21 @@
     "nameRequired": "សូមបញ្ចូលឈ្មោះអ្នកប្រើប្រាស់",
     "emailRequired": "សូមបញ្ចូលអ៊ីមែល",
     "passwordRequired": "សូមបញ្ចូលពាក្យសម្ងាត់"
+  },
+  "usersSearchPlaceholder": "ស្វែងរកឈ្មោះគណនី, អ៊ីមែល, ឈ្មោះបង្ហាញ...",
+  "allRoles": "គ្រប់តួនាទី",
+  "blocked": "បានផ្អាក",
+  "branchSearchPlaceholder": "ស្វែងរកឈ្មោះសាខា, លេខកូដ, ទីក្រុង...",
+  "allLocations": "គ្រប់ទីតាំង",
+  "mainHq": "ការិយាល័យធំ (HQ)",
+  "subBranch": "សាខារង (Branch)",
+  "companySearchPlaceholder": "ស្វែងរកឈ្មោះក្រុមហ៊ុន, លេខសារពើពន្ធ, អ៊ីមែល...",
+  "locations": {
+    "phnomPenh": "រាជធានីភ្នំពេញ",
+    "siemReap": "ខេត្តសៀមរាប",
+    "battambang": "ខេត្តបាត់ដំបង",
+    "sihanoukville": "ខេត្តព្រះសីហនុ",
+    "kampot": "ខេត្តកំពត",
+    "kandal": "ខេត្តកណ្តាល"
   }
 }

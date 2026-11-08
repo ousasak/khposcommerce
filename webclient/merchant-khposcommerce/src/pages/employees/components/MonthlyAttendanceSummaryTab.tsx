@@ -3,20 +3,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Calendar,
   Clock,
-  AlertCircle,
-  Users,
   Calculator,
-  CheckCircle2,
   X,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { employeeService } from '@/services/employeeService'
 import {
-  FlattenStatCard,
-  FlattenStatsGrid,
   TableToolbar,
   TableActionMenu,
   EmptyState,
+  InlineFilterSelect,
+  ActiveFilterChips,
 } from '@/components/common'
 import TableWrapper from '@/components/shared/TableWrapper'
 import Pagination from '@/components/shared/Pagination'
@@ -24,7 +21,6 @@ import type { ColumnOption } from '@/components/shared/ColumnSettingsPopover'
 import { sound } from '@/utils/sound'
 import EmployeeAvatar from './EmployeeAvatar'
 import MonthlyEmployeeDetailDrawer from './MonthlyEmployeeDetailDrawer'
-import MonthlyAttendanceFilterDrawer from './MonthlyAttendanceFilterDrawer'
 
 const KM_MONTHS = [
   'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា',
@@ -59,7 +55,6 @@ export const MonthlyAttendanceSummaryTab: React.FC<MonthlyAttendanceSummaryTabPr
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState<FilterType>('all')
   const [departmentFilter, setDepartmentFilter] = useState<string>('all')
-  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false)
   const [drawerEmployee, setDrawerEmployee] = useState<any | null>(null)
 
   // Pagination
@@ -283,53 +278,7 @@ export const MonthlyAttendanceSummaryTab: React.FC<MonthlyAttendanceSummaryTabPr
 
   return (
     <div className="space-y-4">
-      {/* ─── 1. Flutter 3 Flatten Style KPI Summary Cards ─── */}
-      <FlattenStatsGrid columns={4} className="print:hidden">
-        {/* Card 1: Total Staff (Flatten Teal Box) */}
-        <FlattenStatCard
-          title={t('employees.total_staff', 'Total Staff')}
-          value={rawItems.length}
-          useCounter={true}
-          icon={Users}
-          color="teal"
-          delay={0.02}
-        />
-
-        {/* Card 2: Attendance Rate (Flatten Emerald Box) */}
-        <FlattenStatCard
-          title={t('employees.avg_attendance_rate', 'Average Attendance Rate')}
-          value={metrics.avgRate}
-          suffix="%"
-          decimals={1}
-          useCounter={true}
-          icon={CheckCircle2}
-          color="emerald"
-          delay={0.06}
-        />
-
-        {/* Card 3: Late Incidents (Flatten Amber Box) */}
-        <FlattenStatCard
-          title={t('employees.total_late_incidents', 'Total Late')}
-          value={metrics.totalLate}
-          useCounter={true}
-          icon={AlertCircle}
-          color="amber"
-          delay={0.1}
-        />
-
-        {/* Card 4: Overtime Hours (Flatten Cyan Box) */}
-        <FlattenStatCard
-          title={t('employees.total_overtime', 'Total Overtime')}
-          value={metrics.totalOt}
-          suffix="h"
-          useCounter={true}
-          icon={Clock}
-          color="cyan"
-          delay={0.14}
-        />
-      </FlattenStatsGrid>
-
-      {/* ─── 2. Global Standard Table Toolbar ─── */}
+      {/* ─── Global Standard Table Toolbar with 1-Click Inline Filters ─── */}
       <TableToolbar
         search={searchQuery}
         onSearchChange={(val) => {
@@ -337,9 +286,60 @@ export const MonthlyAttendanceSummaryTab: React.FC<MonthlyAttendanceSummaryTabPr
           setPage(1)
         }}
         searchPlaceholder={t('employees.search_employee_short', 'Search employee...')}
-        onFilterClick={() => setIsFilterDrawerOpen(true)}
+        filters={
+          <>
+            {/* Inline Month Picker Input */}
+            <div className="relative inline-flex items-center">
+              <input
+                type="month"
+                value={periodMonth}
+                onChange={(e) => {
+                  sound.playClick()
+                  onMonthChange(e.target.value)
+                  setPage(1)
+                }}
+                className="h-10 min-h-[40px] max-h-[40px] px-3 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-700 bg-card dark:bg-slate-900 text-foreground dark:text-slate-100 hover:border-slate-400 dark:hover:border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all shadow-2xs cursor-pointer"
+                title={t('employees.select_month', 'Select Month')}
+              />
+            </div>
+
+            {/* Inline Filter Category Select (All, Regular, Late, Overtime, Absent) */}
+            <InlineFilterSelect
+              label={t('employees.attendance_category', 'Category')}
+              value={activeFilter === 'all' ? '' : activeFilter}
+              onChange={(val) => {
+                setActiveFilter((val as FilterType) || 'all')
+                setPage(1)
+              }}
+              allLabel={t('employees.all_records', 'All Records')}
+              options={[
+                { value: 'regular', label: `${t('employees.regular_attendance', 'Regular')} (${filterCounts.regular})` },
+                { value: 'late', label: `${t('employees.late_attendance', 'Late')} (${filterCounts.late})` },
+                { value: 'overtime', label: `${t('employees.overtime_records', 'Overtime')} (${filterCounts.overtime})` },
+                { value: 'absent', label: `${t('employees.absent_records', 'Absent')} (${filterCounts.absent})` },
+              ]}
+              widthClassName="w-auto min-w-[150px]"
+            />
+
+            {/* Inline Department Select */}
+            <InlineFilterSelect
+              label={t('employees.department', 'Department')}
+              value={departmentFilter === 'all' ? '' : departmentFilter}
+              onChange={(val) => {
+                setDepartmentFilter(val || 'all')
+                setPage(1)
+              }}
+              allLabel={t('employees.all_departments', 'All Departments')}
+              options={departmentsList.map((dept) => ({
+                value: dept,
+                label: dept,
+              }))}
+              widthClassName="w-auto min-w-[140px]"
+            />
+          </>
+        }
+        hideFilterButton={true}
         isFilterActive={activeFiltersCount > 0}
-        filterActiveCount={activeFiltersCount}
         onReset={handleResetAllFilters}
         hideResetButton={activeFiltersCount === 0 && !searchQuery}
         onRefresh={() => {
@@ -353,84 +353,61 @@ export const MonthlyAttendanceSummaryTab: React.FC<MonthlyAttendanceSummaryTabPr
         columnSettingsTitle={t('employees.columns_visibility', 'Column Visibility')}
       />
 
-      {/* ─── 3. Active Filter Indicator Chips ─── */}
-      {activeFiltersCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-1 text-xs animate-in fade-in duration-200">
-          <span className="text-muted-foreground font-medium">{t('common.activeFilters', 'Active Filters')}:</span>
-
-          {/* Month Filter Chip */}
-          {periodMonth !== currentMonthStr && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-medium border border-primary/25">
-              <Calendar size={12} />
-              <span>{monthDisplayLabel}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick()
-                  onMonthChange(currentMonthStr)
-                  setPage(1)
-                }}
-                className="hover:bg-primary/20 rounded-full p-0.5 transition-colors cursor-pointer"
-                title={t('employees.reset_to_this_month', 'Reset to this month')}
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {/* Category Filter Chip */}
-          {activeFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-foreground font-medium border border-border">
-              <span>
-                {activeFilter === 'regular'
-                  ? t('employees.regular_filter', 'Regular (≥90%)')
-                  : activeFilter === 'late'
-                  ? t('employees.late_filter', 'Late Arrivals')
-                  : activeFilter === 'overtime'
-                  ? t('employees.overtime_filter', 'Overtime')
-                  : t('employees.absent_filter', 'Absent')}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick()
-                  setActiveFilter('all')
-                  setPage(1)
-                }}
-                className="hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          {/* Department Filter Chip */}
-          {departmentFilter !== 'all' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-foreground font-medium border border-border">
-              <span>{t('employees.department', 'Department')}: {departmentFilter}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playClick()
-                  setDepartmentFilter('all')
-                  setPage(1)
-                }}
-                className="hover:bg-muted-foreground/20 rounded-full p-0.5 transition-colors cursor-pointer"
-              >
-                <X size={11} />
-              </button>
-            </span>
-          )}
-
-          <button
-            type="button"
-            onClick={handleResetAllFilters}
-            className="text-xs text-muted-foreground hover:text-foreground underline ml-1 cursor-pointer"
-          >
-            {t('common.clearAll', 'Clear All')}
-          </button>
-        </div>
-      )}
+      {/* ─── 3. Active Filter Indicator Chips (1-Click Removal & Clear All) ─── */}
+      <ActiveFilterChips
+        items={[
+          ...(periodMonth !== currentMonthStr
+            ? [
+                {
+                  key: 'month',
+                  label: t('employees.month', 'Month'),
+                  value: periodMonth,
+                  displayValue: monthDisplayLabel,
+                  icon: <Calendar size={12} />,
+                  onRemove: () => {
+                    onMonthChange(currentMonthStr)
+                    setPage(1)
+                  },
+                },
+              ]
+            : []),
+          ...(activeFilter !== 'all'
+            ? [
+                {
+                  key: 'category',
+                  label: t('employees.category', 'Category'),
+                  value: activeFilter,
+                  displayValue:
+                    activeFilter === 'regular'
+                      ? t('employees.regular_filter', 'Regular (≥90%)')
+                      : activeFilter === 'late'
+                      ? t('employees.late_filter', 'Late Arrivals')
+                      : activeFilter === 'overtime'
+                      ? t('employees.overtime_filter', 'Overtime')
+                      : t('employees.absent_filter', 'Absent'),
+                  onRemove: () => {
+                    setActiveFilter('all')
+                    setPage(1)
+                  },
+                },
+              ]
+            : []),
+          ...(departmentFilter !== 'all'
+            ? [
+                {
+                  key: 'department',
+                  label: t('employees.department', 'Department'),
+                  value: departmentFilter,
+                  onRemove: () => {
+                    setDepartmentFilter('all')
+                    setPage(1)
+                  },
+                },
+              ]
+            : []),
+        ]}
+        onClearAll={handleResetAllFilters}
+      />
 
       {/* ─── 4. Standard TableWrapper & Data Table ─── */}
       <TableWrapper isFetching={isLoading}>
@@ -653,30 +630,6 @@ export const MonthlyAttendanceSummaryTab: React.FC<MonthlyAttendanceSummaryTabPr
         employeeSummary={drawerEmployee}
         periodMonth={periodMonth}
         getPhotoUrl={getPhotoUrl}
-      />
-
-      {/* ─── 7. Harmonized Advanced Filter Drawer ─── */}
-      <MonthlyAttendanceFilterDrawer
-        isOpen={isFilterDrawerOpen}
-        onClose={() => setIsFilterDrawerOpen(false)}
-        onReset={handleResetAllFilters}
-        periodMonth={periodMonth}
-        onMonthChange={(newMonth) => {
-          onMonthChange(newMonth)
-          setPage(1)
-        }}
-        activeFilter={activeFilter}
-        setActiveFilter={(newFilter) => {
-          setActiveFilter(newFilter)
-          setPage(1)
-        }}
-        departmentFilter={departmentFilter}
-        setDepartmentFilter={(newDept) => {
-          setDepartmentFilter(newDept)
-          setPage(1)
-        }}
-        departmentsList={departmentsList}
-        filterCounts={filterCounts}
       />
     </div>
   )

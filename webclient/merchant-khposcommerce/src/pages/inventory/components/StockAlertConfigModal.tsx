@@ -271,7 +271,7 @@ export const StockAlertConfigModal: React.FC<StockAlertConfigModalProps> = ({
                       type="text"
                       value={chatId}
                       onChange={e => setChatId(e.target.value)}
-                      placeholder="-1001234567890 ឬ 987654321"
+                      placeholder={t('inventory.telegramChatIdPlaceholder', '-1001234567890 or 987654321')}
                       className="w-full pl-8 pr-3 py-2 text-xs font-mono bg-card border border-border/80 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none transition-all"
                     />
                   </div>

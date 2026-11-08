@@ -2,24 +2,99 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Package, Clock, Users, ArrowUpRight } from 'lucide-react'
-import { FlattenCard } from '@/components/common/cards'
-import StatusBadge from '@/components/common/badges/StatusBadge'
+import { FlattenCard, StatusBadge } from '@/components/common'
 import { formatCurrency } from '@/utils/formatters'
 
 interface DashboardRow3Props {
   topProducts: any[]
   recentOrders: any[]
   latestCustomers?: any[]
+  isLoading?: boolean
 }
 
 export const DashboardRow3: React.FC<DashboardRow3Props> = ({
   topProducts,
   recentOrders,
   latestCustomers,
+  isLoading,
 }) => {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const locale = i18n.language === 'km' ? 'km-KH' : 'en-US'
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Skeleton Top Products */}
+        <FlattenCard
+          title={
+            <span className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-blue-500" />
+              <span>{t('dashboard.bestSellingProduct')}</span>
+            </span>
+          }
+        >
+          <div className="space-y-3.5 animate-pulse">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-4 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="h-3.5 w-32 bg-muted rounded" />
+                  <div className="h-2.5 w-16 bg-muted/70 rounded" />
+                </div>
+                <div className="space-y-1 text-right shrink-0">
+                  <div className="h-3.5 w-16 bg-muted rounded ml-auto" />
+                  <div className="h-2.5 w-10 bg-muted/70 rounded ml-auto" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </FlattenCard>
+
+        {/* Skeleton Recent Orders */}
+        <FlattenCard
+          title={
+            <span className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-emerald-500" />
+              <span>{t('dashboard.pendingOrders')}</span>
+            </span>
+          }
+        >
+          <div className="space-y-3.5 animate-pulse">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                <div className="h-3.5 w-14 bg-muted rounded" />
+                <div className="h-3.5 w-24 bg-muted rounded" />
+                <div className="h-3.5 w-16 bg-muted rounded" />
+                <div className="h-5 w-16 bg-muted rounded-full" />
+              </div>
+            ))}
+          </div>
+        </FlattenCard>
+
+        {/* Skeleton Latest Customers */}
+        <FlattenCard
+          title={
+            <span className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-purple-500" />
+              <span>{t('dashboard.latestCustomers')}</span>
+            </span>
+          }
+        >
+          <div className="space-y-3.5 animate-pulse">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-4 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="h-3.5 w-28 bg-muted rounded" />
+                  <div className="h-2.5 w-20 bg-muted/70 rounded" />
+                </div>
+                <div className="h-5 w-16 bg-muted rounded-full shrink-0" />
+              </div>
+            ))}
+          </div>
+        </FlattenCard>
+      </div>
+    )
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

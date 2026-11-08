@@ -15,11 +15,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/common/forms/Input'
+import { Input, FieldLabel, FieldError } from '@/components/common'
 import { Textarea } from '@/components/ui/textarea'
-import { FieldLabel, FieldError } from '@/components/common/forms/FormField'
-import ToggleSwitch from '@/components/common/ToggleSwitch'
-
+import { ToggleSwitch } from '@/components/common'
 interface CreateNotificationModalProps {
   open: boolean
   onClose: () => void

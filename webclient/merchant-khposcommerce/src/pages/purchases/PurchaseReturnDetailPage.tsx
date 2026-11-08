@@ -11,9 +11,9 @@ import {
 
 import { purchaseService } from '@/services/purchaseService'
 import { useToast } from '@/hooks/useToast'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import FormHeader, { FormHeaderButton } from '@/components/common/FormHeader'
-import LoadingSpinner from '@/components/common/LoadingSpinner'
+import { Breadcrumb } from '@/components/common'
+import { FormHeader, FormHeaderButton } from '@/components/common'
+import { LoadingSpinner } from '@/components/common'
 import { EnterpriseModal, ModalFooter } from '@/components/common'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { RETURN_STATUS_BADGE, REFUND_STATUS_BADGE, type PurchaseReturn } from './types/purchaseReturn.types'

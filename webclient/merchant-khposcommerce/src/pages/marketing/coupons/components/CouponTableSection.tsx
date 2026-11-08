@@ -2,9 +2,8 @@ import React from 'react'
 import { Copy, QrCode, Printer, Store, Globe, Layers, Barcode } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge, EmptyState } from '@/components/common'
 import type { Coupon } from '../types'
 
 interface CouponTableSectionProps {

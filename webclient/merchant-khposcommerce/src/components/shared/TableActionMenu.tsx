@@ -19,6 +19,8 @@ export type TableActionVariant =
   | 'primary'
   | 'edit'
 
+export type TableActionEditColor = 'blue' | 'amber' | 'teal' | 'indigo' | 'emerald'
+
 export interface TableActionItem {
   label: string
   icon?: React.ComponentType<{ size?: number; className?: string }> | React.ReactNode
@@ -26,6 +28,7 @@ export interface TableActionItem {
   variant?: TableActionVariant
   disabled?: boolean
   hidden?: boolean
+  className?: string
 }
 
 export interface TableActionMenuProps {
@@ -52,6 +55,8 @@ export interface TableActionMenuProps {
   maxInline?: number
   /** Button sizing for inline mode (default: 'md') */
   buttonSize?: 'sm' | 'md'
+  /** Custom accent color for edit action button (default: 'blue') */
+  editColor?: TableActionEditColor
 }
 
 export const TableActionMenu: React.FC<TableActionMenuProps> = ({
@@ -70,6 +75,7 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
   variant = 'dropdown',
   maxInline = 2,
   buttonSize = 'md',
+  editColor = 'blue',
 }) => {
   const { t } = useTranslation(['common', 'buttons', 'inventory', 'purchases'])
 
@@ -144,7 +150,7 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
       label: resolvedEditLabel,
       icon: Edit2,
       onClick: onEdit,
-      variant: 'default',
+      variant: 'edit',
     })
   }
 
@@ -161,8 +167,10 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
     if (item.variant && item.variant !== 'default') {
       return item.variant
     }
-    // Auto-detect only dangerous/delete actions
+    // Auto-detect dangerous/delete actions
     if (item.icon === Trash2 || /delete|remove|លុប/i.test(item.label)) return 'danger'
+    // Auto-detect edit/modify actions
+    if (item.icon === Edit2 || /edit|update|modify|កែប្រែ|កែ/i.test(item.label)) return 'edit'
     return 'default'
   }
 
@@ -178,26 +186,43 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
     const isWarning = itemVariant === 'warning'
     const isSuccess = itemVariant === 'success'
 
-    // Modern clean enterprise styling
+    const editColorClasses: Record<TableActionEditColor, string> = {
+      blue:
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/60 dark:hover:bg-blue-950/20',
+      amber:
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 hover:border-amber-300 dark:hover:border-amber-800 hover:bg-amber-50/60 dark:hover:bg-amber-950/20',
+      teal:
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 hover:border-teal-300 dark:hover:border-teal-800 hover:bg-teal-50/60 dark:hover:bg-teal-950/20',
+      indigo:
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-800 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20',
+      emerald:
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/20',
+    }
+
+    // SmartHR-style white card action button with clean soft drop shadow
     let colorClasses =
-      'border-border/80 bg-background hover:bg-accent hover:text-accent-foreground text-muted-foreground'
+      'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
 
     if (isDanger) {
       colorClasses =
-        'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 hover:border-destructive/50'
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 hover:border-rose-300 dark:hover:border-rose-700 hover:bg-rose-50/60 dark:hover:bg-rose-950/20'
+    } else if (itemVariant === 'edit') {
+      colorClasses = editColorClasses[editColor] || editColorClasses.blue
     } else if (isWarning) {
       colorClasses =
-        'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/50'
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:border-amber-300 hover:bg-amber-50/50'
     } else if (isSuccess) {
       colorClasses =
-        'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/50'
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50/50'
     } else if (itemVariant === 'primary' || itemVariant === 'info') {
       colorClasses =
-        'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/50'
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-primary hover:text-primary/90 hover:border-primary/40 hover:bg-primary/5'
     }
 
     const sizeClasses =
-      buttonSize === 'sm' ? 'h-7 w-7 rounded-lg' : 'h-8 w-8 rounded-lg'
+      buttonSize === 'sm'
+        ? 'h-7 w-7 min-w-[28px] min-h-[28px] rounded-md'
+        : 'h-8 w-8 min-w-[32px] min-h-[32px] rounded-lg'
     const iconDimension = buttonSize === 'sm' ? 13 : 14
 
     return (
@@ -212,15 +237,19 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
           item.onClick()
         }}
         className={cn(
-          'inline-flex items-center justify-center border transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none',
+          'inline-flex items-center justify-center border font-medium cursor-pointer select-none transition-all duration-150',
+          // SmartHR soft drop shadow
+          'shadow-[0_1px_2px_rgba(0,0,0,0.06),0_1px_1px_rgba(0,0,0,0.03)] hover:shadow-[0_3px_6px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 active:translate-y-0 active:scale-95 active:shadow-2xs',
+          'disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none disabled:transform-none disabled:shadow-none',
           sizeClasses,
-          colorClasses
+          colorClasses,
+          item.className
         )}
       >
         {React.isValidElement(item.icon) ? (
           item.icon
         ) : Icon ? (
-          <Icon size={iconDimension} className="shrink-0" />
+          <Icon size={iconDimension} className="shrink-0 stroke-[1.9]" />
         ) : null}
       </button>
     )
@@ -256,7 +285,7 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg border border-border/80 bg-background hover:bg-accent text-muted-foreground hover:text-foreground flex items-center justify-center transition-all shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring/40 active:scale-95"
+              className="h-8 w-8 min-w-[32px] min-h-[32px] rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-all duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.06),0_1px_1px_rgba(0,0,0,0.03)] hover:shadow-[0_3px_6px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 active:translate-y-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 active:scale-95"
               aria-label="Actions menu"
               title={t('common.actions', 'More Actions')}
             >
@@ -284,6 +313,7 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
                   className={cn(
                     'flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold cursor-pointer rounded-lg',
                     isDanger && 'text-destructive focus:bg-destructive/10 focus:text-destructive',
+                    itemVariant === 'edit' && 'text-blue-600 dark:text-blue-400 focus:bg-blue-500/10 focus:text-blue-600',
                     itemVariant === 'success' && 'text-emerald-600 dark:text-emerald-400 focus:bg-emerald-500/10',
                     itemVariant === 'warning' && 'text-amber-600 dark:text-amber-400 focus:bg-amber-500/10',
                     (itemVariant === 'primary' || itemVariant === 'info') && 'text-primary focus:bg-primary/10'

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ModalHeader } from '@/components/common/ModalHeader'
+import { ModalHeader, EmptyState, ResetButton } from '@/components/common'
 import { 
   Plus, Edit2, Trash2, X, Percent, ToggleLeft, ToggleRight, Loader2, 
   ChevronUp, ChevronDown, Download, Upload, Trash, RefreshCw, AlertCircle, Settings,
@@ -16,13 +16,11 @@ import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
-import EmptyState from '@/components/shared/EmptyState'
-import PageHeader from '@/components/common/PageHeader'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog'
+import { PageHeader } from '@/components/common'
+import { Breadcrumb } from '@/components/common'
+import { DeleteConfirmDialog } from '@/components/common'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import { FieldError, getFieldClass } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { useTranslation } from 'react-i18next'
@@ -72,7 +70,6 @@ const TaxesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTax, setEditingTax] = useState<Tax | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Tax | null>(null)
-  const [recycleBinMode, setRecycleBinMode] = useState(false)
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -123,14 +120,14 @@ const TaxesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
 
   // Query
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['taxes', page, debouncedSearch, perPage, sortBy, sortOrder, recycleBinMode, statusFilter],
+    queryKey: ['taxes', page, debouncedSearch, perPage, sortBy, sortOrder, statusFilter],
     queryFn: () => taxService.list({ 
       page, 
       search: debouncedSearch, 
       per_page: perPage, 
       sort_by: sortBy, 
       sort_order: sortOrder,
-      status: recycleBinMode ? 'deleted' : (statusFilter !== 'all' ? statusFilter : undefined)
+      status: statusFilter !== 'all' ? statusFilter : undefined
     }),
     placeholderData: (prev) => prev,
   })
@@ -165,30 +162,6 @@ const TaxesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => taxService.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['taxes'] })
-      toast.success(t('toast.deleted'))
-      setDeleteTarget(null)
-      adjustAfterDelete(taxes.length)
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const restoreMutation = useMutation({
-    mutationFn: (id: number) => taxService.restore(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['taxes'] })
-      toast.success(t('toast.restored'))
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const forceDeleteMutation = useMutation({
-    mutationFn: (id: number) => taxService.forceDelete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['taxes'] })
       toast.success(t('toast.deleted'))
@@ -402,7 +375,6 @@ const TaxesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
           setSortBy('created_at')
           setSortOrder('desc')
           setPage(1)
-          setRecycleBinMode(false)
           setSelectedRows([])
         }}
         leftActions={
@@ -764,15 +736,11 @@ const TaxesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
         cancelText="common.cancel"
         onConfirm={() => {
           if (deleteTarget) {
-            if (recycleBinMode) {
-              forceDeleteMutation.mutate(deleteTarget.id)
-            } else {
-              deleteMutation.mutate(deleteTarget.id)
-            }
+            deleteMutation.mutate(deleteTarget.id)
           }
         }}
         onCancel={() => setDeleteTarget(null)}
-        loading={deleteMutation.isPending || forceDeleteMutation.isPending}
+        loading={deleteMutation.isPending}
       />
 
       {/* Bulk Delete Confirmation Dialog */}

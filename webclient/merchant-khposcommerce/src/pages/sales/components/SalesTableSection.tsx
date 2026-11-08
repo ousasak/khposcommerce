@@ -2,15 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowUp, ArrowDown, ArrowUpDown, RotateCcw } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
-import {
-  TableWrapper,
-  LoadingSkeleton,
-  EmptyState,
-  StatusBadge,
-  ProductThumbnail,
-  AvatarImage,
-  TableActionMenu,
-} from '@/components/common'
+import { TableWrapper, LoadingSkeleton, EmptyState, StatusBadge, ProductThumbnail, AvatarImage, TableActionMenu } from '@/components/common'
 import type { Sale } from './SalesReceiptModal'
 import { formatCurrency } from '@/utils/formatters'
 

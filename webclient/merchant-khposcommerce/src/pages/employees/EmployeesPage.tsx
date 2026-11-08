@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams, useNavigate, Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
 import {
@@ -16,25 +16,15 @@ import { sound } from '@/utils/sound'
 import { downloadCsv } from '@/utils/export'
 import Pagination from '@/components/shared/Pagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import Breadcrumb from '@/components/common/Breadcrumb'
-import {
-  HeaderActionsGroup,
-  AddButton,
-  ActionButton,
-  ExportButton,
-  ImportButton,
-  QrKioskButton,
-  TableToolbar,
-} from '@/components/common'
+import { Breadcrumb, ResetButton } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ActionButton, ExportButton, ImportButton, QrKioskButton, TableToolbar } from '@/components/common'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { usePageTab } from '@/hooks/usePageTab'
 import { getAbsoluteImageUrl } from '@/utils/image'
-import ResetButton from '@/components/shared/ResetButton'
 import ColumnSettingsPopover from '@/components/shared/ColumnSettingsPopover'
 import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
 import ShiftsTab from './components/ShiftsTab'
 import LeaveRequestsTab from './components/LeaveRequestsTab'
-import HolidaysTab from './components/HolidaysTab'
 import AutoGeneratePayrollModal from './components/AutoGeneratePayrollModal'
 import AbaBulkExportModal from './components/AbaBulkExportModal'
 import PayslipModal from './components/PayslipModal'
@@ -43,7 +33,7 @@ import AttendanceDetailModal from './components/AttendanceDetailModal'
 import MonthlyAttendanceSummaryTab from './components/MonthlyAttendanceSummaryTab'
 import AttendanceManagementSection, { type AttendanceSubView } from './components/AttendanceManagementSection'
 import { EmployeeStatsCards } from './components/EmployeeStatsCards'
-import { EmployeeFilterDrawer } from './components/EmployeeFilterDrawer'
+import { EmployeeSearchBar } from './components/EmployeeSearchBar'
 import { EmployeeDetailDrawer } from './components/EmployeeDetailDrawer'
 import { EmployeeFormModal } from './components/EmployeeFormModal'
 import { EmployeeImportModal } from './components/EmployeeImportModal'
@@ -72,7 +62,6 @@ const EmployeesPage: React.FC = () => {
   const canCreateLeave = hasPermission('leave_request.create')
   const canExportLeave = hasPermission(['leave_request.export', 'leave_request.view'])
 
-  const canCreateHoliday = hasPermission('holiday.create')
   const canCreateDepartment = hasPermission('department.create')
   const canCreatePosition = hasPermission('position.create')
 
@@ -80,7 +69,7 @@ const EmployeesPage: React.FC = () => {
   const [activeTab, setPageActiveTab] = usePageTab<Tab>({
     storageKey: 'employees_active_tab',
     defaultTab: 'employees',
-    validTabs: ['employees', 'departments', 'positions', 'attendance', 'payrolls', 'leaves', 'holidays'],
+    validTabs: ['employees', 'departments', 'positions', 'attendance', 'payrolls', 'leaves'],
     transform: (raw) => (raw === 'org' ? 'departments' : (raw as Tab)),
   })
   const setActiveTab = (tab: Tab) => {
@@ -119,7 +108,6 @@ const EmployeesPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   // Additional Filter States
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [filterBranchId, setFilterBranchId] = useState('')
   const [filterDeptId, setFilterDeptId] = useState('')
   const [filterPosId, setFilterPosId] = useState('')
@@ -178,10 +166,9 @@ const EmployeesPage: React.FC = () => {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
 
-  // Attendance & Leaves & Holidays Header Actions State
+  // Attendance & Leaves Header Actions State
   const [attendanceQuickModalOpen, setAttendanceQuickModalOpen] = useState(false)
   const [leaveCreateModalOpen, setLeaveCreateModalOpen] = useState(false)
-  const [holidayCreateModalOpen, setHolidayCreateModalOpen] = useState(false)
   const [exportingAttendance, setExportingAttendance] = useState(false)
 
   const handleExportAttendanceCsv = async (range: string = 'all') => {
@@ -491,6 +478,8 @@ const EmployeesPage: React.FC = () => {
             return employeeService.attendance({ per_page: 500 })
           case 'payrolls':
             return employeeService.payrolls({ per_page: 500 })
+          case 'leaves':
+            return employeeService.leaveRequests({ per_page: 500 })
           case 'employees':
           default:
             return employeeService.list({ per_page: 500 })
@@ -570,6 +559,25 @@ const EmployeesPage: React.FC = () => {
           Number(pay.tax_deduction || 0).toFixed(2),
           Number(pay.net_salary || 0).toFixed(2),
           pay.status,
+        ])
+      } else if (activeTab === 'leaves') {
+        headers = [
+          t('employees.employee', 'Employee'),
+          t('employees.leave_type', 'Leave Type'),
+          t('employees.start_date', 'From Date'),
+          t('employees.end_date', 'To Date'),
+          t('employees.total_days', 'Total Days'),
+          t('employees.reason', 'Reason'),
+          t('employees.approval_status', 'Approval Status'),
+        ]
+        rows = exportRecords.map((leave: any) => [
+          leave.employee?.name || `Employee #${leave.employee_id}`,
+          leave.leave_type || '',
+          leave.start_date ? leave.start_date.split('T')[0] : '',
+          leave.end_date ? leave.end_date.split('T')[0] : '',
+          leave.total_days ?? 1,
+          leave.reason || '',
+          leave.status || 'pending',
         ])
       } else {
         headers = [
@@ -947,8 +955,6 @@ const EmployeesPage: React.FC = () => {
 
   const pageTitle = useMemo(() => {
     switch (activeTab) {
-      case 'holidays':
-        return t('nav.holidays', 'Public Holidays')
       case 'attendance':
         return t('nav.attendanceManagement', 'Attendance & Shifts')
       case 'leaves':
@@ -966,8 +972,6 @@ const EmployeesPage: React.FC = () => {
 
   const pageSubtitle = useMemo(() => {
     switch (activeTab) {
-      case 'holidays':
-        return t('employees.holidays_subtitle', 'Manage company holiday calendar, national holidays, and annual observed non-working days')
       case 'attendance':
         return t('employees.attendanceSubtitle', 'Track check-in/out logs, overtime hours, and daily shift rosters in real time')
       case 'leaves':
@@ -985,8 +989,6 @@ const EmployeesPage: React.FC = () => {
 
   const badgeText = useMemo(() => {
     switch (activeTab) {
-      case 'holidays':
-        return t('employees.total_holidays', 'Total Holidays')
       case 'attendance':
         return t('employees.todayAttendance', 'Today Attendance')
       case 'leaves':
@@ -1006,8 +1008,6 @@ const EmployeesPage: React.FC = () => {
   const breadcrumbItems = useMemo(() => {
     const root = { label: t('nav.employeeManagement', 'Employee Management'), path: '/employees' }
     switch (activeTab) {
-      case 'holidays':
-        return [root, { label: t('nav.holidays', 'Public Holidays') }]
       case 'attendance':
         return [root, { label: t('nav.attendanceManagement', 'Attendance & Shifts') }]
       case 'leaves':
@@ -1026,6 +1026,10 @@ const EmployeesPage: React.FC = () => {
         return [root, { label: t('nav.employeeDirectory', 'Employee Directory') }]
     }
   }, [activeTab, t])
+
+  if (activeTab === 'payrolls') {
+    return <Navigate to="/payroll" replace />
+  }
 
   return (
     <div className="space-y-5 print:p-0">
@@ -1076,27 +1080,6 @@ const EmployeesPage: React.FC = () => {
         </div>
 
         <HeaderActionsGroup>
-          {activeTab === 'payrolls' && (
-            <>
-              {canCreatePayroll && (
-                <AddButton
-                  onClick={() => setAutoPayrollModalOpen(true)}
-                  icon={<Calculator size={15} />}
-                  label={t('employees.auto_generate_payroll', 'Auto-Generate')}
-                />
-              )}
-
-              {canExportPayroll && (
-                <ActionButton
-                  onClick={handleExportAbaBulk}
-                  icon={<Landmark size={15} className="text-emerald-600 dark:text-emerald-400" />}
-                  label={t('employees.export_aba_bulk', 'ABA Bulk CSV')}
-                  title="Export ABA Bank Corporate CSV"
-                />
-              )}
-            </>
-          )}
-
           {activeTab === 'employees' && (
             <>
               {canImportEmployee && (
@@ -1216,20 +1199,11 @@ const EmployeesPage: React.FC = () => {
             </>
           )}
 
-          {activeTab === 'holidays' && canCreateHoliday && (
-            <AddButton
-              onClick={() => setHolidayCreateModalOpen(true)}
-              label={t('employees.add_holiday', 'Add Holiday')}
-            />
-          )}
-
-          {activeTab !== 'leaves' && activeTab !== 'attendance' && activeTab !== 'holidays' && canCreateCurrentTab && (
+          {activeTab !== 'leaves' && activeTab !== 'attendance' && canCreateCurrentTab && (
             <AddButton
               onClick={() => openCreateModal()}
               label={
-                activeTab === 'payrolls'
-                  ? t('employees.add_payroll_title', 'Add Payroll Slip')
-                  : activeTab === 'departments'
+                activeTab === 'departments'
                   ? t('employees.add_department', 'Add Department')
                   : activeTab === 'positions'
                   ? t('employees.add_position', 'Add Position')
@@ -1270,12 +1244,7 @@ const EmployeesPage: React.FC = () => {
       )}
 
       {/* RENDER ACTIVE TAB CONTENT */}
-      {activeTab === 'holidays' ? (
-        <HolidaysTab
-          createModalOpen={holidayCreateModalOpen}
-          setCreateModalOpen={setHolidayCreateModalOpen}
-        />
-      ) : activeTab === 'leaves' ? (
+      {activeTab === 'leaves' ? (
         <LeaveRequestsTab
           createModalOpen={leaveCreateModalOpen}
           setCreateModalOpen={setLeaveCreateModalOpen}
@@ -1314,34 +1283,11 @@ const EmployeesPage: React.FC = () => {
             deleteLoading={bulkDeleteMutation.isPending}
           />
 
-          {/* ─── Global Standard Table Toolbar ─── */}
-          <TableToolbar
+          {/* ─── SmartHR Inline Employee Search & Filter Bar (No Drawer) ─── */}
+          <EmployeeSearchBar
+            activeTab={activeTab}
             search={search}
             onSearchChange={(val) => { setSearch(val); setPage(1); }}
-            searchPlaceholder={t('employees.search_placeholder', 'Search employee name, email, phone, role...')}
-            onFilterClick={() => setFilterDrawerOpen(true)}
-            isFilterActive={activeFiltersCount > 0}
-            filterActiveCount={activeFiltersCount}
-            onReset={handleResetFilters}
-            hideResetButton={activeFiltersCount === 0 && !search}
-            onRefresh={() => qc.invalidateQueries({ queryKey: [activeTab] })}
-            refreshLoading={isFetching}
-            columns={currentColumns}
-            visibleColumns={visibleColumns}
-            defaultVisibleColumns={INITIAL_VISIBLE_COLUMNS_MAP[activeTab]}
-            onColumnChange={(updated) =>
-              setVisibleColumnsMap((prev) => ({
-                ...prev,
-                [activeTab]: updated,
-              }))
-            }
-            columnSettingsTitle={t('employees.columns_visibility', t('common.columnsVisibility', 'Column Visibility'))}
-          />
-
-          {/* Advanced Filter Drawer */}
-          <EmployeeFilterDrawer
-            isOpen={filterDrawerOpen}
-            onClose={() => setFilterDrawerOpen(false)}
             branchesList={branchesList}
             deptList={deptList}
             posList={posList}
@@ -1355,17 +1301,23 @@ const EmployeesPage: React.FC = () => {
             setFilterRole={setFilterRole}
             filterStatus={filterStatus}
             setFilterStatus={setFilterStatus}
-            filterGender={filterGender}
-            setFilterGender={setFilterGender}
-            filterDateStart={filterDateStart}
-            setFilterDateStart={setFilterDateStart}
-            filterDateEnd={filterDateEnd}
-            setFilterDateEnd={setFilterDateEnd}
-            filterSalaryMin={filterSalaryMin}
-            setFilterSalaryMin={setFilterSalaryMin}
-            filterSalaryMax={filterSalaryMax}
-            setFilterSalaryMax={setFilterSalaryMax}
+            onApply={() => {
+              setPage(1)
+              qc.invalidateQueries({ queryKey: [activeTab] })
+            }}
             onReset={handleResetFilters}
+            columns={currentColumns}
+            visibleColumns={visibleColumns}
+            defaultVisibleColumns={INITIAL_VISIBLE_COLUMNS_MAP[activeTab]}
+            onColumnChange={(updated) =>
+              setVisibleColumnsMap((prev) => ({
+                ...prev,
+                [activeTab]: updated,
+              }))
+            }
+            columnSettingsTitle={t('employees.columns_visibility', t('common.columnsVisibility', 'Column Visibility'))}
+            selectedCount={selectedRows.length}
+            onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
           />
 
           {/* Table Section */}

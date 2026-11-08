@@ -81,5 +81,9 @@
   "button.saving": "កំពុងរក្សាទុក...",
   "button.livePreview": "មើលគំរូផ្ទាល់",
   "button.quickAdd": "បន្ថែមរហ័ស",
-  "buttons.export": "នាំចេញ"
+  "buttons.export": "នាំចេញ",
+  "applyFilters": "អនុវត្តតម្រង",
+  "resetAllFilters": "កំណត់ឡើងវិញទាំងអស់",
+  "deleteSelected": "លុបដែលបានជ្រើស",
+  "deleteSelectedCount": "លុបដែលបានជ្រើស ({{count}})"
 }

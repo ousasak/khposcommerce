@@ -6,15 +6,7 @@ import {
   Truck, Wallet, Package, CreditCard, ExternalLink,
   CheckCircle
 } from 'lucide-react'
-import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerBody,
-  DetailDrawerFooter,
-  DetailDrawerCard,
-  DetailDrawerRow,
-  ActionButton,
-} from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, ActionButton } from '@/components/common'
 import { RETURN_STATUS_BADGE, REFUND_STATUS_BADGE, type PurchaseReturn } from '../types/purchaseReturn.types'
 import { formatCurrency } from '../utils/purchaseCurrency'
 import { PurchaseReturnPrintVoucher } from './PurchaseReturnPrintVoucher'

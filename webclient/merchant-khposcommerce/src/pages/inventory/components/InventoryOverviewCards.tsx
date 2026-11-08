@@ -1,9 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  StockAlertOverviewCards,
-  EnterpriseMiniStatsCard,
-} from '@/components/common'
+import { StockAlertOverviewCards, EnterpriseMiniStatsCard } from '@/components/common'
 
 // Re-export for any external modules that imported them from here
 export { AnimatedCounter, CircularProgressRing } from '@/components/common'
@@ -23,7 +20,7 @@ export interface InventoryOverviewCardsProps {
 /**
  * InventoryOverviewCards
  *
- * Renders the global Stripe/Accent StockAlertOverviewCards (Card ឆូត)
+ * Renders the global Stripe/Accent StockAlertOverviewCards (Accent Cards)
  * seamlessly for the "Stock Levels & Alerts" tab cloned exactly from MiniStore KH.
  */
 export const InventoryOverviewCards: React.FC<InventoryOverviewCardsProps> = ({
@@ -64,7 +61,7 @@ export const InventoryOverviewCards: React.FC<InventoryOverviewCardsProps> = ({
 
   return (
     <div className="space-y-4 print:hidden select-none">
-      {/* 1. Global Stripe / Accent Stock Alert Overview Cards (Card ឆូត) + Filter Pills (MiniStore KH Clone) */}
+      {/* 1. Global Stripe / Accent Stock Alert Overview Cards + Filter Pills (MiniStore KH Clone) */}
       <StockAlertOverviewCards
         counts={{
           out_of_stock: outOfStock,

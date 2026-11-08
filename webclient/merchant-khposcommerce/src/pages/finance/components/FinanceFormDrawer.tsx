@@ -9,13 +9,13 @@ import type {
   PaymentMethodForm,
   TransactionForm,
 } from '../types/finance.types'
-import { ExpenseFormDrawer } from './ExpenseFormDrawer'
-import { CategoryFormDrawer } from './CategoryFormDrawer'
-import { RegisterFormDrawer } from './RegisterFormDrawer'
-import { CurrencyFormDrawer } from './CurrencyFormDrawer'
-import { TaxFormDrawer } from './TaxFormDrawer'
-import { PaymentMethodFormDrawer } from './PaymentMethodFormDrawer'
-import { TransactionFormDrawer } from './TransactionFormDrawer'
+import { ExpensesSpendingFormDrawer as ExpenseFormDrawer } from './ExpensesSpendingFormDrawer'
+import { ExpenseCategoriesFormDrawer as CategoryFormDrawer } from './ExpenseCategoriesFormDrawer'
+import { CashRegistersSessionsFormDrawer as RegisterFormDrawer } from './CashRegistersSessionsFormDrawer'
+import { CurrenciesRatesFormDrawer as CurrencyFormDrawer } from './CurrenciesRatesFormDrawer'
+import { TaxRulesRatesFormDrawer as TaxFormDrawer } from './TaxRulesRatesFormDrawer'
+import { PaymentMethodsGatewaysFormDrawer as PaymentMethodFormDrawer } from './PaymentMethodsGatewaysFormDrawer'
+import { FinancialTransactionsFormDrawer as TransactionFormDrawer } from './FinancialTransactionsFormDrawer'
 
 export interface FinanceFormModalProps {
   isOpen: boolean

@@ -5,10 +5,9 @@ import {
 import { useTranslation } from 'react-i18next'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
-import EmptyState from '@/components/shared/EmptyState'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import StatusBadge from '@/components/common/StatusBadge'
-import UserAvatar from '@/components/common/UserAvatar'
+import { StatusBadge, EmptyState } from '@/components/common'
+import { UserAvatar } from '@/components/common'
 import type { User } from '../types/user.types'
 
 interface UserTableSectionProps {
@@ -115,8 +114,10 @@ export const UserTableSection: React.FC<UserTableSectionProps> = ({
                       </td>
                     )}
                     {visibleColumns.actions && (
-                      <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <td className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <TableActionMenu
+                          variant="hybrid"
+                          maxInline={3}
                           onView={() => setViewUser(u)}
                           onEdit={canEdit ? () => openEditModal(u) : undefined}
                           onDelete={canDelete ? () => setDeleteTarget(u) : undefined}

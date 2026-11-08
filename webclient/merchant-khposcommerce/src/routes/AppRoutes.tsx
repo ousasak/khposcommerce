@@ -59,6 +59,7 @@ const CustomerGroupsPage = React.lazy(() => import('@/pages/customers/CustomerGr
 // ─── 8. HRM & Employees ──────────────────────────────────────────────────────
 const EmployeesPage = React.lazy(() => import('@/pages/employees/EmployeesPage'))
 const EmployeeFormPage = React.lazy(() => import('@/pages/employees/EmployeeFormPage'))
+const PayrollPage = React.lazy(() => import('@/pages/payroll/PayrollPage'))
 
 const PromotionsPage = React.lazy(() => import('@/pages/marketing/promotions/PromotionsPage'))
 const PromotionFormPage = React.lazy(() => import('@/pages/marketing/promotions/PromotionFormPage'))
@@ -162,6 +163,7 @@ const DeviceManagementPage = React.lazy(() => import('@/pages/security/DeviceMan
 const SecuritySettingsPage = React.lazy(() => import('@/pages/security/SecuritySettingsPage'))
 const UsersPage = React.lazy(() => import('@/pages/users/UsersPage'))
 const RolesPage = React.lazy(() => import('@/pages/roles/RolesPage'))
+const RoleMatrixPage = React.lazy(() => import('@/pages/roles/RoleMatrixPage'))
 const PermissionsPage = React.lazy(() => import('@/pages/permissions/PermissionsPage'))
 const ActivityLogsPage = React.lazy(() => import('@/pages/logs/ActivityLogsPage'))
 const RecycleBinPage = React.lazy(() => import('@/pages/recycle-bin/RecycleBinPage'))
@@ -175,6 +177,7 @@ export const AppRoutes: React.FC = () => {
       <Routes>
         {/* ── Public Auth Routes ────────────────────────────────────────────── */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/error" element={<HttpErrorPage code={404} />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         {/* ── Protected Admin Layout ────────────────────────────────────────── */}
@@ -264,6 +267,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/customers" element={<ProtectedRoute permission="customer.view"><CustomersPage /></ProtectedRoute>} />
           <Route path="/customers/create" element={<ProtectedRoute permission="customer.create"><CustomerFormPage /></ProtectedRoute>} />
           <Route path="/customers/groups" element={<ProtectedRoute permission="customer_group.view"><CustomerGroupsPage /></ProtectedRoute>} />
+          <Route path="/customers/addresses" element={<Navigate to="/customers?tab=addresses" replace />} />
           <Route path="/customers/:id" element={<ProtectedRoute permission="customer.view"><CustomerDetailPage /></ProtectedRoute>} />
           <Route path="/customers/:id/edit" element={<ProtectedRoute permission="customer.update"><CustomerFormPage /></ProtectedRoute>} />
           <Route path="/customers/edit/:id" element={<ProtectedRoute permission="customer.update"><CustomerFormPage /></ProtectedRoute>} />
@@ -273,6 +277,8 @@ export const AppRoutes: React.FC = () => {
           <Route path="/employees/create" element={<ProtectedRoute permission="employee.create"><EmployeeFormPage /></ProtectedRoute>} />
           <Route path="/employees/:id/edit" element={<ProtectedRoute permission="employee.update"><EmployeeFormPage /></ProtectedRoute>} />
           <Route path="/employees/edit/:id" element={<ProtectedRoute permission="employee.update"><EmployeeFormPage /></ProtectedRoute>} />
+          <Route path="/payroll" element={<ProtectedRoute permission="payroll.view"><PayrollPage /></ProtectedRoute>} />
+          <Route path="/hrm/payroll" element={<Navigate to="/payroll" replace />} />
 
           {/* 8. Marketing & Promotions */}
           <Route path="/marketing" element={<ProtectedRoute permission="promotion.view"><MarketingRedirect /></ProtectedRoute>} />
@@ -377,6 +383,9 @@ export const AppRoutes: React.FC = () => {
           {/* 15. User Management & System Settings */}
           <Route path="/users" element={<ProtectedRoute permission="user.view"><UsersPage /></ProtectedRoute>} />
           <Route path="/roles" element={<ProtectedRoute permission="role.view"><RolesPage /></ProtectedRoute>} />
+          <Route path="/roles/matrix" element={<Navigate to="/permissions" replace />} />
+          <Route path="/roles/create" element={<ProtectedRoute permission="role.create"><RolesPage /></ProtectedRoute>} />
+          <Route path="/roles/:id/edit" element={<ProtectedRoute permission="role.update"><RolesPage /></ProtectedRoute>} />
           <Route path="/permissions" element={<ProtectedRoute permission="permission.view"><PermissionsPage /></ProtectedRoute>} />
           <Route path="/activity-logs" element={<ProtectedRoute permission="activity_log.view"><ActivityLogsPage /></ProtectedRoute>} />
           <Route path="/recycle-bin" element={<ProtectedRoute permission="activity_log.view"><RecycleBinPage /></ProtectedRoute>} />
@@ -384,7 +393,8 @@ export const AppRoutes: React.FC = () => {
           <Route path="/reviews" element={<ProtectedRoute permission="product_review.view"><ReviewsPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProfilePage />} />
 
-          {/* ── Wildcard Fallback ───────────────────────────────────────────── */}
+          {/* ── Error & Fallback Routes ────────────────────────────────────────── */}
+          <Route path="/error" element={<HttpErrorPage code={404} />} />
           <Route path="*" element={<HttpErrorPage code={404} />} />
         </Route>
       </Routes>

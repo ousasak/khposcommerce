@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Loader2, Upload, Trash2 } from 'lucide-react'
-import UserAvatar from '@/components/common/UserAvatar'
+import { UserAvatar } from '@/components/common'
 import { FieldError, getFieldClass } from '@/components/common'
 import type { User } from '../types/user.types'
 

@@ -12,11 +12,12 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import ModernSelect from '@/components/shared/ModernSelect'
 import ColumnSettingsPopover from '@/components/shared/ColumnSettingsPopover'
-import ResetButton from '@/components/shared/ResetButton'
 import { useTranslation } from 'react-i18next'
-import { Image as AntImage } from 'antd'
+import { Image } from '@/components/ui/image'
 import { getCustomerAvatarUrl, DEFAULT_AVATAR_IMAGE } from '@/utils/image'
-import { CustomerAddressModal, type CustomerAddress, HeaderActionsGroup, AddButton, ExportButton, TableToolbar } from '@/components/common'
+import { CustomerAddressModal, type CustomerAddress } from './components/CustomerAddressModal'
+import { HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
+import { CustomerAddressSearchBar } from './components/CustomerAddressSearchBar'
 import { CustomerAddressDetailDrawer } from './components/CustomerAddressDetailDrawer'
 
 interface CustomerAddressesPageProps {
@@ -317,41 +318,16 @@ const CustomerAddressesPage: React.FC<CustomerAddressesPageProps> = ({ isTab = f
         </div>
       )}
 
-      {/* Filters row */}
-      {/* Global Standard Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-style Customer Addresses Search & Filter Bar */}
+      <CustomerAddressSearchBar
         search={search}
         onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        searchPlaceholder={t('customers.searchAddresses', 'Search addresses...')}
+        customerFilter={customerFilter}
+        onCustomerChange={(val) => { setCustomerFilter(val); setPage(1); }}
+        customers={customers ?? []}
+        defaultFilter={defaultFilter}
+        onDefaultChange={(val) => { setDefaultFilter(val); setPage(1); }}
         onReset={handleResetFilters}
-        leftActions={
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Customer Filter */}
-            <ModernSelect
-              value={customerFilter}
-              onChange={(val) => { setCustomerFilter(val); setPage(1); }}
-              options={[
-                { value: '', label: `${t('customers.title', 'Customer')}: ${t('common.allStatus', 'All')}` },
-                ...(customers ?? []).map((c: any) => ({ value: String(c.id), label: c.name }))
-              ]}
-              className="w-52"
-            />
-
-            {/* Default/Secondary Filter */}
-            <ModernSelect
-              value={defaultFilter}
-              onChange={(val) => { setDefaultFilter(val); setPage(1); }}
-              options={[
-                { value: 'all', label: `${t('common.status', 'Status')}: ${t('common.allStatus', 'All')}` },
-                { value: 'default', label: t('customers.defaultAddress', 'Default Address') },
-                { value: 'secondary', label: t('customers.secondaryAddress', 'Secondary Address') }
-              ]}
-              className="w-48"
-            />
-          </div>
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['customer-addresses'] })}
-        refreshLoading={isFetching}
         columns={[
           { key: 'customer', label: t('customers.title', 'Customer') },
           { key: 'label', label: t('customers.addressLabel', 'Label') },
@@ -362,6 +338,8 @@ const CustomerAddressesPage: React.FC<CustomerAddressesPageProps> = ({ isTab = f
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={(cols: Record<string, boolean>) => setVisibleColumns(cols as any)}
+        selectedCount={selectedRows.length}
+        onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
       />
 
       {/* Bulk actions panel */}
@@ -479,11 +457,11 @@ const CustomerAddressesPage: React.FC<CustomerAddressesPageProps> = ({ isTab = f
                               className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-primary/20 shadow-2xs cursor-pointer"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <AntImage
+                              <Image
                                 src={getCustomerAvatarUrl(addr.customer?.photo || addr.customer?.avatar, addr.customer?.id || addr.customer_id || customerName)}
                                 alt={customerName}
                                 className="w-full h-full object-cover"
-                                {...({ wrapperClassName: 'w-full h-full !flex items-center justify-center cursor-pointer' } as any)}
+                                rootClassName="w-full h-full !flex items-center justify-center cursor-pointer"
                                 preview={{ mask: null }}
                                 fallback={DEFAULT_AVATAR_IMAGE}
                               />
@@ -557,6 +535,9 @@ const CustomerAddressesPage: React.FC<CustomerAddressesPageProps> = ({ isTab = f
                       {visibleColumns.actions && (
                         <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
                           <TableActionMenu
+                            variant="inline"
+                            buttonSize="sm"
+                            align="right"
                             onView={() => setViewingAddress(addr)}
                             onEdit={() => openEditModal(addr)}
                             onDelete={() => setDeleteTarget(addr)}

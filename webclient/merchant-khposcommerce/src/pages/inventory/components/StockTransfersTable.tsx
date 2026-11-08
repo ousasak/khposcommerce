@@ -4,7 +4,7 @@ import { ArrowLeftRight } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import Pagination from '@/components/shared/Pagination'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import { EmptyState } from '@/components/common'
 import { formatShortDate } from '@/utils/formatters'
 
@@ -118,8 +118,8 @@ export const StockTransfersTable: React.FC<StockTransfersTableProps> = ({
               <EmptyState
                 cols={activeColCount || 9}
                 icon={ArrowLeftRight}
-                title={t('noTransfersFound', 'រកមិនឃើញទិន្នន័យផ្ទេរស្តុកទេ')}
-                description={t('empty.noTransfersDesc', 'មិនមានកំណត់ត្រាផ្ទេរស្តុកត្រូវគ្នានឹងលក្ខខណ្ឌតម្រងដែលបានកំណត់ទេ។')}
+                title={t('noTransfersFound', 'No stock transfers found')}
+                description={t('empty.noTransfersDesc', 'No stock transfer records match the selected filter criteria.')}
               />
             ) : (
               items.map((item) => {

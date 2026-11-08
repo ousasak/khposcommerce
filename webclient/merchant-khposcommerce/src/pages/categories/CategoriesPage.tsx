@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ModalHeader } from '@/components/common/ModalHeader'
+import { Modal as EnterpriseModal, ModalFooter, ModalHeader, EmptyState, ResetButton } from '@/components/common'
 import { 
-  Plus, X, Folder, FolderTree, ToggleLeft, ToggleRight, Loader2, Edit2, Trash2, 
-  ChevronUp, ChevronDown, ChevronRight, Download, Upload, Trash, RefreshCw, 
+  Plus, X, Folder, FolderTree, ToggleLeft, ToggleRight, Loader2, Edit2, 
+  ChevronUp, ChevronDown, ChevronRight, Download, Upload, Trash, 
   AlertCircle, CheckCircle2, Image as ImageIcon, Settings, Package, Eye,
   Smartphone, Laptop, Monitor, Watch, Keyboard, Headphones, Camera, Zap, 
   Footprints, Shirt, ExternalLink, Sparkles, Link, Check, Save
@@ -14,21 +14,20 @@ import {
 import { categoryService } from '@/services/categoryService'
 import { getAbsoluteImageUrl, DEFAULT_CATEGORY_IMAGE } from '@/utils/image'
 import { downloadBlob } from '@/utils/export'
-import { Image as AntImage } from 'antd'
-import PageHeader from '@/components/common/PageHeader'
-import Breadcrumb from '@/components/common/Breadcrumb'
+import { Image } from '@/components/ui/image'
+import { PageHeader } from '@/components/common'
+import { Breadcrumb } from '@/components/common'
 import { useToast } from '@/hooks/useToast'
 import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
-import ResetButton from '@/components/shared/ResetButton'
 import { focusFirstInvalidField } from '@/utils/formValidation'
-import EmptyState from '@/components/shared/EmptyState'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import StatusBadge from '@/components/common/StatusBadge'
+import { StatusBadge } from '@/components/common'
 import { FieldError, getFieldClass, TableToolbar, AddButton, ExportButton, ImportButton, HeaderActionsGroup } from '@/components/common'
 import CategoryStatsCards from './components/CategoryStatsCards'
+import { CategorySearchBar } from './components/CategorySearchBar'
 import { useTranslation } from 'react-i18next'
 import { ModernSelect } from '@/components/shared/ModernSelect'
 import TableActionMenu from '@/components/shared/TableActionMenu'
@@ -128,10 +127,10 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
 
   // UI state
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [parentIdFilter, setParentIdFilter] = useState<string>('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null)
-  const [recycleBinMode, setRecycleBinMode] = useState(false)
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [expandedNodes, setExpandedNodes] = useState<Record<number, boolean>>({})
@@ -199,14 +198,15 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
 
   // Main Categories query
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['categories', page, debouncedSearch, perPage, sortBy, sortOrderField, recycleBinMode, statusFilter],
+    queryKey: ['categories', page, debouncedSearch, perPage, sortBy, sortOrderField, statusFilter, parentIdFilter],
     queryFn: () => categoryService.list({ 
       page, 
       search: debouncedSearch, 
       per_page: perPage, 
       sort_by: sortBy, 
       sort_order: sortOrderField,
-      status: recycleBinMode ? 'deleted' : (statusFilter !== 'all' ? statusFilter : undefined)
+      status: statusFilter !== 'all' ? statusFilter : undefined,
+      parent_id: parentIdFilter || undefined,
     }),
     placeholderData: (prev) => prev,
   })
@@ -263,32 +263,6 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
     },
   })
 
-  const restoreMutation = useMutation({
-    mutationFn: (id: number) => categoryService.restore(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['categories'] })
-      qc.invalidateQueries({ queryKey: ['categories-list-dropdown'] })
-      toast.success(t('toast.restored'))
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const forceDeleteMutation = useMutation({
-    mutationFn: (id: number) => categoryService.forceDelete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['categories'] })
-      qc.invalidateQueries({ queryKey: ['categories-list-dropdown'] })
-      toast.success(t('toast.deleted'))
-      setDeleteTarget(null)
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-      setDeleteTarget(null)
-    }
-  })
-
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids: number[]) => categoryService.bulkDelete(ids),
     onSuccess: () => {
@@ -297,19 +271,6 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
       toast.success(t('toast.deleted'))
       setSelectedRows([])
       setBulkDeleteConfirmOpen(false)
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error'))
-    }
-  })
-
-  const bulkRestoreMutation = useMutation({
-    mutationFn: (ids: number[]) => categoryService.bulkRestore(ids),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['categories'] })
-      qc.invalidateQueries({ queryKey: ['categories-list-dropdown'] })
-      toast.success(t('toast.restored'))
-      setSelectedRows([])
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? t('toast.error'))
@@ -376,8 +337,8 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
     return errors
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault()
     const errors = validate()
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors)
@@ -469,7 +430,7 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
     return roots
   }
 
-  const isTreeView = !debouncedSearch && !recycleBinMode
+  const isTreeView = !debouncedSearch
   const treeData = buildTree(categories)
 
   const toggleNode = (id: number) => {
@@ -576,7 +537,7 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
             <button
               onClick={() => navigate(`/products?tab=products&category_id=${node.id}`)}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-              title="Filter products by this category"
+              title={t('products.filterProductsByCategory', 'Filter products by this category')}
             >
               <Package size={13} />
               <span>{node.products_count ?? 0}</span>
@@ -612,33 +573,10 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
 
         {/* Actions */}
         <td className="py-3.5 pr-4 text-right">
-          {recycleBinMode ? (
-            <div className="flex items-center justify-end gap-1">
-              {canUpdateCategory && (
-                <button
-                  onClick={() => restoreMutation.mutate(node.id)}
-                  className="p-1.5 hover:bg-muted rounded-lg text-indigo-500 hover:text-indigo-600 transition-colors"
-                  title="Restore"
-                >
-                  <RefreshCw size={14} />
-                </button>
-              )}
-              {canDeleteCategory && (
-                <button
-                  onClick={() => setDeleteTarget(node)}
-                  className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
-                  title="Permanent Delete"
-                >
-                  <Trash2 size={14} />
-                </button>
-              )}
-            </div>
-          ) : (
-            <TableActionMenu
-              onEdit={canUpdateCategory ? () => openEditModal(node) : undefined}
-              onDelete={canDeleteCategory ? () => setDeleteTarget(node) : undefined}
-            />
-          )}
+          <TableActionMenu
+            onEdit={canUpdateCategory ? () => openEditModal(node) : undefined}
+            onDelete={canDeleteCategory ? () => setDeleteTarget(node) : undefined}
+          />
         </td>
       </tr>
     )
@@ -681,18 +619,6 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
             </div>
 
             <HeaderActionsGroup>
-              <button
-                type="button"
-                onClick={() => setRecycleBinMode(!recycleBinMode)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl border transition-all cursor-pointer ${
-                  recycleBinMode 
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20' 
-                    : 'bg-card border-border text-muted-foreground hover:text-foreground'}`}
-              >
-                <Trash size={15} />
-                {recycleBinMode ? t('products.recycleBin') : t('products.trash')}
-              </button>
-
               {canExportCategory && (
                 <ExportButton
                   onClick={handleExport}
@@ -733,42 +659,14 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
             <span>{selectedRows.length} {t('products.selectedCount')}</span>
           </div>
           <div className="flex items-center gap-2">
-            {recycleBinMode ? (
-              <>
-                {canUpdateCategory && (
-                  <button
-                    onClick={() => bulkRestoreMutation.mutate(selectedRows)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-500 transition-colors shadow-xs"
-                  >
-                    <RefreshCw size={13} />
-                    {t('products.restoreSelected')}
-                  </button>
-                )}
-                {canDeleteCategory && (
-                  <button
-                    onClick={() => {
-                      if (confirm('Permanently delete selected categories? This cannot be undone.')) {
-                        selectedRows.forEach(id => forceDeleteMutation.mutate(id))
-                        setSelectedRows([])
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-xl hover:bg-red-500 transition-colors shadow-xs"
-                  >
-                    <Trash size={13} />
-                    {t('products.permanentDelete')}
-                  </button>
-                )}
-              </>
-            ) : (
-              canDeleteCategory && (
-                <button
-                  onClick={() => setBulkDeleteConfirmOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-xl hover:bg-red-500 cursor-pointer transition-colors shadow-xs"
-                >
-                  <Trash size={13} />
-                  {t('products.deleteSelected')}
-                </button>
-              )
+            {canDeleteCategory && (
+              <button
+                onClick={() => setBulkDeleteConfirmOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 rounded-xl hover:bg-red-500 cursor-pointer transition-colors shadow-xs"
+              >
+                <Trash size={13} />
+                {t('products.deleteSelected')}
+              </button>
             )}
             <button
               onClick={() => setSelectedRows([])}
@@ -780,37 +678,30 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
         </div>
       )}
 
-      {/* Global Standard Table Toolbar */}
-      <TableToolbar
+      {/* SmartHR-style Unified Filter Bar */}
+      <CategorySearchBar
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder={t('products.searchCategories', 'Search categories...')}
+        statusFilter={statusFilter}
+        onStatusChange={(val) => {
+          setStatusFilter(val)
+          setPage(1)
+        }}
+        parentIdFilter={parentIdFilter}
+        onParentIdChange={(val) => {
+          setParentIdFilter(val)
+          setPage(1)
+        }}
+        parentCategories={dropdownCats.filter((c) => !c.parent_id)}
         onReset={() => {
           setSearch('')
           setStatusFilter('all')
+          setParentIdFilter('')
           setSortBy('sort_order')
           setSortOrderField('asc')
           setPage(1)
-          setRecycleBinMode(false)
           setSelectedRows([])
         }}
-        leftActions={
-          <ModernSelect
-            value={statusFilter}
-            onChange={(val) => {
-              setStatusFilter(val as 'all' | 'active' | 'inactive')
-              setPage(1)
-            }}
-            options={[
-              { value: 'all', label: `${t('common.status', 'Status')}: ${t('common.allStatus', 'All')}` },
-              { value: 'active', label: t('common.active', 'Active') },
-              { value: 'inactive', label: t('common.inactive', 'Inactive') },
-            ]}
-            className="w-36 sm:w-44 xl:w-48 min-w-[130px]"
-          />
-        }
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['categories'] })}
-        refreshLoading={isFetching}
         columns={[
           { key: 'category', label: t('products.colCategory', 'Category') },
           { key: 'parent', label: t('products.parentCategory', 'Parent') },
@@ -822,6 +713,8 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
+        selectedCount={selectedRows.length}
+        onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
       />
 
       {/* Categories Table */}
@@ -913,7 +806,14 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
                 categories.map((cat) => renderCategoryRow(cat, 0, false))
               )}
               {!isLoading && categories.length === 0 && (
-                <EmptyState cols={9} />
+                <EmptyState
+                  cols={9}
+                  icon={<FolderTree size={32} />}
+                  title={t('products.noCategoriesFound', 'No Categories Found')}
+                  description={t('products.noCategoriesDescription', 'Get started by creating your first product category.')}
+                  actionLabel={canCreateCategory ? t('products.addCategory', 'Add Category') : undefined}
+                  onAction={canCreateCategory ? openCreateModal : undefined}
+                />
               )}
             </tbody>
           </table>
@@ -930,303 +830,263 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
       </div>
 
       {/* Clean Enterprise Category Create/Edit Modal */}
-      {modalOpen && createPortal(
-        <AnimatePresence>
-          <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.96, opacity: 0, y: 8 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.96, opacity: 0, y: 8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="bg-card border border-border/80 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-            >
-              {/* Global Modal Header */}
-              <ModalHeader
-                title={editingCategory ? t('pageContent.Edit Category', 'Edit Category') : t('products.addCategory', 'Add Category')}
-                subtitle={editingCategory ? t('products.editCategoryDesc', 'Modify category attributes, parent relation and media') : t('products.addCategoryDesc', 'Create a new catalog category for organizing products')}
-                icon={<Folder size={20} />}
-                iconVariant="blue"
-                onClose={closeModal}
-              />
-
-              {/* Form Body */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-                {/* Category Name */}
-                <div>
-                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    {t('products.colCategory', 'Category Name')} <span className="text-rose-500 font-bold">*</span>
-                  </label>
-                  <input
-                    id="name"
-                    name="name"
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value)
-                      handleClearError('name')
-                    }}
-                    placeholder={t('products.categoryNamePlaceholder', 'e.g. Smartphones, Laptops, Keyboards...')}
-                    className={getFieldClass(
-                      formErrors.name,
-                      'form-input text-sm rounded-xl py-2.5 px-3.5 bg-background border border-border/80 transition-all font-medium'
-                    )}
-                  />
-                  <FieldError error={formErrors.name} />
-                </div>
-
-                {/* Parent Category */}
-                <div>
-                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    {t('products.parentCategory', 'Parent Category')}
-                  </label>
-                  <ModernSelect
-                    value={parentId}
-                    onChange={(val) => setParentId(String(val))}
-                    options={[
-                      { value: '', label: t('products.rootCategoryOption', 'Root Level (No Parent)') },
-                      ...dropdownCats
-                        .filter(c => !editingCategory || (c.id !== editingCategory.id && c.parent_id !== editingCategory.id))
-                        .map(c => ({ value: c.id, label: c.name })),
-                    ]}
-                    placeholder={t('products.parentCategoryPlaceholder', 'Select parent category')}
-                    buttonClassName="font-normal text-sm border-border/80 bg-background cursor-pointer rounded-xl py-2.5"
-                  />
-                </div>
-
-                {/* Sort Order & Status Compact Card */}
-                <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-muted/25 border border-border/60 items-center">
-                  <div>
-                    <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                      {t('products.sortOrder', 'Sort Order')}
-                    </label>
-                    <input
-                      type="number"
-                      value={sortOrder}
-                      onChange={(e) => setSortOrder(e.target.value)}
-                      min="0"
-                      className="form-input text-xs rounded-xl py-1.5 px-3 bg-background border-border/80"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between pl-3 border-l border-border/50">
-                    <div>
-                      <span className="block text-xs font-bold text-foreground">{t('products.colStatus', 'Status')}</span>
-                      <span className="text-[11px] text-muted-foreground">{isActive ? t('products.active', 'Active') : t('products.inactive', 'Inactive')}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsActive(!isActive)}
-                      className="text-primary hover:opacity-80 transition-opacity cursor-pointer shrink-0"
-                    >
-                      {isActive ? <ToggleRight size={34} /> : <ToggleLeft size={34} className="text-muted-foreground" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Clean Image / Media Card */}
-                <div className="p-4 rounded-2xl bg-muted/25 border border-border/60 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-foreground uppercase tracking-wider">
-                      {t('products.categoryImage', 'Category Image / Cover')}
-                    </label>
-                    <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-lg border border-border/50 text-[11px] font-medium">
-                      <button
-                        type="button"
-                        onClick={() => setImageMode('upload')}
-                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                          imageMode === 'upload' ? 'bg-card text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {t('products.uploadFileTab', 'Upload')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setImageMode('url')}
-                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                          imageMode === 'url' ? 'bg-card text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {t('products.imageUrlTab', 'URL')}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3.5">
-                    {/* Visual Preview Box */}
-                    <div className="w-16 h-16 rounded-2xl border border-border/80 overflow-hidden bg-background flex items-center justify-center shrink-0 shadow-2xs relative group p-1">
-                      {imagePreview ? (
-                        <AntImage
-                          src={imagePreview}
-                          alt="Preview"
-                          className="w-full h-full object-contain"
-                          rootClassName="w-full h-full flex items-center justify-center cursor-pointer"
-                          fallback={DEFAULT_CATEGORY_IMAGE}
-                        />
-                      ) : (
-                        <img
-                          src={DEFAULT_CATEGORY_IMAGE}
-                          alt="Default Category"
-                          className="w-full h-full object-contain opacity-70"
-                        />
-                      )}
-                    </div>
-
-                    {/* Mode Inputs */}
-                    <div className="flex-grow space-y-1.5 min-w-0">
-                      {imageMode === 'upload' ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="hidden"
-                            id="clean-category-image-upload"
-                          />
-                          <label
-                            htmlFor="clean-category-image-upload"
-                            className="inline-flex items-center justify-center px-3.5 py-1.5 border border-border/80 rounded-xl text-xs font-semibold text-foreground bg-background hover:bg-muted cursor-pointer transition-colors shadow-2xs"
-                          >
-                            <Upload size={13} className="mr-1.5" />
-                            {t('products.uploadImage', 'Choose File')}
-                          </label>
-
-                          {imagePreview && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setImageFile(null)
-                                setImagePreview(null)
-                                setImageUrl('')
-                                setRemoveImage(true)
-                              }}
-                              className="px-2.5 py-1.5 text-xs text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
-                            >
-                              {t('common.remove', 'Remove')}
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        <input
-                          type="url"
-                          value={imageUrl}
-                          onChange={(e) => {
-                            setImageUrl(e.target.value)
-                            if (e.target.value) {
-                              setImagePreview(e.target.value)
-                              setRemoveImage(false)
-                            } else if (!imageFile) {
-                              setImagePreview(null)
-                            }
-                          }}
-                          placeholder={t('products.pasteImageUrl', 'Paste image URL (https://...)')}
-                          className="form-input text-xs rounded-xl py-1.5 px-3 bg-background border-border/80 w-full"
-                        />
-                      )}
-                      <p className="text-[10px] text-muted-foreground">{t('products.imageRecommendation', 'Recommended 400x400 JPG, PNG or WebP')}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
-                    {t('products.colDescription', 'Description')}
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder={t('products.categoryDescPlaceholder', 'Short overview about products in this category...')}
-                    rows={2}
-                    className="form-input text-sm rounded-xl py-2 px-3 bg-background border-border/80 resize-none"
-                  />
-                </div>
-
-                {/* Clean Footer Buttons */}
-                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-border/60">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground rounded-xl transition-colors cursor-pointer"
-                  >
-                    {t('common.cancel', 'Cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-primary rounded-xl hover:opacity-90 shadow-md shadow-primary/20 flex items-center gap-2 transition-all cursor-pointer"
-                  >
-                    {(createMutation.isPending || updateMutation.isPending) ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <Save size={14} />
-                    )}
-                    <span>{editingCategory ? t('common.save', 'Save Changes') : t('products.addCategory', 'Create Category')}</span>
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+      <EnterpriseModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={editingCategory ? t('pageContent.Edit Category', 'Edit Category') : t('products.addCategory', 'Add Category')}
+        subtitle={editingCategory ? t('products.editCategoryDesc', 'Modify category attributes, parent relation and media') : t('products.addCategoryDesc', 'Create a new catalog category for organizing products')}
+        icon={<Folder size={20} />}
+        iconVariant="blue"
+        size="lg"
+        footer={
+          <ModalFooter
+            onCancel={closeModal}
+            isSubmitting={createMutation.isPending || updateMutation.isPending}
+            isEdit={Boolean(editingCategory)}
+            submitLabel={
+              editingCategory
+                ? t('common.saveChanges', 'Save Changes')
+                : t('products.addCategory', 'Save Category')
+            }
+            onSubmit={handleSubmit}
+          />
+        }
+      >
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+          {/* Category Name */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('products.colCategory', 'Category Name')} <span className="text-rose-500 font-bold">*</span>
+            </label>
+            <input
+              id="name"
+              name="name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                handleClearError('name')
+              }}
+              placeholder={t('products.categoryNamePlaceholder', 'e.g. Smartphones, Laptops, Keyboards...')}
+              className={getFieldClass(
+                formErrors.name,
+                'w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium'
+              )}
+            />
+            <FieldError error={formErrors.name} />
           </div>
-        </AnimatePresence>,
-        document.body
-      )}
+
+          {/* Parent Category */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('products.parentCategory', 'Parent Category')}
+            </label>
+            <ModernSelect
+              value={parentId}
+              onChange={(val) => setParentId(String(val))}
+              options={[
+                { value: '', label: t('products.rootCategoryOption', 'Root Level (No Parent)') },
+                ...dropdownCats
+                  .filter(c => !editingCategory || (c.id !== editingCategory.id && c.parent_id !== editingCategory.id))
+                  .map(c => ({ value: c.id, label: c.name })),
+              ]}
+              placeholder={t('products.parentCategoryPlaceholder', 'Select parent category')}
+              buttonClassName="font-normal text-xs sm:text-[13px] border-border/80 bg-background cursor-pointer rounded-lg h-10 min-h-[40px] px-3.5"
+            />
+          </div>
+
+          {/* Sort Order */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('products.sortOrder', 'Sort Order')}
+            </label>
+            <input
+              type="number"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              min="0"
+              placeholder="0"
+              className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 font-mono focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+            />
+          </div>
+
+          {/* Clean Image / Media Card */}
+          <div className="p-4 rounded-2xl bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200">
+                {t('products.categoryImage', 'Category Image / Cover')}
+              </label>
+              <div className="flex items-center gap-1 bg-muted/60 dark:bg-slate-800 p-0.5 rounded-lg border border-border/50 text-[11px] font-medium">
+                <button
+                  type="button"
+                  onClick={() => setImageMode('upload')}
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                    imageMode === 'upload' ? 'bg-card dark:bg-slate-900 text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {t('products.uploadFileTab', 'Upload')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageMode('url')}
+                  className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                    imageMode === 'url' ? 'bg-card dark:bg-slate-900 text-foreground shadow-2xs font-semibold' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {t('products.imageUrlTab', 'URL')}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3.5">
+              {/* Visual Preview Box */}
+              <div className="w-16 h-16 rounded-2xl border border-border/80 dark:border-slate-700 overflow-hidden bg-background dark:bg-slate-900 flex items-center justify-center shrink-0 shadow-2xs relative group p-1">
+                {imagePreview ? (
+                  <Image
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-contain"
+                    rootClassName="w-full h-full flex items-center justify-center cursor-pointer"
+                    fallback={DEFAULT_CATEGORY_IMAGE}
+                  />
+                ) : (
+                  <img
+                    src={DEFAULT_CATEGORY_IMAGE}
+                    alt="Default Category"
+                    className="w-full h-full object-contain opacity-70"
+                  />
+                )}
+              </div>
+
+              {/* Mode Inputs */}
+              <div className="flex-grow space-y-1.5 min-w-0">
+                {imageMode === 'upload' ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="clean-category-image-upload"
+                    />
+                    <label
+                      htmlFor="clean-category-image-upload"
+                      className="inline-flex items-center justify-center px-3.5 py-2 border border-border/80 dark:border-slate-700 rounded-lg text-xs font-semibold text-foreground bg-background dark:bg-slate-900 hover:bg-muted cursor-pointer transition-colors shadow-2xs"
+                    >
+                      <Upload size={13} className="mr-1.5" />
+                      {t('products.uploadImage', 'Choose File')}
+                    </label>
+
+                    {imagePreview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageFile(null)
+                          setImagePreview(null)
+                          setImageUrl('')
+                          setRemoveImage(true)
+                        }}
+                        className="px-2.5 py-2 text-xs text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                      >
+                        {t('common.remove', 'Remove')}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => {
+                      setImageUrl(e.target.value)
+                      if (e.target.value) {
+                        setImagePreview(e.target.value)
+                        setRemoveImage(false)
+                      } else if (!imageFile) {
+                        setImagePreview(null)
+                      }
+                    }}
+                    placeholder={t('products.pasteImageUrl', 'Paste image URL (https://...)')}
+                    className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                  />
+                )}
+                <p className="text-[11px] text-muted-foreground">{t('products.imageRecommendation', 'Recommended 400x400 JPG, PNG or WebP')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
+              {t('products.colDescription', 'Description')}
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t('products.categoryDescPlaceholder', 'Short overview about products in this category...')}
+              rows={2}
+              className="w-full min-h-[70px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/70 dark:placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"
+            />
+          </div>
+
+          {/* Active Category Status Card (Matches Screenshot 1 Customer Group style) */}
+          <div className="p-4 bg-muted/15 dark:bg-slate-900/60 border border-border/80 dark:border-slate-800 rounded-2xl flex items-center justify-between">
+            <div className="space-y-0.5">
+              <label
+                htmlFor="isActiveCategoryCheckbox"
+                className="text-xs sm:text-[13px] font-bold text-foreground dark:text-slate-100 cursor-pointer select-none block"
+              >
+                {t('products.activeCategoryStatus', 'Active Category Status')}
+              </label>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400">
+                {t('products.activeCategoryHelp', 'Allow products to be organized under this category and shown in storefront')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isActiveCategoryCheckbox"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-primary rounded border-border focus:ring-primary cursor-pointer"
+            />
+          </div>
+        </form>
+      </EnterpriseModal>
 
       {/* CSV Import Modal */}
-      {importOpen && createPortal(
-        <AnimatePresence>
-          <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-card border border-border rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
-            >
-              <ModalHeader
-                title={t('products.importCSV', 'Import CSV')}
-                subtitle={t('products.categoriesImportInstruction', 'Upload CSV file to import categories in bulk')}
-                icon={<Upload size={20} />}
-                iconVariant="blue"
-                onClose={() => setImportOpen(false)}
-              />
-
-              <form onSubmit={handleImport} className="p-6 space-y-4">
-                <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center hover:bg-muted/10 transition-colors">
-                  <Upload className="mx-auto text-muted-foreground mb-2" size={32} />
-                  <input
-                    type="file"
-                    accept=".csv,.txt"
-                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="csv-file-upload"
-                    required
-                  />
-                  <label htmlFor="csv-file-upload" className="cursor-pointer font-medium text-primary hover:underline">
-                    {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to upload CSV')}
-                  </label>
-                  <p className="text-xs text-muted-foreground mt-1">{t('products.categoriesImportInstruction', 'CSV format: Name, Parent, Description')}</p>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                  <button
-                    type="button"
-                    onClick={() => setImportOpen(false)}
-                    className="px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground rounded-xl transition-colors cursor-pointer"
-                  >
-                    {t('common.cancel', 'Cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={importing || !importFile}
-                    className="px-5 py-2.5 text-xs font-bold text-white bg-primary rounded-xl hover:opacity-90 shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {importing && <Loader2 size={14} className="animate-spin" />}
-                    {t('products.importCSV', 'Import CSV')}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+      <EnterpriseModal
+        isOpen={importOpen}
+        onClose={() => setImportOpen(false)}
+        title={t('products.importCSV', 'Import CSV')}
+        subtitle={t('products.categoriesImportInstruction', 'Upload CSV file to import categories in bulk')}
+        icon={<Upload size={20} />}
+        iconVariant="blue"
+        size="md"
+        footer={
+          <ModalFooter
+            onCancel={() => setImportOpen(false)}
+            isSubmitting={importing}
+            submitLabel={t('products.importCSV', 'Import CSV')}
+            onSubmit={handleImport}
+          />
+        }
+      >
+        <form onSubmit={handleImport} className="p-5 sm:p-6 space-y-4">
+          <div className="border-2 border-dashed border-border/80 dark:border-slate-700 rounded-2xl p-6 text-center hover:bg-muted/10 transition-colors">
+            <Upload className="mx-auto text-muted-foreground mb-2" size={32} />
+            <input
+              type="file"
+              accept=".csv,.txt"
+              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              className="hidden"
+              id="csv-file-upload"
+              required
+            />
+            <label htmlFor="csv-file-upload" className="cursor-pointer font-medium text-xs sm:text-[13px] text-primary hover:underline">
+              {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to upload CSV')}
+            </label>
+            <p className="text-[11px] text-muted-foreground mt-1">{t('products.categoriesImportInstruction', 'CSV format: Name, Parent, Description')}</p>
           </div>
-        </AnimatePresence>,
-        document.body
-      )}
+        </form>
+      </EnterpriseModal>
 
       {/* Unified Delete Confirmation Dialog */}
       <ConfirmDialog
@@ -1237,15 +1097,11 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
         cancelText={t('common.cancel', 'Cancel')}
         onConfirm={() => {
           if (deleteTarget) {
-            if (recycleBinMode) {
-              forceDeleteMutation.mutate(deleteTarget.id)
-            } else {
-              deleteMutation.mutate(deleteTarget.id)
-            }
+            deleteMutation.mutate(deleteTarget.id)
           }
         }}
         onCancel={() => setDeleteTarget(null)}
-        loading={deleteMutation.isPending || forceDeleteMutation.isPending}
+        loading={deleteMutation.isPending}
       />
 
       {/* Bulk Delete Confirmation Dialog */}
