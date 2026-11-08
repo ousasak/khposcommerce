@@ -5,11 +5,13 @@ on:
     branches: [main, master, develop]
     paths:
       - 'webclient/admin-khposcommerce/**'
+      - 'webclient/merchant-khposcommerce/**'
       - '.github/workflows/admin-ci.yml'
   pull_request:
     branches: [main, master, develop]
     paths:
       - 'webclient/admin-khposcommerce/**'
+      - 'webclient/merchant-khposcommerce/**'
       - '.github/workflows/admin-ci.yml'
 
 jobs:
