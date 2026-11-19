@@ -13,12 +13,12 @@ interface ProfileOverviewProps {
 }
 
 const ROLE_TRANSLATIONS: Record<string, Record<string, string>> = {
-  super_admin: { km: 'អ្នកគ្រប់គ្រងជាន់ខ្ពស់', en: 'Super Admin', zh: '超级管理员', th: 'ผู้ดูแลระบบระดับสูง', vi: 'Quản trị viên cấp cao' },
-  admin: { km: 'អ្នកគ្រប់គ្រង', en: 'Admin', zh: '管理员', th: 'ผู้ดูแลระบบ', vi: 'Quản trị viên' },
-  manager: { km: 'អ្នកចាត់ការទូទៅ', en: 'General Manager', zh: '总经理', th: 'ผู้จัดการทั่วไป', vi: 'Tổng quản lý' },
-  cashier: { km: 'អ្នកគិតប្រាក់ POS', en: 'POS Cashier', zh: 'POS收银员', th: 'พนักงานแคชเชียร์ POS', vi: 'Thu ngân POS' },
-  warehouse_manager: { km: 'អ្នកគ្រប់គ្រងឃ្លាំង', en: 'Warehouse Manager', zh: '仓库主管', th: 'ผู้จัดการคลังสินค้า', vi: 'Quản lý kho' },
-  staff: { km: 'បុគ្គលិក', en: 'Staff', zh: '员工', th: 'พนักงาน', vi: 'Nhân viên' },
+  super_admin: { km: 'អ្នកគ្រប់គ្រងជាន់ខ្ពស់', en: 'Super Admin' },
+  admin: { km: 'អ្នកគ្រប់គ្រង', en: 'Admin' },
+  manager: { km: 'អ្នកចាត់ការទូទៅ', en: 'General Manager' },
+  cashier: { km: 'អ្នកគិតប្រាក់ POS', en: 'POS Cashier' },
+  warehouse_manager: { km: 'អ្នកគ្រប់គ្រងឃ្លាំង', en: 'Warehouse Manager' },
+  staff: { km: 'បុគ្គលិក', en: 'Staff' },
 }
 
 export const ProfileOverview: React.FC<ProfileOverviewProps> = ({

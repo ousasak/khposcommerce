@@ -8,16 +8,17 @@ import { usePermission } from '@/hooks/usePermission'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
 import { Breadcrumb } from '@/components/common'
-import { HeaderActionsGroup, AddButton, ExportButton, TableToolbar } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
-import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 
 import {
   CMSStatsCards,
   CMSFormModal,
   PagesPoliciesTable,
+  PagesPoliciesSearchBar,
 } from './components'
 
 export const PagesPoliciesPage: React.FC = () => {
@@ -61,6 +62,17 @@ export const PagesPoliciesPage: React.FC = () => {
   const [status, setStatus] = useState('published')
   const [metaTitle, setMetaTitle] = useState('')
   const [metaDescription, setMetaDescription] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   // Column Settings
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -105,44 +117,6 @@ export const PagesPoliciesPage: React.FC = () => {
     setPage(1)
   }
 
-  // Workspace Status Tabs with live counts
-  const statusCounts = useMemo(() => {
-    const total = cmsStats?.pages?.total ?? pagination.total ?? records.length
-    const published =
-      cmsStats?.pages?.published ??
-      records.filter((r: any) => (r.status || 'published').toLowerCase() === 'published').length
-    const draft =
-      cmsStats?.pages?.draft ??
-      records.filter((r: any) => (r.status || '').toLowerCase() === 'draft').length
-    const archived =
-      records.filter((r: any) => (r.status || '').toLowerCase() === 'archived').length
-
-    return { all: total, published, draft, archived }
-  }, [cmsStats, pagination.total, records])
-
-  const statusTabs: WorkspaceTabItem[] = useMemo(() => [
-    {
-      id: 'all',
-      label: t('cms.allStatuses', 'All Statuses'),
-      count: statusCounts.all,
-    },
-    {
-      id: 'published',
-      label: t('cms.published', 'Published'),
-      count: statusCounts.published,
-    },
-    {
-      id: 'draft',
-      label: t('cms.drafts', 'Drafts'),
-      count: statusCounts.draft,
-    },
-    {
-      id: 'archived',
-      label: t('cms.archived', 'Archived'),
-      count: statusCounts.archived,
-    },
-  ], [statusCounts, t])
-
   // Mutations
   const createMutation = useMutation({
     mutationFn: (payload: any) => cmsService.createItemByTab('pages', payload),
@@ -152,7 +126,19 @@ export const PagesPoliciesPage: React.FC = () => {
       closeModal()
       toast.success(t('cms.createdSuccess'))
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? t('cms.createFailed')),
+    onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
+      toast.error(err?.response?.data?.message ?? t('cms.createFailed'))
+    },
   })
 
   const updateMutation = useMutation({
@@ -164,7 +150,19 @@ export const PagesPoliciesPage: React.FC = () => {
       closeModal()
       toast.success(t('cms.updatedSuccess'))
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? t('cms.updateFailed')),
+    onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
+      toast.error(err?.response?.data?.message ?? t('cms.updateFailed'))
+    },
   })
 
   const deleteMutation = useMutation({
@@ -212,6 +210,7 @@ export const PagesPoliciesPage: React.FC = () => {
     setStatus('published')
     setMetaTitle('')
     setMetaDescription('')
+    setErrors({})
     setModalOpen(true)
   }
 
@@ -223,20 +222,29 @@ export const PagesPoliciesPage: React.FC = () => {
     setStatus(item.status || 'published')
     setMetaTitle(item.meta_title || '')
     setMetaDescription(item.meta_description || '')
+    setErrors({})
     setModalOpen(true)
   }
 
   const closeModal = () => {
     setModalOpen(false)
     setEditingItem(null)
+    setErrors({})
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!title.trim()) {
+      const newErrors = { title: t('cms.pageTitleRequired', 'សូមបញ្ចូលចំណងជើងទំព័រ') }
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+
     const payload = {
       company_id: 1,
-      title,
-      slug: slug || title.toLowerCase().replace(/ /g, '-'),
+      title: title.trim(),
+      slug: slug.trim() || title.toLowerCase().replace(/ /g, '-'),
       content,
       status,
       meta_title: metaTitle,
@@ -338,33 +346,20 @@ export const PagesPoliciesPage: React.FC = () => {
       {/* ── 3. EXECUTIVE KPI OVERVIEW ── */}
       <CMSStatsCards activeTab="pages" records={records} stats={cmsStats} pagination={pagination} />
 
-      {/* ── 4. WORKSPACE STATUS TABS ── */}
-      <WorkspaceTabs
-        tabs={statusTabs}
-        activeTab={filterStatus}
-        onChange={(tabId) => {
-          setFilterStatus(tabId)
-          setPage(1)
-        }}
-      />
-
-      {/* ── 5. GLOBAL STANDARD TABLE TOOLBAR ── */}
+      {/* ── 4. SMARTHR-STYLE PRODUCT-MATCHING SEARCH & FILTER BAR ── */}
       <div className="space-y-4">
-        <TableToolbar
+        <PagesPoliciesSearchBar
           search={search}
           onSearchChange={(val) => {
             setSearch(val)
             setPage(1)
           }}
-          searchPlaceholder={t('cms.searchPagePlaceholder', 'Search pages & policies...')}
-          isFilterActive={Boolean(filterStatus !== 'all' || search)}
-          onReset={resetAllFilters}
-          onRefresh={() => {
-            qc.invalidateQueries({ queryKey: ['pages'] })
-            qc.invalidateQueries({ queryKey: ['cms-stats'] })
+          statusFilter={filterStatus}
+          onStatusChange={(val) => {
+            setFilterStatus(val)
+            setPage(1)
           }}
-          refreshLoading={isFetching}
-          manageTableLabel={t('common.manageTable', 'Manage Table')}
+          onReset={resetAllFilters}
           columns={[
             { key: 'title', label: t('cms.colPageTitle', 'Page Title') },
             { key: 'slug', label: t('cms.colSlug', 'Slug') },
@@ -374,20 +369,8 @@ export const PagesPoliciesPage: React.FC = () => {
           ]}
           visibleColumns={visibleColumns}
           onColumnChange={setVisibleColumns}
-          leftActions={
-            selectedRows.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setBulkDeleteConfirmOpen(true)}
-                className="inline-flex items-center gap-1.5 h-10 min-h-[40px] max-h-[40px] px-3.5 text-xs sm:text-[13px] font-semibold bg-rose-500/10 text-rose-600 rounded-lg border border-rose-500/20 hover:bg-rose-500/20 active:scale-[0.98] transition-all cursor-pointer shrink-0 box-border leading-normal"
-              >
-                <Trash2 size={14} />
-                <span>
-                  {t('common.deleteSelected', 'Delete Selected')} ({selectedRows.length})
-                </span>
-              </button>
-            ) : null
-          }
+          selectedCount={selectedRows.length}
+          onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
         />
 
         {/* Bulk Selection Banner */}
@@ -435,6 +418,8 @@ export const PagesPoliciesPage: React.FC = () => {
         editingItem={editingItem}
         onSubmit={handleSubmit}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
+        errors={errors}
+        onClearError={handleClearError}
         activeTab="pages"
         getAddButtonLabel={() => t('cms.addPage')}
         title={title}

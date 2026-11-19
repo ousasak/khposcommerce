@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronDown, ArrowLeft, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface PaginationProps {
@@ -10,6 +10,8 @@ interface PaginationProps {
   onPerPageChange?: (perPage: number) => void
   perPageOptions?: number[]
   isLoading?: boolean
+  variant?: 'default' | 'centered'
+  className?: string
 }
 
 const Pagination: React.FC<PaginationProps> = ({
@@ -21,6 +23,8 @@ const Pagination: React.FC<PaginationProps> = ({
   onPerPageChange,
   perPageOptions = [10, 20, 50, 100],
   isLoading = false,
+  variant = 'default',
+  className = '',
 }) => {
   const { t } = useTranslation()
   const disabled = isLoading
@@ -46,8 +50,69 @@ const Pagination: React.FC<PaginationProps> = ({
     return pages
   }
 
+  // Centered Variant (Image 2 - LMS / Card List Standard)
+  if (variant === 'centered') {
+    return (
+      <div className={`flex flex-col items-center justify-center gap-2.5 py-6 print:hidden ${className}`}>
+        {/* Pagination Controls */}
+        <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-card border border-border/80 shadow-2xs">
+          {/* Previous Page */}
+          <button
+            onClick={() => onPageChange(safeCurrentPage - 1)}
+            disabled={disabled || safeCurrentPage <= 1}
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+            aria-label={t('pagination.prevPage', 'Previous page')}
+          >
+            <ArrowLeft size={16} />
+          </button>
+
+          {/* Page numbers */}
+          {buildPages().map((p, i) =>
+            p === '...' ? (
+              <span key={`ellipsis-${i}`} className="w-8 text-center text-sm text-muted-foreground">
+                …
+              </span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onPageChange(p as number)}
+                disabled={disabled}
+                className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg text-sm font-semibold transition-all cursor-pointer
+                  ${p === safeCurrentPage
+                    ? 'bg-primary text-primary-foreground shadow-xs font-bold'
+                    : 'text-foreground hover:bg-muted/70'
+                  }`}
+              >
+                {p}
+              </button>
+            )
+          )}
+
+          {/* Next Page */}
+          <button
+            onClick={() => onPageChange(safeCurrentPage + 1)}
+            disabled={disabled || safeCurrentPage >= safeLastPage || safeLastPage === 0}
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+            aria-label={t('pagination.nextPage', 'Next page')}
+          >
+            <ArrowRight size={16} />
+          </button>
+        </div>
+
+        {/* Results summary centered */}
+        <div className="text-xs text-muted-foreground font-medium text-center">
+          {t('pagination.showing_prefix', 'Showing')}{' '}
+          <span className="font-semibold text-foreground">{from}–{to}</span>{' '}
+          {t('pagination.showing_of', 'of')}{' '}
+          <span className="font-semibold text-foreground">{safeTotal}</span>{' '}
+          {t('pagination.showing_records', 'results')}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-border bg-card">
+    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t border-border bg-card ${className}`}>
       <div className="flex flex-col sm:flex-row items-center gap-4 text-xs text-muted-foreground w-full sm:w-auto justify-between sm:justify-start">
         {onPerPageChange && (
           <div className="flex items-center gap-2">

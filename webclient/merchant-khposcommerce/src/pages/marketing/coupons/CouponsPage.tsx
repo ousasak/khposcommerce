@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
 import {
@@ -8,24 +9,29 @@ import { marketingService } from '@/services/marketingService'
 import { useToast } from '@/hooks/useToast'
 import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
-import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import { Breadcrumb, ResetButton } from '@/components/common'
-import { TableToolbar, HeaderActionsGroup, AddButton, ExportButton, ImportButton, InlineFilterSelect } from '@/components/common'
+import {
+  Breadcrumb,
+  ConfirmModal,
+  HeaderActionsGroup,
+  AddButton,
+  ExportButton,
+  ImportButton,
+} from '@/components/common'
+import { BulkSelectionBanner } from '@/components/shared/BulkSelectionBanner'
 import { downloadCsv } from '@/utils/export'
 import { useTranslation } from 'react-i18next'
 
 import { CouponStatsCards } from './components/CouponStatsCards'
-import { CouponFilterDrawer } from './components/CouponFilterDrawer'
+import { CouponSearchBar } from './components/CouponSearchBar'
 import { CouponDetailDrawer } from './components/CouponDetailDrawer'
-import { CouponFormModal } from './components/CouponFormModal'
 import { CouponImportModal } from './components/CouponImportModal'
-import { BulkVoucherModal } from './components/BulkVoucherModal'
 import { VoucherVerifierModal } from './components/VoucherVerifierModal'
 import { CouponTableSection } from './components/CouponTableSection'
 import type { Coupon, CouponChannelScope } from './types'
 
 const CouponsPage: React.FC = () => {
   const { t } = useTranslation(['marketing', 'common', 'toast'])
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const toast = useToast()
 
@@ -42,15 +48,12 @@ const CouponsPage: React.FC = () => {
   } = useServerPagination({ storageKey: 'coupons' })
 
   // Modals & Drawers
-  const [modalOpen, setModalOpen] = useState(false)
-  const [bulkModalOpen, setBulkModalOpen] = useState(false)
   const [verifierOpen, setVerifierOpen] = useState(false)
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [detailDrawerCoupon, setDetailDrawerCoupon] = useState<Coupon | null>(null)
   const [verifierSelectedCoupon, setVerifierSelectedCoupon] = useState<Coupon | null>(null)
   const [importModalOpen, setImportModalOpen] = useState(false)
-  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Coupon | null>(null)
+  const [selectedRows, setSelectedRows] = useState<number[]>([])
 
   // CSV Import
   const [importFile, setImportFile] = useState<File | null>(null)
@@ -70,35 +73,10 @@ const CouponsPage: React.FC = () => {
     actions: true,
   })
 
-  // Filter Drawer States
+  // Filter States
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterType, setFilterType] = useState<string>('all')
-  const [filterMinDiscount, setFilterMinDiscount] = useState<string>('')
-  const [filterMaxDiscount, setFilterMaxDiscount] = useState<string>('')
-  const [filterUsageLimit, setFilterUsageLimit] = useState<string>('all')
-  const [filterStartDate, setFilterStartDate] = useState<string>('')
-  const [filterEndDate, setFilterEndDate] = useState<string>('')
-
-  // Visual Form States
-  const [name, setName] = useState('')
-  const [code, setCode] = useState('')
-  const [type, setType] = useState<'fixed' | 'percentage' | 'free_shipping'>('percentage')
-  const [value, setValue] = useState<number>(15)
-  const [currency, setCurrency] = useState<'USD' | 'KHR'>('USD')
-  const [maxDiscountCap, setMaxDiscountCap] = useState('')
-  const [minimumAmount, setMinimumAmount] = useState<number | ''>(20)
-  const [minimumAmountKhr, setMinimumAmountKhr] = useState('')
-  const [channelScope, setChannelScope] = useState<CouponChannelScope>('all')
-  const [branchIds, setBranchIds] = useState('all')
-  const [paymentMethods, setPaymentMethods] = useState<string[]>(['all'])
-  const [customerTargetType, setCustomerTargetType] = useState<'all' | 'new_customer_only' | 'vip_tiers' | 'specific_customer'>('all')
-  const [customerPhone, setCustomerPhone] = useState('')
-  const [usageLimit, setUsageLimit] = useState<number | ''>(500)
-  const [perCustomerLimit, setPerCustomerLimit] = useState('1')
-  const [startsAt, setStartsAt] = useState('')
-  const [expiresAt, setExpiresAt] = useState('')
-  const [isActive, setIsActive] = useState(true)
-  const [generating, setGenerating] = useState(false)
+  const [filterChannel, setFilterChannel] = useState<string>('all')
 
   // Query
   const { data, isLoading, isFetching } = useQuery({
@@ -113,18 +91,26 @@ const CouponsPage: React.FC = () => {
   const coupons = useMemo(() => {
     return couponsRaw.filter((coupon) => {
       if (filterStatus !== 'all') {
-        const isExp = coupon.expires_at && new Date(coupon.expires_at) < new Date()
-        const st = isExp ? 'expired' : coupon.is_active ? 'active' : 'inactive'
-        if (st !== filterStatus) return false
+        const now = new Date()
+        const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+        const isExp = coupon.expires_at && new Date(coupon.expires_at) < now
+        const isExpiring = coupon.expires_at && new Date(coupon.expires_at) >= now && new Date(coupon.expires_at) <= in7Days
+
+        if (filterStatus === 'expiring_soon') {
+          if (!isExpiring) return false
+        } else {
+          const st = isExp ? 'expired' : coupon.is_active ? 'active' : 'inactive'
+          if (st !== filterStatus) return false
+        }
       }
       if (filterType !== 'all' && coupon.type !== filterType) return false
-      if (filterMinDiscount && coupon.value < parseFloat(filterMinDiscount)) return false
-      if (filterMaxDiscount && coupon.value > parseFloat(filterMaxDiscount)) return false
-      if (filterStartDate && coupon.expires_at && new Date(coupon.expires_at) < new Date(filterStartDate)) return false
-      if (filterEndDate && coupon.expires_at && new Date(coupon.expires_at) > new Date(filterEndDate)) return false
+      if (filterChannel !== 'all') {
+        if (filterChannel === 'all_channels' && coupon.channel_scope !== 'all') return false
+        if (filterChannel !== 'all_channels' && coupon.channel_scope !== filterChannel) return false
+      }
       return true
     })
-  }, [couponsRaw, filterStatus, filterType, filterMinDiscount, filterMaxDiscount, filterStartDate, filterEndDate])
+  }, [couponsRaw, filterStatus, filterType, filterChannel])
 
   const analytics = useMemo(() => {
     const totalCoupons = pagination.total || couponsRaw.length || 0
@@ -201,26 +187,6 @@ const CouponsPage: React.FC = () => {
   }, [couponsRaw, pagination])
 
   // Mutations
-  const createMutation = useMutation({
-    mutationFn: (payload: any) => marketingService.createCoupon(payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['coupons'] })
-      setModalOpen(false)
-      toast.success(t('marketing.promoCreated', 'Coupon created successfully.'))
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create coupon.'),
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => marketingService.updateCoupon(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['coupons'] })
-      setModalOpen(false)
-      toast.success(t('marketing.promoUpdated', 'Coupon updated successfully.'))
-    },
-    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update coupon.'),
-  })
-
   const deleteMutation = useMutation({
     mutationFn: (id: number) => marketingService.deleteCoupon(id),
     onSuccess: () => {
@@ -242,142 +208,36 @@ const CouponsPage: React.FC = () => {
     onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update status.'),
   })
 
-  const handleGenerateCode = async () => {
-    setGenerating(true)
-    try {
-      const res = await marketingService.generateCouponCode()
-      setCode(res?.code || `PROMO${Math.floor(1000 + Math.random() * 9000)}`)
-      toast.success('Generated new coupon code!')
-    } catch {
-      setCode(`PROMO${Math.floor(1000 + Math.random() * 9000)}`)
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  const openCreateModal = () => {
-    setEditingCoupon(null)
-    setName('')
-    setCode(`PROMO${Math.floor(1000 + Math.random() * 9000)}`)
-    setType('percentage')
-    setValue(15)
-    setCurrency('USD')
-    setMaxDiscountCap('')
-    setMinimumAmount(20)
-    setMinimumAmountKhr('')
-    setChannelScope('all')
-    setBranchIds('all')
-    setPaymentMethods(['all'])
-    setCustomerTargetType('all')
-    setCustomerPhone('')
-    setUsageLimit(500)
-    setPerCustomerLimit('1')
-    setStartsAt('')
-    setExpiresAt('')
-    setIsActive(true)
-    setModalOpen(true)
-  }
-
   const openEditModal = (coupon: Coupon) => {
-    setEditingCoupon(coupon)
-    setName(coupon.name || '')
-    setCode(coupon.code || '')
-    setType(coupon.type || 'percentage')
-    setValue(coupon.value || 0)
-    setCurrency(coupon.currency || 'USD')
-    setMaxDiscountCap(coupon.max_discount_cap?.toString() || '')
-    setMinimumAmount(coupon.minimum_amount ?? '')
-    setMinimumAmountKhr(coupon.minimum_amount_khr?.toString() || '')
-    setChannelScope(coupon.channel_scope || 'all')
-    setBranchIds(typeof coupon.branch_ids === 'string' ? coupon.branch_ids : 'all')
-    setPaymentMethods(coupon.payment_methods || ['all'])
-    setCustomerTargetType(coupon.customer_target_type || 'all')
-    setCustomerPhone(coupon.customer_phone || '')
-    setUsageLimit(coupon.usage_limit ?? '')
-    setPerCustomerLimit(coupon.per_customer_limit?.toString() || '1')
-    setStartsAt(coupon.starts_at ? coupon.starts_at.slice(0, 16) : '')
-    setExpiresAt(coupon.expires_at ? coupon.expires_at.slice(0, 16) : '')
-    setIsActive(coupon.is_active ?? true)
-    setModalOpen(true)
+    navigate(`/marketing/coupons/${coupon.id}/edit`)
   }
-
 
   const handleDuplicate = (coupon: Coupon) => {
-    setName(`${coupon.name} (Copy)`)
-    setCode(`${coupon.code}_COPY`)
-    setType(coupon.type || 'percentage')
-    setValue(coupon.value || 0)
-    setCurrency(coupon.currency || 'USD')
-    setMaxDiscountCap(coupon.max_discount_cap?.toString() || '')
-    setMinimumAmount(coupon.minimum_amount ?? '')
-    setChannelScope(coupon.channel_scope || 'all')
-    setUsageLimit(coupon.usage_limit ?? '')
-    setEditingCoupon(null)
-    setModalOpen(true)
-  }
-
-  const handleBatchGenerate = async (params: any) => {
-    try {
-      // Create first coupon in database to register batch
-      await marketingService.createCoupon({
-        name: params.name,
-        code: params.codes[0],
-        type: params.type,
-        value: params.value,
-        currency: params.currency,
-        max_discount_cap: params.maxDiscountCap,
-        minimum_amount: params.minimumAmount,
-        channel_scope: params.channelScope,
-        expires_at: params.expiresAt || null,
-        batch_id: `BATCH-${Date.now()}`,
-        batch_count: params.codes.length,
-        is_active: true,
-      })
-      qc.invalidateQueries({ queryKey: ['coupons'] })
-      setBulkModalOpen(false)
-      toast.success(`Successfully generated batch of ${params.codes.length} voucher codes!`)
-    } catch {
-      toast.error('Failed to create batch coupons.')
-    }
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const payload: any = {
-      name,
-      code: code.toUpperCase(),
-      type,
-      value,
-      currency,
-      ...(maxDiscountCap && { max_discount_cap: parseFloat(maxDiscountCap) }),
-      minimum_amount: minimumAmount !== '' ? Number(minimumAmount) : 0,
-      minimum_amount_khr: minimumAmountKhr ? parseFloat(minimumAmountKhr) : null,
-      channel_scope: channelScope,
-      branch_ids: branchIds === 'all' ? 'all' : [parseInt(branchIds)],
-      payment_methods: paymentMethods,
-      customer_target_type: customerTargetType,
-      customer_phone: customerPhone || null,
-      usage_limit: usageLimit !== '' ? Number(usageLimit) : null,
-      per_customer_limit: perCustomerLimit ? parseInt(perCustomerLimit) : 1,
-      starts_at: startsAt || null,
-      expires_at: expiresAt || null,
-      is_active: isActive,
-    }
-
-    if (editingCoupon) {
-      updateMutation.mutate({ id: editingCoupon.id, data: payload })
-    } else {
-      createMutation.mutate(payload)
-    }
+    navigate('/marketing/coupons/create', { state: { duplicateFrom: coupon } })
   }
 
   const handleExportCSV = () => {
-    if (!coupons.length) {
-      toast.error('No data available to export.')
+    const exportTargets = selectedRows.length > 0
+      ? coupons.filter((c) => selectedRows.includes(c.id))
+      : coupons
+
+    if (!exportTargets.length) {
+      toast.error(t('marketing.noDataToExport', 'No data available to export.'))
       return
     }
-    const headers = ['ID', 'Name', 'Code', 'Type', 'Value', 'Channel', 'Min Spend', 'Usage Limit', 'Expires At', 'Status']
-    const rows = coupons.map((c) => [
+    const headers = [
+      t('common.id', 'ID'),
+      t('marketing.couponCampaign', 'Name'),
+      t('marketing.code', 'Code'),
+      t('marketing.discountType', 'Type'),
+      t('marketing.discountValue', 'Value'),
+      t('marketing.channel', 'Channel'),
+      t('marketing.minPurchase', 'Min Spend'),
+      t('marketing.usageLimit', 'Usage Limit'),
+      t('marketing.expiresAt', 'Expires At'),
+      t('common.status', 'Status'),
+    ]
+    const rows = exportTargets.map((c) => [
       c.id,
       c.name,
       c.code,
@@ -385,12 +245,16 @@ const CouponsPage: React.FC = () => {
       c.type === 'percentage' ? `${c.value}%` : `$${c.value}`,
       c.channel_scope || 'all',
       `$${c.minimum_amount || 0}`,
-      c.usage_limit || 'Unlimited',
-      c.expires_at ? new Date(c.expires_at).toLocaleDateString() : 'Never',
-      c.is_active ? 'Active' : 'Inactive',
+      c.usage_limit || t('marketing.unlimited', 'Unlimited'),
+      c.expires_at ? new Date(c.expires_at).toLocaleDateString() : t('marketing.never', 'Never'),
+      c.is_active ? t('common.active', 'Active') : t('common.inactive', 'Inactive'),
     ])
     downloadCsv('coupons_and_vouchers', headers, rows)
-    toast.success('Downloaded coupons as CSV dataset.')
+    toast.success(
+      selectedRows.length > 0
+        ? t('marketing.exportSelectedSuccess', `Downloaded ${selectedRows.length} selected coupons as CSV.`)
+        : t('marketing.exportSuccess', 'Downloaded coupons as CSV dataset.')
+    )
   }
 
   const handleFileSelectForImport = (file: File) => {
@@ -428,31 +292,41 @@ const CouponsPage: React.FC = () => {
   const resetAllFilters = () => {
     setFilterStatus('all')
     setFilterType('all')
-    setFilterMinDiscount('')
-    setFilterMaxDiscount('')
-    setFilterUsageLimit('all')
-    setFilterStartDate('')
-    setFilterEndDate('')
+    setFilterChannel('all')
+    setSelectedRows([])
     reset()
   }
 
+  const handleBulkDelete = async () => {
+    if (selectedRows.length === 0) return
+    if (!window.confirm(`តើអ្នកប្រាកដជាចង់លុបប័ណ្ណចំនួន ${selectedRows.length} ដែលបានជ្រើសរើសដែរឬទេ?`)) return
+    try {
+      await Promise.all(selectedRows.map((id) => marketingService.deleteCoupon(id)))
+      qc.invalidateQueries({ queryKey: ['coupons'] })
+      setSelectedRows([])
+      toast.success(`បានលុបប័ណ្ណចំនួន ${selectedRows.length} ដោយជោគជ័យ។`)
+    } catch {
+      toast.error('បរាជ័យក្នុងការលុបប័ណ្ណមួយចំនួន។')
+    }
+  }
+
   const columnOptions = [
-    { key: 'name', label: 'Coupon Campaign' },
-    { key: 'code', label: 'Code & Channel' },
-    { key: 'type', label: 'Type' },
-    { key: 'value', label: 'Discount Value' },
-    { key: 'minSpend', label: 'Min Spend' },
-    { key: 'usageLimit', label: 'Redemptions / Limit' },
-    { key: 'expiresAt', label: 'Expiry Date' },
-    { key: 'status', label: 'Status' },
-    { key: 'actions', label: 'Actions' },
+    { key: 'name', label: t('marketing.couponCampaign', 'យុទ្ធនាការប័ណ្ណ') },
+    { key: 'code', label: t('marketing.codeAndChannel', 'កូដ & បណ្តាញ') },
+    { key: 'type', label: t('common.type', 'ប្រភេទ') },
+    { key: 'value', label: t('marketing.discountValue', 'តម្លៃបញ្ចុះ') },
+    { key: 'minSpend', label: t('marketing.minPurchase', 'ទិញអប្បបរមា') },
+    { key: 'usageLimit', label: t('marketing.couponUsage', 'ការប្រើប្រាស់') },
+    { key: 'expiresAt', label: t('marketing.expiresAt', 'ថ្ងៃផុតកំណត់') },
+    { key: 'status', label: t('common.status', 'ស្ថានភាព') },
+    { key: 'actions', label: t('common.actions', 'សកម្មភាព') },
   ]
 
   return (
     <div className="space-y-5 print:p-0">
       <Breadcrumb
         items={[
-          { label: t('nav.marketingManagement', t('nav.marketing', 'Marketing')), path: '/marketing/promotions' },
+          { label: t('nav.marketing', 'Marketing'), path: '/marketing/promotions' },
           { label: t('marketing.coupons', 'Coupons & Vouchers') },
         ]}
       />
@@ -460,100 +334,73 @@ const CouponsPage: React.FC = () => {
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 py-1 print:hidden">
         <div className="space-y-1 min-w-0 flex-1">
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
-            Discount Coupons & Voucher Management
+            {t('marketing.couponsManagement', 'ការគ្រប់គ្រងប័ណ្ណបញ្ចុះតម្លៃ')}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-            Create promotional coupon codes, percentage discounts, minimum order thresholds, and track redemption revenue.
+            {t('marketing.couponsSubtitle', 'គ្រប់គ្រងប័ណ្ណបញ្ចុះតម្លៃ យុទ្ធនាការផ្សព្វផ្សាយ ការប្រើប្រាស់ប័ណ្ណ ប្រសិទ្ធភាពសន្សំសំចៃរបស់អតិថិជន និងចំណូលពីការផ្សព្វផ្សាយនៅគ្រប់ប្រព័ន្ធលក់។')}
           </p>
         </div>
 
         <HeaderActionsGroup>
-          <button
-            onClick={() => {
-              setVerifierSelectedCoupon(null)
-              setVerifierOpen(true)
-            }}
-            className="px-3.5 py-2 rounded-xl border border-primary/20 bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors flex items-center gap-1.5"
-          >
-            <Barcode size={15} />
-            <span>POS Scan & Verify</span>
-          </button>
-          <button
-            onClick={() => setBulkModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5"
-          >
-            <Layers size={15} />
-            <span>Bulk Batch Gen</span>
-          </button>
-          <ImportButton onClick={() => setImportModalOpen(true)} label="Import CSV" />
-          <ExportButton onClick={handleExportCSV} label="Export CSV" />
-          <AddButton onClick={openCreateModal} label="Add Coupon" />
+          <ImportButton
+            onClick={() => setImportModalOpen(true)}
+            label={t('common.importCsv', 'នាំចូល CSV')}
+          />
+          <ExportButton
+            onClick={handleExportCSV}
+            label={
+              selectedRows.length > 0
+                ? `${t('common.exportCsv', 'នាំចេញ CSV')} (${selectedRows.length})`
+                : t('common.exportCsv', 'នាំចេញ CSV')
+            }
+          />
+          <AddButton
+            onClick={() => navigate('/marketing/coupons/create')}
+            label={t('marketing.createCoupon', 'បង្កើតប័ណ្ណថ្មី')}
+          />
         </HeaderActionsGroup>
       </div>
 
-      {/* KPI Stats Cards */}
+      {/* KPI Stats Cards (Single Row 4 Cards) */}
       <CouponStatsCards analytics={analytics} />
 
-      {/* Global Standard Table Toolbar with Shadcn Inline Quick Filters */}
-      <TableToolbar
+      {/* Bulk Selection Notification Banner */}
+      {selectedRows.length > 0 && (
+        <BulkSelectionBanner
+          selectedCount={selectedRows.length}
+          onClear={() => setSelectedRows([])}
+        />
+      )}
+
+      {/* SmartHR-style Search & Filter Toolbar (matching Products page format) */}
+      <CouponSearchBar
         search={search}
-        onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        searchPlaceholder="Search coupon name or code..."
-        hideFilterButton={true}
-        isFilterActive={filterStatus !== 'all' || filterType !== 'all'}
+        onSearchChange={(val) => {
+          setSearch(val)
+          setPage(1)
+        }}
+        statusFilter={filterStatus}
+        onStatusChange={(val) => {
+          setFilterStatus(val)
+          setPage(1)
+        }}
+        typeFilter={filterType}
+        onTypeChange={(val) => {
+          setFilterType(val)
+          setPage(1)
+        }}
+        channelFilter={filterChannel}
+        onChannelChange={(val) => {
+          setFilterChannel(val)
+          setPage(1)
+        }}
         onReset={resetAllFilters}
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['coupons'] })}
-        refreshLoading={isFetching}
-        filters={
-          <>
-            <InlineFilterSelect
-              label={t('common.status', 'Status')}
-              value={filterStatus === 'all' ? '' : filterStatus}
-              onChange={(val) => { setFilterStatus(val || 'all'); setPage(1); }}
-              allLabel={t('common.allStatus', 'All status')}
-              options={[
-                { label: t('common.active', 'Active'), value: 'active' },
-                { label: 'Expired', value: 'expired' },
-                { label: 'Disabled', value: 'disabled' },
-              ]}
-            />
-            <InlineFilterSelect
-              label="Type"
-              value={filterType === 'all' ? '' : filterType}
-              onChange={(val) => { setFilterType(val || 'all'); setPage(1); }}
-              allLabel="All types"
-              options={[
-                { label: 'Percentage (%)', value: 'percentage' },
-                { label: 'Fixed Amount ($)', value: 'fixed_amount' },
-                { label: 'Free Shipping', value: 'free_shipping' },
-              ]}
-            />
-          </>
-        }
         columns={columnOptions}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
-      />
-
-      {/* Filter Drawer */}
-      <CouponFilterDrawer
-        isOpen={filterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-        filterStatus={filterStatus}
-        setFilterStatus={setFilterStatus}
-        filterType={filterType}
-        setFilterType={setFilterType}
-        filterMinDiscount={filterMinDiscount}
-        setFilterMinDiscount={setFilterMinDiscount}
-        filterMaxDiscount={filterMaxDiscount}
-        setFilterMaxDiscount={setFilterMaxDiscount}
-        filterUsageLimit={filterUsageLimit}
-        setFilterUsageLimit={setFilterUsageLimit}
-        filterStartDate={filterStartDate}
-        setFilterStartDate={setFilterStartDate}
-        filterEndDate={filterEndDate}
-        setFilterEndDate={setFilterEndDate}
-        onReset={resetAllFilters}
+        selectedCount={selectedRows.length}
+        onBulkDelete={handleBulkDelete}
+        columnSettingsTitle={t('tables.manageTable', 'គ្រប់គ្រងតារាង')}
       />
 
       {/* Table Section */}
@@ -562,6 +409,8 @@ const CouponsPage: React.FC = () => {
         isLoading={isLoading}
         isFetching={isFetching}
         visibleColumns={visibleColumns}
+        selectedRows={selectedRows}
+        setSelectedRows={setSelectedRows}
         setDetailDrawerCoupon={setDetailDrawerCoupon}
         openEditModal={openEditModal}
         handleDuplicate={handleDuplicate}
@@ -581,61 +430,6 @@ const CouponsPage: React.FC = () => {
         perPage={perPage}
         onPageChange={setPage}
         onPerPageChange={setPerPage}
-      />
-
-      {/* Coupon Form Modal (Visual Builder) */}
-      <CouponFormModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        editingCoupon={editingCoupon}
-        onSubmit={handleSubmit}
-        isPending={createMutation.isPending || updateMutation.isPending}
-        name={name}
-        setName={setName}
-        code={code}
-        setCode={setCode}
-        type={type}
-        setType={setType}
-        value={value}
-        setValue={setValue}
-        currency={currency}
-        setCurrency={setCurrency}
-        maxDiscountCap={maxDiscountCap}
-        setMaxDiscountCap={setMaxDiscountCap}
-        minimumAmount={minimumAmount}
-        setMinimumAmount={setMinimumAmount}
-        minimumAmountKhr={minimumAmountKhr}
-        setMinimumAmountKhr={setMinimumAmountKhr}
-        channelScope={channelScope}
-        setChannelScope={setChannelScope}
-        branchIds={branchIds}
-        setBranchIds={setBranchIds}
-        paymentMethods={paymentMethods}
-        setPaymentMethods={setPaymentMethods}
-        customerTargetType={customerTargetType}
-        setCustomerTargetType={setCustomerTargetType}
-        customerPhone={customerPhone}
-        setCustomerPhone={setCustomerPhone}
-        usageLimit={usageLimit}
-        setUsageLimit={setUsageLimit}
-        perCustomerLimit={perCustomerLimit}
-        setPerCustomerLimit={setPerCustomerLimit}
-        startsAt={startsAt}
-        setStartsAt={setStartsAt}
-        expiresAt={expiresAt}
-        setExpiresAt={setExpiresAt}
-        isActive={isActive}
-        setIsActive={setIsActive}
-        generating={generating}
-        handleGenerateCode={handleGenerateCode}
-      />
-
-      {/* Bulk Batch Generator Modal */}
-      <BulkVoucherModal
-        isOpen={bulkModalOpen}
-        onClose={() => setBulkModalOpen(false)}
-        onGenerateBatch={handleBatchGenerate}
-        isGenerating={createMutation.isPending}
       />
 
       {/* Live Voucher Verifier & Slip Modal */}
@@ -673,16 +467,21 @@ const CouponsPage: React.FC = () => {
         handleConfirmImport={handleConfirmImport}
       />
 
-      {/* Delete Confirm Dialog */}
-      <ConfirmDialog
-        open={Boolean(deleteTarget)}
-        title="Delete Discount Coupon"
-        message={`Are you sure you want to delete coupon "${deleteTarget?.code}"? This action cannot be undone.`}
+      {/* Delete Confirm Modal (Global Standard) */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        variant="danger"
+        actionType="delete"
+        title={t('marketing.deleteCouponTitle', 'លុបប័ណ្ណបញ្ចុះតម្លៃ')}
+        message={t(
+          'marketing.deleteCouponConfirm',
+          `តើអ្នកប្រាកដជាចង់លុបប័ណ្ណបញ្ចុះតម្លៃ "${deleteTarget?.code || ''}" នេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។`
+        )}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-        onCancel={() => setDeleteTarget(null)}
-        confirmText="Delete Voucher"
-        cancelText="Cancel"
-        loading={deleteMutation.isPending}
+        onClose={() => setDeleteTarget(null)}
+        isPending={deleteMutation.isPending}
+        confirmLabel={t('common.delete', 'លុប')}
+        cancelLabel={t('common.cancel', 'បោះបង់')}
       />
     </div>
   )

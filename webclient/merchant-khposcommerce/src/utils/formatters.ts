@@ -424,6 +424,6 @@ export const formatPhoneNumber = (value?: string | number | null): string => {
   return `${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5, 9)}`
 }
 
-import { GlobalFormat } from './GlobalFormat'
+import { GlobalFormat } from './globalFormat'
 export { GlobalFormat }
 export default GlobalFormat

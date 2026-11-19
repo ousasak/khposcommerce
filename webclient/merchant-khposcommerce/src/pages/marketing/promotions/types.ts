@@ -125,6 +125,52 @@ export interface PricingEngineLineItem {
   total: number
 }
 
+export interface PricingEngineSkippedRule {
+  campaign_id: number
+  campaign_name: string
+  rule_id: number | null
+  rule_name: string
+  rule_type: string
+  reason_code: string
+  reason: string
+  message?: string
+  action_hint?: string
+  priority?: number
+  is_stackable?: boolean
+  required_value?: number | null
+  current_value?: number | null
+}
+
+export interface PricingEngineMargin {
+  total_cost: number
+  net_revenue: number
+  gross_profit: number
+  gross_margin_percentage: number
+  is_loss: boolean
+  items_below_cost_count?: number
+}
+
+export interface PricingEngineCurrencyInfo {
+  base: string
+  target: string
+  exchange_rate: number
+  grand_total_khr: number
+  total_discount_khr: number
+  subtotal_khr: number
+}
+
+export interface CartItemInput {
+  product_id: number
+  product_variant_id?: number | null
+  name: string
+  sku: string
+  image?: string | null
+  unit_price: number
+  cost_price?: number
+  quantity: number
+  stock?: number
+}
+
 export interface PricingEngineResult {
   success: boolean
   summary: {
@@ -147,7 +193,14 @@ export interface PricingEngineResult {
     rule_type: string
     product_id?: number
     discount_amount: number
+    discount_value?: number
+    discount_type?: string
+    priority?: number
+    is_stackable?: boolean
   }>
+  skipped_rules?: PricingEngineSkippedRule[]
+  margin?: PricingEngineMargin
+  currency?: PricingEngineCurrencyInfo
   coupon_applied?: {
     id: number
     code: string

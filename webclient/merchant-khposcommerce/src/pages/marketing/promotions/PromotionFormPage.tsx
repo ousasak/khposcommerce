@@ -590,17 +590,20 @@ export const PromotionFormPage: React.FC = () => {
             },
           ]}
           statusBadge={
-            isEdit ? (
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+                isActive
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                  : 'bg-muted text-muted-foreground border-border'
+              }`}
+            >
               <span
-                className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                  isActive
-                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                    : 'bg-muted text-muted-foreground border border-border'
+                className={`w-2 h-2 rounded-full ${
+                  isActive ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'
                 }`}
-              >
-                {isActive ? t('marketing.active', 'Active') : t('marketing.inactive', 'Inactive')}
-              </span>
-            ) : undefined
+              />
+              {isActive ? t('marketing.active', 'Active') : t('marketing.inactive', 'Inactive')}
+            </span>
           }
           backPath="/marketing/promotions"
           backLabel={t('common.back', 'Back')}
@@ -618,20 +621,21 @@ export const PromotionFormPage: React.FC = () => {
               ? t('marketing.btnSavePromo', 'Save Changes')
               : t('marketing.btnCreatePromo', 'Create Promotion')
           }
-          sticky
         />
       }
-    > 
-      <FormContent maxWidth="5xl" layout="stack">
-        {/* ─── CARD 1: GENERAL INFORMATION & CHANNELS ─── */}
-        <FormCard
-          title={t('marketing.sectionBasic', 'General Information & Channels')}
-          subtitle={t(
-            'marketing.sectionBasicDesc',
-            'Campaign identity, active schedule, sales channel scope, and target branches'
-          )}
-          contentClassName="space-y-5"
-        >
+    >
+      <FormContent maxWidth="full" layout="two-column">
+        {/* ─── LEFT COLUMN (8 cols): Main Campaign Configuration ─── */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* CARD 1: GENERAL INFORMATION & CHANNELS */}
+          <FormCard
+            title={t('marketing.sectionBasic', 'General Information & Channels')}
+            subtitle={t(
+              'marketing.sectionBasicDesc',
+              'Campaign identity, active schedule, sales channel scope, and target branches'
+            )}
+            contentClassName="space-y-5"
+          >
           {/* Campaign Headline */}
           <FormField
             label={t('marketing.campaignHeadline', 'Campaign Headline Name')}
@@ -683,7 +687,7 @@ export const PromotionFormPage: React.FC = () => {
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   channelScope === 'all'
                     ? 'border-primary bg-primary/10 text-primary font-bold ring-1 ring-primary'
-                    : 'border-border bg-card text-foreground hover:bg-muted/50'
+                    : 'border-border/80 bg-card text-foreground hover:bg-muted/50'
                 }`}
               >
                 <div className="text-xs font-bold">
@@ -700,7 +704,7 @@ export const PromotionFormPage: React.FC = () => {
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   channelScope === 'pos_only'
                     ? 'border-primary bg-primary/10 text-primary font-bold ring-1 ring-primary'
-                    : 'border-border bg-card text-foreground hover:bg-muted/50'
+                    : 'border-border/80 bg-card text-foreground hover:bg-muted/50'
                 }`}
               >
                 <div className="text-xs font-bold">
@@ -717,7 +721,7 @@ export const PromotionFormPage: React.FC = () => {
                 className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
                   channelScope === 'storefront_only'
                     ? 'border-primary bg-primary/10 text-primary font-bold ring-1 ring-primary'
-                    : 'border-border bg-card text-foreground hover:bg-muted/50'
+                    : 'border-border/80 bg-card text-foreground hover:bg-muted/50'
                 }`}
               >
                 <div className="text-xs font-bold">
@@ -730,76 +734,23 @@ export const PromotionFormPage: React.FC = () => {
             </div>
           </FormField>
 
-          {/* Branch Target & Priority Weight */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label={t('marketing.targetBranches', 'Target Branches')}>
-              <select
-                value={branchIds}
-                onChange={(e) => setBranchIds(e.target.value)}
-                className="w-full h-10 px-3.5 text-xs sm:text-sm rounded-lg border border-border/80 bg-background text-foreground transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="all">
-                  {t('marketing.allBranchesNationwide', 'All Branches Nationwide')}
-                </option>
-                {availableBranches.map((b: any) => (
-                  <option key={b.id} value={String(b.id)}>
-                    {b.name} {b.code ? `(${b.code})` : ''}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-
-            <FormField
-              label={t(
-                'marketing.priorityWeight',
-                'Priority Weight (Higher applies first)'
-              )}
+          {/* Target Branch selection */}
+          <FormField label={t('marketing.targetBranches', 'Target Branches')}>
+            <select
+              value={branchIds}
+              onChange={(e) => setBranchIds(e.target.value)}
+              className="w-full h-10 px-3.5 text-xs sm:text-sm rounded-lg border border-border/80 bg-background text-foreground transition-all outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
-              <Input
-                type="number"
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                placeholder="10"
-              />
-            </FormField>
-          </div>
-
-          {/* Schedule Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <EnterpriseDateTimePicker
-              label={t('marketing.startsAt', 'Starts At')}
-              value={startsAt}
-              onChange={setStartsAt}
-              outputFormat="YYYY-MM-DDTHH:mm"
-            />
-            <EnterpriseDateTimePicker
-              label={t('marketing.endsAt', 'Ends At')}
-              minDateTime={startsAt}
-              value={endsAt}
-              onChange={setEndsAt}
-              outputFormat="YYYY-MM-DDTHH:mm"
-            />
-          </div>
-
-          {/* Campaign Active Status Toggle */}
-          <div className="flex items-center justify-between p-4 bg-muted/20 dark:bg-slate-800/40 rounded-xl border border-border/70 dark:border-slate-800">
-            <div className="space-y-0.5">
-              <p className="text-xs font-bold text-foreground">
-                {t('marketing.campaignActiveStatus', 'Campaign Active Status')}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {t(
-                  'marketing.campaignActiveDesc',
-                  'Enable or pause this promotion rule immediately'
-                )}
-              </p>
-            </div>
-            <ToggleSwitch
-              checked={isActive}
-              onChange={setIsActive}
-              activeColor="primary"
-            />
-          </div>
+              <option value="all">
+                {t('marketing.allBranchesNationwide', 'All Branches Nationwide')}
+              </option>
+              {availableBranches.map((b: any) => (
+                <option key={b.id} value={String(b.id)}>
+                  {b.name} {b.code ? `(${b.code})` : ''}
+                </option>
+              ))}
+            </select>
+          </FormField>
         </FormCard>
 
         {/* ─── CARD 2: DISCOUNT ACTION & REWARDS ─── */}
@@ -1203,18 +1154,13 @@ export const PromotionFormPage: React.FC = () => {
 
           {/* Cambodia Payment Methods */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-foreground/90">
-                {t(
-                  'marketing.cambodiaPaymentTriggers',
-                  'Cambodia Payment Method Triggers'
-                )}
-              </label>
-              <span className="text-[11px] text-muted-foreground">
-                {t('marketing.selectMultipleOrAll', 'Select multiple or All')}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <label className="block text-xs font-semibold text-foreground/90">
+              {t(
+                'marketing.cambodiaPaymentTriggers',
+                'Cambodia Payment Method Triggers'
+              )}
+            </label>
+            <div className="flex flex-wrap gap-2 pt-0.5">
               {paymentOptions.map((method) => {
                 const isSelected =
                   paymentMethods.includes(method.id) ||
@@ -1226,10 +1172,10 @@ export const PromotionFormPage: React.FC = () => {
                     key={method.id}
                     type="button"
                     onClick={() => togglePaymentMethod(method.id)}
-                    className={`p-2.5 rounded-lg border text-xs text-left transition-all cursor-pointer ${
+                    className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-primary bg-primary/10 text-primary font-bold ring-1 ring-primary/20'
-                        : 'border-border bg-card text-foreground hover:bg-muted/50'
+                        ? 'bg-primary text-primary-foreground border-primary font-semibold shadow-2xs'
+                        : 'bg-card text-muted-foreground border-border/80 hover:bg-muted/50 hover:text-foreground'
                     }`}
                   >
                     {method.label}
@@ -1241,15 +1187,13 @@ export const PromotionFormPage: React.FC = () => {
 
           {/* Customer Segmentation */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-foreground/90">
-                {t(
-                  'marketing.customerSegmentation',
-                  'Customer Segmentation & Member Tiers'
-                )}
-              </label>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <label className="block text-xs font-semibold text-foreground/90">
+              {t(
+                'marketing.customerSegmentation',
+                'Customer Segmentation & Member Tiers'
+              )}
+            </label>
+            <div className="flex flex-wrap gap-2 pt-0.5">
               {customerGroupOptions.map((group) => {
                 const isSelected = customerGroups.includes(group.id)
                 return (
@@ -1257,10 +1201,10 @@ export const PromotionFormPage: React.FC = () => {
                     key={group.id}
                     type="button"
                     onClick={() => toggleCustomerGroup(group.id)}
-                    className={`p-2.5 rounded-lg border text-xs text-left transition-all cursor-pointer ${
+                    className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-primary bg-primary/10 text-primary font-bold ring-1 ring-primary/20'
-                        : 'border-border bg-card text-foreground hover:bg-muted/50'
+                        ? 'bg-primary text-primary-foreground border-primary font-semibold shadow-2xs'
+                        : 'bg-card text-muted-foreground border-border/80 hover:bg-muted/50 hover:text-foreground'
                     }`}
                   >
                     {group.label}
@@ -1270,90 +1214,115 @@ export const PromotionFormPage: React.FC = () => {
             </div>
           </div>
         </FormCard>
+        </div>
 
-        {/* ─── CARD 4: BUDGET & STACKING SAFETY LIMITS ─── */}
-        <FormCard
-          title={t('marketing.sectionBudget', 'Budget & Stacking Limits')}
-          subtitle={t(
-            'marketing.sectionBudgetDesc',
-            'Safety budget limits, total redemption ceilings, and voucher stacking rules'
-          )}
-          contentClassName="space-y-5"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <FormField
-                label={t('marketing.totalBudgetCap', 'Total Budget Cap ($ USD)')}
-              >
-                <Input
-                  type="number"
-                  value={totalBudgetCap}
-                  onChange={(e) => setTotalBudgetCap(e.target.value)}
-                  placeholder="2500"
-                  prefix="$"
-                />
-              </FormField>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {t('marketing.autoPausesWhenReached', 'Auto-pauses when reached')}
-              </p>
+        {/* ─── RIGHT COLUMN (4 cols): Status, Schedule, & Budget ─── */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* SIDEBAR CARD 1: STATUS & SCHEDULE */}
+          <FormCard
+            title={t('marketing.statusAndSchedule', 'Status & Schedule')}
+            contentClassName="space-y-4"
+          >
+            {/* Status toggle with badge */}
+            <div className="flex items-center justify-between p-3.5 bg-muted/30 dark:bg-slate-800/40 rounded-xl border border-border/70 dark:border-slate-800">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-foreground">
+                  {t('marketing.campaignActiveStatus', 'Campaign Status')}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {isActive ? t('marketing.active', 'Active') : t('marketing.inactive', 'Inactive')}
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={isActive}
+                onChange={setIsActive}
+                activeColor="primary"
+              />
             </div>
 
-            <div>
-              <FormField
-                label={t('marketing.maxTotalRedemptions', 'Max Total Redemptions')}
-              >
-                <Input
-                  type="number"
-                  value={maxRedemptions}
-                  onChange={(e) => setMaxRedemptions(e.target.value)}
-                  placeholder="500"
-                />
-              </FormField>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {t('marketing.totalPromoUsages', 'Total promo usages')}
-              </p>
-            </div>
-
-            <div>
-              <FormField
-                label={t('marketing.perCustomerLimit', 'Per-Customer Limit')}
-              >
-                <Input
-                  type="number"
-                  value={perCustomerLimit}
-                  onChange={(e) => setPerCustomerLimit(e.target.value)}
-                  placeholder="1"
-                />
-              </FormField>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {t('marketing.maxTimesPerUser', 'Max times per user/phone')}
-              </p>
-            </div>
-          </div>
-
-          {/* Stacking Rule */}
-          <div className="flex items-center justify-between p-4 bg-muted/20 dark:bg-slate-800/40 rounded-xl border border-border/70 dark:border-slate-800">
-            <div className="space-y-0.5">
-              <p className="text-xs font-bold text-foreground">
-                {t(
-                  'marketing.stackableWithVouchers',
-                  'Stackable with Vouchers & Coupons'
-                )}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {t(
-                  'marketing.stackableDesc',
-                  'Allow customers to combine this promotion with checkout coupon codes'
-                )}
-              </p>
-            </div>
-            <ToggleSwitch
-              checked={isStackable}
-              onChange={setIsStackable}
-              activeColor="primary"
+            {/* Starts At & Ends At */}
+            <EnterpriseDateTimePicker
+              label={t('marketing.startsAt', 'Starts At')}
+              value={startsAt}
+              onChange={setStartsAt}
+              outputFormat="YYYY-MM-DDTHH:mm"
             />
-          </div>
-        </FormCard>
+            <EnterpriseDateTimePicker
+              label={t('marketing.endsAt', 'Ends At')}
+              minDateTime={startsAt}
+              value={endsAt}
+              onChange={setEndsAt}
+              outputFormat="YYYY-MM-DDTHH:mm"
+            />
+
+            {/* Priority Weight */}
+            <FormField
+              label={t('marketing.priorityWeight', 'Priority Weight (Higher applies first)')}
+            >
+              <Input
+                type="number"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                placeholder="10"
+              />
+            </FormField>
+
+            {/* Stacking Rule */}
+            <div className="flex items-center justify-between p-3.5 bg-muted/30 dark:bg-slate-800/40 rounded-xl border border-border/70 dark:border-slate-800">
+              <div className="space-y-0.5 pr-2">
+                <p className="text-xs font-bold text-foreground">
+                  {t('marketing.stackableWithVouchers', 'Stackable with Vouchers')}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {t('marketing.stackableDesc', 'Allow combining with coupons')}
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={isStackable}
+                onChange={setIsStackable}
+                activeColor="primary"
+              />
+            </div>
+          </FormCard>
+
+          {/* SIDEBAR CARD 2: BUDGET & SAFETY LIMITS */}
+          <FormCard
+            title={t('marketing.sectionBudget', 'Budget & Safety Limits')}
+            subtitle={t(
+              'marketing.sectionBudgetDesc',
+              'Safety budget limits and redemption ceilings'
+            )}
+            contentClassName="space-y-4"
+          >
+            <FormField label={t('marketing.totalBudgetCap', 'Total Budget Cap ($ USD)')}>
+              <Input
+                type="number"
+                value={totalBudgetCap}
+                onChange={(e) => setTotalBudgetCap(e.target.value)}
+                placeholder="2500"
+                prefix="$"
+              />
+            </FormField>
+
+            <FormField label={t('marketing.maxTotalRedemptions', 'Max Total Redemptions')}>
+              <Input
+                type="number"
+                value={maxRedemptions}
+                onChange={(e) => setMaxRedemptions(e.target.value)}
+                placeholder="500"
+              />
+            </FormField>
+
+            <FormField label={t('marketing.perCustomerLimit', 'Per-Customer Limit')}>
+              <Input
+                type="number"
+                value={perCustomerLimit}
+                onChange={(e) => setPerCustomerLimit(e.target.value)}
+                placeholder="1"
+              />
+            </FormField>
+          </FormCard>
+        </div>
       </FormContent>
     </FormLayout>
   )

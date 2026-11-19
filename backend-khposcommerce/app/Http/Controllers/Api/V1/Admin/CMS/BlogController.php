@@ -158,6 +158,11 @@ class BlogController extends BaseApiController
         $inactiveFaqs = $totalFaqs - $activeFaqs;
         $faqCategoriesCount = \App\Models\CMS\Faq::distinct('category')->whereNotNull('category')->where('category', '!=', '')->count('category');
 
+        $hasTestimonialsTable = \Illuminate\Support\Facades\Schema::hasTable('testimonials');
+        $totalTestimonials = $hasTestimonialsTable ? \App\Models\CMS\Testimonial::count() : 0;
+        $featuredTestimonials = $hasTestimonialsTable ? \App\Models\CMS\Testimonial::where('is_featured', true)->count() : 0;
+        $activeTestimonials = $hasTestimonialsTable ? \App\Models\CMS\Testimonial::where('is_active', true)->count() : 0;
+
         return $this->successResponse([
             'blogs' => [
                 'total' => $totalBlogs,
@@ -188,6 +193,11 @@ class BlogController extends BaseApiController
                 'active' => $activeFaqs,
                 'inactive' => $inactiveFaqs,
                 'categories_count' => $faqCategoriesCount,
+            ],
+            'testimonials' => [
+                'total' => $totalTestimonials,
+                'featured' => $featuredTestimonials,
+                'active' => $activeTestimonials,
             ],
         ], 'CMS stats retrieved successfully');
     }

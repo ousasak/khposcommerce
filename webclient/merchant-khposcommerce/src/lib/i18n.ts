@@ -10,7 +10,7 @@ export const namespaces = [
   'settings', 'setting', 'reports', 'report', 'auth', 'tables', 'table', 'forms', 'form', 'pagination', 'errors', 'empty',
   'confirm', 'deleteConfirm', 'finance', 'logs', 'marketing', 'mobile',
   'nav', 'pageContent', 'profile', 'reviews', 'toast', 'website', 'pos', 'orders', 'order', 'security', 'cms', 'shipping', 'returns',
-  'users', 'user', 'policies', 'policy', 'expenses', 'expense', 'roles', 'role'
+  'users', 'user', 'policies', 'policy', 'expenses', 'expense', 'roles', 'role', 'company'
 ]
 
 // Expose runtime translation dictionaries for React.createElement interceptor

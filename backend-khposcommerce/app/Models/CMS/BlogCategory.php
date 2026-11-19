@@ -22,6 +22,11 @@ class BlogCategory extends Model
 
     public function posts(): HasMany
     {
-        return $this->hasMany(Blog::class);
+        return $this->hasMany(Blog::class, 'blog_category_id');
+    }
+
+    public function blogs(): HasMany
+    {
+        return $this->hasMany(Blog::class, 'blog_category_id');
     }
 }

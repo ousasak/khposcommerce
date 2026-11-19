@@ -42,4 +42,48 @@ class ShipmentService
     {
         return $this->repository->delete($id);
     }
+
+    public function markAsShipped(int|string $id, ?string $trackingNumber = null, ?string $carrier = null): Shipment
+    {
+        $data = [
+            'status'     => 'in_transit',
+            'shipped_at' => now(),
+        ];
+        if ($trackingNumber !== null) {
+            $data['tracking_number'] = $trackingNumber;
+        }
+        if ($carrier !== null) {
+            $data['carrier'] = $carrier;
+        }
+        return $this->update($id, $data);
+    }
+
+    public function markAsDelivered(int|string $id): Shipment
+    {
+        return $this->update($id, [
+            'status'       => 'delivered',
+            'delivered_at' => now(),
+        ]);
+    }
+
+    public function updateStatus(int|string $id, string $status): Shipment
+    {
+        $data = ['status' => $status];
+        if ($status === 'in_transit' || $status === 'picked_up') {
+            $data['shipped_at'] = now();
+        } elseif ($status === 'delivered') {
+            $data['delivered_at'] = now();
+        }
+        return $this->update($id, $data);
+    }
+
+    public function getByTrackingNumber(string $trackingNumber): ?Shipment
+    {
+        return $this->repository->findByField('tracking_number', $trackingNumber);
+    }
+
+    public function getByOrderId(int|string $orderId): Collection
+    {
+        return $this->repository->getModel()->where('order_id', $orderId)->get();
+    }
 }

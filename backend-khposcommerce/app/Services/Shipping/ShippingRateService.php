@@ -42,4 +42,27 @@ class ShippingRateService
     {
         return $this->repository->delete($id);
     }
+
+    public function findRate(int|string $methodId, int|string $zoneId, float $weight): ?ShippingRate
+    {
+        return $this->repository->getModel()
+            ->where('shipping_method_id', $methodId)
+            ->where('shipping_zone_id', $zoneId)
+            ->where('is_active', true)
+            ->where('min_weight', '<=', $weight)
+            ->where(function ($q) use ($weight) {
+                $q->whereNull('max_weight')->orWhere('max_weight', '>=', $weight);
+            })
+            ->first();
+    }
+
+    public function getRatesForZone(int|string $zoneId): Collection
+    {
+        return $this->repository->getModel()->where('shipping_zone_id', $zoneId)->get();
+    }
+
+    public function getRatesForMethod(int|string $methodId): Collection
+    {
+        return $this->repository->getModel()->where('shipping_method_id', $methodId)->get();
+    }
 }

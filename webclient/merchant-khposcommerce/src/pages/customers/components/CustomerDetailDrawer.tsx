@@ -194,18 +194,16 @@ export const CustomerDetailDrawer: React.FC<CustomerDetailDrawerProps> = ({
     setTimeout(() => setCopiedKey(null), 1500)
   }
 
-  if (!customer) return null
-
-  const contactsList = cust.contacts || []
-  const kycList = cust.kycDocuments || cust.kyc_documents || []
-  const walletList = cust.walletTransactions || cust.wallet_transactions || []
-  const pointsList = cust.pointsLedger || cust.points_ledger || []
-  const interactionsList = cust.interactions || []
-  const contractsList = cust.pricingContracts || cust.pricing_contracts || []
-  const ticketsList = cust.supportTickets || cust.support_tickets || []
-  const webOrdersList = cust.orders || []
-  const salesList = cust.sales || []
-  const addressesList = cust.addresses || []
+  const contactsList = cust?.contacts || []
+  const kycList = cust?.kycDocuments || cust?.kyc_documents || []
+  const walletList = cust?.walletTransactions || cust?.wallet_transactions || []
+  const pointsList = cust?.pointsLedger || cust?.points_ledger || []
+  const interactionsList = cust?.interactions || []
+  const contractsList = cust?.pricingContracts || cust?.pricing_contracts || []
+  const ticketsList = cust?.supportTickets || cust?.support_tickets || []
+  const webOrdersList = cust?.orders || []
+  const salesList = cust?.sales || []
+  const addressesList = cust?.addresses || []
 
   const combinedOrdersList = React.useMemo(() => {
     const ordersFormatted = webOrdersList.map((order: any) => ({
@@ -248,6 +246,8 @@ export const CustomerDetailDrawer: React.FC<CustomerDetailDrawerProps> = ({
     }
     return combinedOrdersList
   }, [combinedOrdersList, orderChannelFilter])
+
+  if (!customer) return null
 
   const tabs: { key: TabKey; label: string; icon: any; badge?: number }[] = [
     { key: 'overview', label: t('customers.tabOverview', 'Overview'), icon: User },
@@ -302,6 +302,104 @@ export const CustomerDetailDrawer: React.FC<CustomerDetailDrawerProps> = ({
           onClose={onClose}
         />
 
+        {/* ── 2. HERO OVERVIEW CARD (MATCHING EMPLOYEE PROFILE BANNER) ── */}
+        <div className="px-6 py-4 bg-muted/30 border-b border-border/80">
+          <div className="flex items-start gap-4">
+            <div className="relative shrink-0">
+              <UserAvatar
+                src={photoUrl}
+                customerId={cust.id}
+                name={cust.name}
+                sizeClassName="w-14 h-14"
+                preview={true}
+              />
+              <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${
+                cust.is_active ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : 'bg-rose-500 ring-2 ring-rose-500/20'
+              }`} />
+            </div>
+
+            <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg sm:text-xl font-extrabold text-foreground tracking-tight truncate">{cust.name}</h2>
+                <StatusBadge status={cust.is_active} />
+                {cust.rfm_segment && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-primary/10 text-primary border border-primary/30 uppercase">
+                    <Crown size={12} className="text-primary shrink-0" />
+                    {cust.rfm_segment}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1 font-semibold text-foreground px-2 py-0.5 rounded-md bg-muted/60 border border-border/50">
+                  <Tag size={12} className="text-primary" />
+                  {cust.group?.name || '—'}
+                  {cust.group?.discount_percent && Number(cust.group.discount_percent) > 0 
+                    ? ` (${Number(cust.group.discount_percent)}% OFF)` 
+                    : ''}
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono font-bold">
+                  {cust.payment_terms ? cust.payment_terms.toUpperCase() : 'PREPAID'}
+                </span>
+                {cust.tax_number && (
+                  <span className="inline-flex items-center gap-1 font-mono text-[11px] bg-muted px-1.5 py-0.5 rounded">
+                    VAT: {cust.tax_number}
+                  </span>
+                )}
+              </div>
+
+              {/* Quick Tag Pills */}
+              {tagsList.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  {tagsList.map((tagItem, idx) => (
+                    <span key={idx} className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-card/80 text-foreground border border-border/80 shadow-2xs">
+                      {tagItem}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Enterprise Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2 pt-3 mt-3 border-t border-border/60">
+            {outstandingNum > 0 && (
+              <ActionButton
+                size="sm"
+                variant="danger"
+                icon={<CreditCard size={14} />}
+                onClick={() => setDebtModalOpen(true)}
+              >
+                {t('customers.settleDebt', 'Settle Debt')}
+              </ActionButton>
+            )}
+            <ActionButton
+              size="sm"
+              variant="secondary"
+              icon={<FileText size={14} />}
+              onClick={() => setStatementPrintModalOpen(true)}
+            >
+              {t('customers.printSOA', 'Statement (SOA)')}
+            </ActionButton>
+            <ActionButton
+              size="sm"
+              variant="success"
+              icon={<Wallet size={14} />}
+              onClick={() => setTopupModalOpen(true)}
+            >
+              {t('customers.topUpWallet', '+ Top Up Wallet')}
+            </ActionButton>
+            <ActionButton
+              size="sm"
+              variant="primary"
+              icon={<PhoneCall size={14} />}
+              onClick={() => setInteractionModalOpen(true)}
+            >
+              {t('customers.logCall', 'Log Activity')}
+            </ActionButton>
+          </div>
+        </div>
+
         {/* ─── GLOBAL TAB NAVIGATION ─── */}
         <DetailDrawerTabNav
           tabs={tabs}
@@ -310,107 +408,6 @@ export const CustomerDetailDrawer: React.FC<CustomerDetailDrawerProps> = ({
         />
 
         <DetailDrawerBody isLoading={isLoading}>
-          {/* ════════════════════════════════════════════════════════════════════
-              HERO ENTERPRISE PROFILE CARD
-          ════════════════════════════════════════════════════════════════════ */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-muted/40 dark:bg-slate-800/40 border border-border dark:border-slate-800 shadow-2xs space-y-4">
-            {/* Top Row: Avatar & Profile Info */}
-            <div className="flex items-start gap-4">
-              <div className="relative shrink-0">
-                <UserAvatar
-                  src={photoUrl}
-                  customerId={cust.id}
-                  name={cust.name}
-                  sizeClassName="w-16 h-16"
-                  preview={true}
-                />
-                <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-card ${
-                  cust.is_active ? 'bg-emerald-500 ring-2 ring-emerald-500/20' : 'bg-rose-500 ring-2 ring-rose-500/20'
-                }`} />
-              </div>
-
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg sm:text-xl font-extrabold text-foreground tracking-tight truncate">{cust.name}</h2>
-                  <StatusBadge status={cust.is_active} />
-                  {cust.rfm_segment && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-primary/10 text-primary border border-primary/30 uppercase">
-                      <Crown size={12} className="text-primary shrink-0" />
-                      {cust.rfm_segment}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1 font-semibold text-foreground px-2 py-0.5 rounded-md bg-muted/60 border border-border/50">
-                    <Tag size={12} className="text-primary" />
-                    {cust.group?.name || '—'}
-                    {cust.group?.discount_percent && Number(cust.group.discount_percent) > 0 
-                      ? ` (${Number(cust.group.discount_percent)}% OFF)` 
-                      : ''}
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-mono font-bold">
-                    {cust.payment_terms ? cust.payment_terms.toUpperCase() : 'PREPAID'}
-                  </span>
-                  {cust.tax_number && (
-                    <span className="inline-flex items-center gap-1 font-mono text-[11px] bg-muted px-1.5 py-0.5 rounded">
-                      VAT: {cust.tax_number}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Row: Quick Enterprise Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/60">
-              {outstandingNum > 0 && (
-                <ActionButton
-                  size="sm"
-                  variant="danger"
-                  icon={<CreditCard size={14} />}
-                  onClick={() => setDebtModalOpen(true)}
-                >
-                  {t('customers.settleDebt', 'Settle Debt')}
-                </ActionButton>
-              )}
-              <ActionButton
-                size="sm"
-                variant="secondary"
-                icon={<FileText size={14} />}
-                onClick={() => setStatementPrintModalOpen(true)}
-              >
-                {t('customers.printSOA', 'Statement (SOA)')}
-              </ActionButton>
-              <ActionButton
-                size="sm"
-                variant="success"
-                icon={<Wallet size={14} />}
-                onClick={() => setTopupModalOpen(true)}
-              >
-                {t('customers.topUpWallet', '+ Top Up Wallet')}
-              </ActionButton>
-              <ActionButton
-                size="sm"
-                variant="primary"
-                icon={<PhoneCall size={14} />}
-                onClick={() => setInteractionModalOpen(true)}
-              >
-                {t('customers.logCall', 'Log Activity')}
-              </ActionButton>
-            </div>
-
-            {/* Quick Tag Pills */}
-            {tagsList.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40">
-                {tagsList.map((tagItem, idx) => (
-                  <span key={idx} className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-card/80 text-foreground border border-border/80 shadow-2xs">
-                    {tagItem}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* ════════════════════════════════════════════════════════════════════
               TAB CONTENTS
           ════════════════════════════════════════════════════════════════════ */}

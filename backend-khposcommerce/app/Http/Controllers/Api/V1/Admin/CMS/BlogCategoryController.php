@@ -18,7 +18,10 @@ class BlogCategoryController extends BaseApiController
 
     public function index(Request $request): JsonResponse
     {
-        $records = $this->service->getPaginated($request->get('per_page', 15));
+        $records = $this->service->getPaginated(
+            $request->integer('per_page', 15),
+            $request->only(['search', 'status', 'sort', 'order'])
+        );
         return $this->successResponse(
             BlogCategoryResource::collection($records),
             'BlogCategory list retrieved successfully'

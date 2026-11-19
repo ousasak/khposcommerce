@@ -13,7 +13,8 @@ import { inventoryService } from '@/services/inventoryService'
 import { companyService } from '@/services/companyService'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/useToast'
-import { FormLayout, FormContent, FormCard, FormHeader, FormFooter } from '@/components/common'
+import { FormLayout, FormContent, FormCard, FormHeader, FormFooter, FormField, getFieldClass } from '@/components/common'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 
 interface StockOpnameFormProps {
   opnameId?: number | null
@@ -51,6 +52,16 @@ export const StockOpnameForm: React.FC<StockOpnameFormProps> = ({ opnameId, onCl
   const [warehouseId, setWarehouseId] = useState('')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<Array<{ id: number; product: any; system_quantity: number; physical_quantity: number; notes: string }>>([])
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    setErrors(prev => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
   
   // Search & Filter state for counting matrix
   const [searchQuery, setSearchQuery] = useState('')
@@ -110,6 +121,15 @@ export const StockOpnameForm: React.FC<StockOpnameFormProps> = ({ opnameId, onCl
       }
     },
     onError: (err: any) => {
+      if (err?.response?.status === 422 && err?.response?.data?.errors) {
+        const apiErrors: Record<string, string> = {}
+        Object.entries(err.response.data.errors).forEach(([k, v]) => {
+          apiErrors[k] = Array.isArray(v) ? (v[0] as string) : String(v)
+        })
+        setErrors(apiErrors)
+        focusFirstInvalidField(apiErrors)
+        return
+      }
       const errMsg = err?.response?.data?.message || err?.message || 'Unexpected server error.'
       toast.error(`${t('opnameStartError', 'Failed to start stock opname')}: ${errMsg}`)
     }
@@ -147,7 +167,9 @@ export const StockOpnameForm: React.FC<StockOpnameFormProps> = ({ opnameId, onCl
   const handleStartOpname = (e: React.FormEvent) => {
     e.preventDefault()
     if (!warehouseId) {
-      toast.error(t('selectWarehouseHint', 'Please select a warehouse location to start audit count'))
+      const newErrors = { warehouse_id: t('inventory.errors.warehouseRequired', 'Please select a warehouse location to start audit count') }
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
       return
     }
     createMutation.mutate({
@@ -367,19 +389,29 @@ export const StockOpnameForm: React.FC<StockOpnameFormProps> = ({ opnameId, onCl
               contentClassName="space-y-4"
             >
               {/* Warehouse selector */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-foreground flex items-center justify-between">
-                  <span>{t('warehouse', 'Target Warehouse')} <span className="text-rose-500">*</span></span>
-                  {selectedWarehouseObj && (
-                    <span className="text-[10px] text-primary font-mono font-semibold">
-                      Code: {selectedWarehouseObj.code || `WH-${selectedWarehouseObj.id}`}
-                    </span>
-                  )}
-                </label>
+              <FormField
+                label={
+                  <div className="flex items-center justify-between w-full">
+                    <span>{t('warehouse', 'Target Warehouse')}</span>
+                    {selectedWarehouseObj && (
+                      <span className="text-[10px] text-primary font-mono font-semibold">
+                        Code: {selectedWarehouseObj.code || `WH-${selectedWarehouseObj.id}`}
+                      </span>
+                    )}
+                  </div>
+                }
+                required
+                error={errors.warehouse_id}
+              >
                 <select
+                  id="warehouse_id"
+                  name="warehouse_id"
                   value={warehouseId}
-                  onChange={(e) => setWarehouseId(e.target.value)}
-                  className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 font-medium focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer dark:[color-scheme:dark]"
+                  onChange={(e) => {
+                    setWarehouseId(e.target.value)
+                    handleClearError('warehouse_id')
+                  }}
+                  className={getFieldClass(errors.warehouse_id, "w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 font-medium focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer dark:[color-scheme:dark]")}
                 >
                   <option value="" className="dark:bg-slate-900">{t('selectWarehousePlaceholder', 'Choose warehouse hub...')}</option>
                   {(warehouses ?? []).map((w: any) => (
@@ -388,7 +420,7 @@ export const StockOpnameForm: React.FC<StockOpnameFormProps> = ({ opnameId, onCl
                     </option>
                   ))}
                 </select>
-              </div>
+              </FormField>
 
               {/* Audit Notes */}
               <div className="space-y-1.5 pt-1">

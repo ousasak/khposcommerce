@@ -1,6 +1,6 @@
 import React from 'react'
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /** Leading icon or element */
   icon?: React.ReactNode
   /** Trailing icon or element */

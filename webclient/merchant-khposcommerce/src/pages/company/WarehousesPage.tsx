@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useImperativeHandle } from 'react'
 import { useTranslation } from 'react-i18next'
 import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
@@ -14,12 +14,13 @@ import {
 import { companyService } from '@/services/companyService'
 import { useToast } from '@/hooks/useToast'
 import { focusFirstInvalidField } from '@/utils/formValidation'
-import { Breadcrumb, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter } from '@/components/common'
+import { Breadcrumb, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter, DeleteConfirmDialog } from '@/components/common'
 import { StatusBadge } from '@/components/common'
 import { FieldError, getFieldClass, TableToolbar, HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { WarehouseStatsCards } from './components/WarehouseStatsCards'
 import { BranchSearchBar } from './components/BranchSearchBar'
+import { WarehouseCard, WarehouseCardSkeleton } from './components/WarehouseCard'
 import { downloadCsv } from '@/utils/export'
 
 interface WarehouseItem {
@@ -37,8 +38,10 @@ interface WarehouseItem {
   is_active:   boolean
 }
 
-const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
-  const { t } = useTranslation(['settings', 'common'])
+import type { CompanyTabHandle } from './BranchesPage'
+
+const WarehousesPage = React.forwardRef<CompanyTabHandle, { isTab?: boolean }>(({ isTab }, ref) => {
+  const { t } = useTranslation(['company', 'settings', 'common', 'nav', 'buttons', 'tables'])
   const qc = useQueryClient()
   const toast = useToast()
     const {
@@ -55,6 +58,14 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
     // Filter states
   const [statusFilter, setStatusFilter] = useState('')
   const [provinceFilter, setProvinceFilter] = useState('')
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
+    return (localStorage.getItem('company_warehouses_view_mode') as 'grid' | 'table') || 'grid'
+  })
+
+  const handleViewModeChange = (mode: 'grid' | 'table') => {
+    setViewMode(mode)
+    localStorage.setItem('company_warehouses_view_mode', mode)
+  }
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
     warehouse: true,
     code: true,
@@ -68,6 +79,7 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingWarehouse, setEditingWarehouse] = useState<WarehouseItem | null>(null)
   const [viewWarehouse, setViewWarehouse] = useState<WarehouseItem | null>(null)
+  const [deletingWarehouse, setDeletingWarehouse] = useState<WarehouseItem | null>(null)
 
   // Form states
   const [branchId, setBranchId] = useState('')
@@ -254,21 +266,26 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
     toast.success(t('common.exportSuccess', 'Warehouses exported successfully.'))
   }
 
+  useImperativeHandle(ref, () => ({
+    openCreate: openCreateModal,
+    exportCSV: handleExportCSV,
+  }))
+
   return (
     <div className="space-y-5">
       {!isTab && (
         <>
           <Breadcrumb
             items={[
-              { label: t('nav.companyManagement', 'Company Management'), path: '/company' },
-              { label: t('nav.warehouses', 'Warehouses') },
+              { label: t('company.pageTitle', 'Company Management'), path: '/company' },
+              { label: t('company.tabWarehouses', 'Warehouses') },
             ]}
           />
 
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 py-1 print:hidden">
             <div className="space-y-1 min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
-                {t('warehouses.title', 'Warehouses')}
+                {t('company.tabWarehouses', 'Warehouses')}
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
                 {t('warehouses.subtitle', 'Manage inventory depots, central storage facilities, and stock distribution centers')}
@@ -282,156 +299,176 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
               />
               <AddButton
                 onClick={openCreateModal}
-                label={t('warehouses.addWarehouse', 'Add Warehouse')}
+                label={t('company.addWarehouse', 'Add Warehouse')}
               />
             </HeaderActionsGroup>
           </div>
-
-          <WarehouseStatsCards
-            warehouses={data?.data ?? []}
-            total={data?.pagination?.total ?? data?.total}
-            isLoading={isLoading}
-          />
         </>
       )}
 
-      {/* SmartHR-style Unified Filter Bar */}
-      <BranchSearchBar
-        search={search}
-        onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        searchPlaceholder={t('warehouses.searchPlaceholder', 'Search warehouses...')}
-        statusFilter={statusFilter}
-        onStatusChange={(val) => { setStatusFilter(val); setPage(1); }}
-        provinceFilter={provinceFilter}
-        onProvinceChange={(val) => { setProvinceFilter(val); setPage(1); }}
-        onReset={() => {
-          reset()
-          setStatusFilter('')
-          setProvinceFilter('')
-        }}
-        columns={[
-          { key: 'warehouse', label: t('warehouses.colWarehouse', 'Warehouse') },
-          { key: 'code', label: t('warehouses.colCode', 'Code') },
-          { key: 'branch', label: t('warehouses.colBranch', 'Branch') },
-          { key: 'pic', label: t('warehouses.colPic', 'PIC') },
-          { key: 'main', label: t('warehouses.colMain', 'Main Depot') },
-          { key: 'status', label: t('warehouses.colStatus', 'Status') },
-        ]}
-        visibleColumns={visibleColumns}
-        onColumnChange={setVisibleColumns}
-        rightAction={
-          isTab ? (
-            <AddButton
-              onClick={openCreateModal}
-              label={t('warehouses.addWarehouse', 'Add Warehouse')}
-            />
-          ) : undefined
-        }
-      />
+      {/* Grid or Table Presentation */}
+      {viewMode === 'grid' ? (
+        <div className="relative">
+          {isFetching && !isLoading && (
+            <div className="absolute inset-0 bg-background/30 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl pointer-events-none">
+              <div className="bg-card px-4 py-2 rounded-xl shadow-md border border-border flex items-center gap-2 text-xs font-semibold text-teal-700 dark:text-teal-400">
+                <Loader2 size={14} className="animate-spin" />
+                <span>{t('common.updating', 'កំពុងធ្វើបច្ចុប្បន្នភាព...')}</span>
+              </div>
+            </div>
+          )}
 
-      {/* Table */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
-      <TableWrapper isFetching={isFetching}>
-        <table className="w-full data-table">
-            <thead>
-              <tr>
-                {visibleColumns.warehouse !== false && <th className="text-left">Warehouse</th>}
-                {visibleColumns.code !== false && <th className="text-left">Code</th>}
-                {visibleColumns.branch !== false && <th className="text-left">Branch</th>}
-                {visibleColumns.pic !== false && <th className="text-left">PIC</th>}
-                {visibleColumns.main !== false && <th className="text-left">Main Depot</th>}
-                {visibleColumns.status !== false && <th className="text-left">Status</th>}
-                {visibleColumns.actions !== false && <th className="text-right">Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
-                      {visibleColumns.warehouse !== false && <td><div className="skeleton h-4 w-32 rounded" /></td>}
-                      {visibleColumns.code !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
-                      {visibleColumns.branch !== false && <td><div className="skeleton h-4 w-28 rounded" /></td>}
-                      {visibleColumns.pic !== false && <td><div className="skeleton h-4 w-24 rounded" /></td>}
-                      {visibleColumns.main !== false && <td><div className="skeleton h-4 w-10 rounded" /></td>}
-                      {visibleColumns.status !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
-                      {visibleColumns.actions !== false && <td><div className="skeleton h-4 w-12 rounded ml-auto" /></td>}
-                    </tr>
-                  ))
-                : warehouses.map((w) => (
-                    <tr key={w.id} className="group hover:bg-muted/25 transition-colors">
-                      {visibleColumns.warehouse !== false && (
-                        <td>
-                          <div className="flex items-center gap-2">
-                            <Warehouse size={16} className="text-primary flex-shrink-0" />
-                            <div>
-                              <span className="font-medium text-foreground text-sm">{w.name}</span>
-                              {w.is_main && (
-                                <span className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-amber-500 font-medium">
-                                  <Star size={10} fill="currentColor" /> Main
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.code !== false && (
-                        <td className="font-mono text-xs text-muted-foreground">{w.code}</td>
-                      )}
-                      {visibleColumns.branch !== false && (
-                        <td className="text-muted-foreground text-sm">{w.branch?.name ?? '—'}</td>
-                      )}
-                      {visibleColumns.pic !== false && (
-                        <td>
-                          <div className="text-xs space-y-0.5 text-muted-foreground">
-                            {w.pic_name && <div className="flex items-center gap-1 font-medium text-foreground"><User size={10} /> {w.pic_name}</div>}
-                            {w.phone && <div className="flex items-center gap-1"><Phone size={10} /> {w.phone}</div>}
-                          </div>
-                        </td>
-                      )}
-                      {visibleColumns.main !== false && (
-                        <td>
-                          {w.is_main ? (
-                            <span className="text-green-500 flex items-center gap-0.5 text-xs font-semibold">
-                              <Check size={14} /> Yes
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">No</span>
-                          )}
-                        </td>
-                      )}
-                      {visibleColumns.status !== false && (
-                        <td>
-                          <StatusBadge status={w.is_active} />
-                        </td>
-                      )}
-                      {visibleColumns.actions !== false && (
-                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <TableActionMenu
-                            variant="inline"
-                            onView={() => setViewWarehouse(w)}
-                            onEdit={() => openEditModal(w)}
-                            onDelete={() => {
-                              if (confirm('Are you sure you want to delete this warehouse?')) deleteMutation.mutate(w.id)
-                            }}
-                          />
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-              {!isLoading && warehouses.length === 0 && (
-                <EmptyState
-                  cols={7}
-                  icon={<Warehouse size={24} className="stroke-1.5" />}
-                  title={t('settings.noWarehouses', 'No Warehouses Found')}
-                  description={t('settings.noWarehousesDesc', 'Register storage depots to manage inventory logistics and branch transfers.')}
-                  actionLabel={t('settings.addWarehouse', 'Add Warehouse')}
-                  onAction={openCreateModal}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4.5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <WarehouseCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : warehouses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4.5">
+              {warehouses.map((w) => (
+                <WarehouseCard
+                  key={w.id}
+                  warehouse={w}
+                  onView={() => setViewWarehouse(w)}
+                  onEdit={() => openEditModal(w)}
+                  onDelete={() => setDeletingWarehouse(w)}
                 />
-              )}
-            </tbody>
-          </table>
-      </TableWrapper>
-      </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-card rounded-2xl border border-border/80 p-8">
+              <EmptyState
+                cols={7}
+                icon={<Warehouse size={28} className="stroke-1.5" />}
+                title={t('settings.noWarehouses', 'No Warehouses Found')}
+                description={t(
+                  'settings.noWarehousesDesc',
+                  'Register storage depots to manage inventory logistics and branch transfers.'
+                )}
+                actionLabel={t('settings.addWarehouse', 'Add Warehouse')}
+                onAction={openCreateModal}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Table View */
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <TableWrapper isFetching={isFetching}>
+            <table className="w-full data-table">
+              <thead>
+                <tr>
+                  {visibleColumns.warehouse !== false && <th className="text-left">{t('company.colWarehouse', 'Warehouse')}</th>}
+                  {visibleColumns.code !== false && <th className="text-left">{t('company.colCode', 'Code')}</th>}
+                  {visibleColumns.branch !== false && <th className="text-left">{t('company.colBranchRef', 'Branch')}</th>}
+                  {visibleColumns.pic !== false && <th className="text-left">{t('company.colPic', 'PIC')}</th>}
+                  {visibleColumns.main !== false && <th className="text-left">{t('company.colMainDepot', 'Main Depot')}</th>}
+                  {visibleColumns.status !== false && <th className="text-left">{t('company.colStatus', 'Status')}</th>}
+                  {visibleColumns.actions !== false && <th className="text-right">{t('common.actions', 'Actions')}</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading
+                  ? Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i}>
+                        {visibleColumns.warehouse !== false && <td><div className="skeleton h-4 w-32 rounded" /></td>}
+                        {visibleColumns.code !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
+                        {visibleColumns.branch !== false && <td><div className="skeleton h-4 w-28 rounded" /></td>}
+                        {visibleColumns.pic !== false && <td><div className="skeleton h-4 w-24 rounded" /></td>}
+                        {visibleColumns.main !== false && <td><div className="skeleton h-4 w-10 rounded" /></td>}
+                        {visibleColumns.status !== false && <td><div className="skeleton h-4 w-16 rounded" /></td>}
+                        {visibleColumns.actions !== false && <td><div className="skeleton h-4 w-12 rounded ml-auto" /></td>}
+                      </tr>
+                    ))
+                  : warehouses.map((w) => (
+                      <tr key={w.id} className="group hover:bg-muted/25 transition-colors">
+                        {visibleColumns.warehouse !== false && (
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <Warehouse size={16} className="text-primary flex-shrink-0" />
+                              <div>
+                                <span className="font-medium text-foreground text-sm">{w.name}</span>
+                                {w.is_main && (
+                                  <span className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-amber-500 font-medium">
+                                    <Star size={10} fill="currentColor" /> {t('company.mainHQ', 'Main')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.code !== false && (
+                          <td className="font-mono text-xs text-muted-foreground">{w.code}</td>
+                        )}
+                        {visibleColumns.branch !== false && (
+                          <td className="text-muted-foreground text-sm">{w.branch?.name ?? '—'}</td>
+                        )}
+                        {visibleColumns.pic !== false && (
+                          <td>
+                            <div className="text-xs space-y-0.5 text-muted-foreground">
+                              {w.pic_name && <div className="flex items-center gap-1 font-medium text-foreground"><User size={10} /> {w.pic_name}</div>}
+                              {w.phone && <div className="flex items-center gap-1"><Phone size={10} /> {w.phone}</div>}
+                            </div>
+                          </td>
+                        )}
+                        {visibleColumns.main !== false && (
+                          <td>
+                            {w.is_main ? (
+                              <span className="text-green-500 flex items-center gap-0.5 text-xs font-semibold">
+                                <Check size={14} /> {t('company.yes', 'Yes')}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{t('company.no', 'No')}</span>
+                            )}
+                          </td>
+                        )}
+                        {visibleColumns.status !== false && (
+                          <td>
+                            <StatusBadge status={w.is_active} />
+                          </td>
+                        )}
+                        {visibleColumns.actions !== false && (
+                          <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <TableActionMenu
+                              variant="inline"
+                              onView={() => setViewWarehouse(w)}
+                              onEdit={() => openEditModal(w)}
+                              onDelete={() => setDeletingWarehouse(w)}
+                              editColor="teal"
+                              buttonSize="md"
+                            />
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                {!isLoading && warehouses.length === 0 && (
+                  <EmptyState
+                    cols={7}
+                    icon={<Warehouse size={24} className="stroke-1.5" />}
+                    title={t('settings.noWarehouses', 'No Warehouses Found')}
+                    description={t('settings.noWarehousesDesc', 'Register storage depots to manage inventory logistics and branch transfers.')}
+                    actionLabel={t('settings.addWarehouse', 'Add Warehouse')}
+                    onAction={openCreateModal}
+                  />
+                )}
+              </tbody>
+            </table>
+          </TableWrapper>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination.total > 0 && (
+        <Pagination
+          currentPage={pagination.current_page}
+          lastPage={pagination.last_page}
+          total={pagination.total}
+          perPage={perPage}
+          onPageChange={setPage}
+          onPerPageChange={setPerPage}
+        />
+      )}
 
       {/* Warehouse Create/Edit Modal */}
       <EnterpriseModal
@@ -574,7 +611,7 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
               <input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="City"
+                placeholder={t('company.cityPlaceholder', 'City / Capital')}
                 className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
               />
             </div>
@@ -585,7 +622,7 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
               <input
                 value={province}
                 onChange={(e) => setProvince(e.target.value)}
-                placeholder="Province"
+                placeholder={t('company.provincePlaceholder', 'Province')}
                 className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
               />
             </div>
@@ -643,66 +680,64 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
               className="bg-card w-full max-w-md border-l border-border h-full flex flex-col shadow-2xl"
             >
               <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <h3 className="font-semibold text-lg text-foreground">Warehouse Details</h3>
-                <button onClick={() => setViewWarehouse(null)} className="text-muted-foreground hover:text-foreground">
-                  <X size={18} />
-                </button>
+                <h3 className="font-semibold text-lg text-foreground">{t('company.warehouseDetail', 'Warehouse Details')}</h3>
+                <CloseButton onClose={() => setViewWarehouse(null)} size="md" color="rose" />
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Basic Info</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.basicInfo', 'Basic Information')}</h4>
                   <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Code:</span>
+                      <span className="text-muted-foreground">{t('company.lblCode', 'Code:')}</span>
                       <span className="font-mono font-medium">{viewWarehouse.code}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Name:</span>
+                      <span className="text-muted-foreground">{t('company.lblName', 'Name:')}</span>
                       <span className="font-medium">{viewWarehouse.name}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Associated Branch:</span>
+                      <span className="text-muted-foreground">{t('company.lblAssociatedBranch', 'Associated Branch:')}</span>
                       <span className="font-medium">{viewWarehouse.branch?.name ?? '—'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Main Storage Unit:</span>
-                      <span className="font-medium">{viewWarehouse.is_main ? 'Yes' : 'No'}</span>
+                      <span className="text-muted-foreground">{t('company.lblMainStorageUnit', 'Main Depot:')}</span>
+                      <span className="font-medium">{viewWarehouse.is_main ? t('company.yes', 'Yes') : t('company.no', 'No')}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Status:</span>
+                      <span className="text-muted-foreground">{t('company.lblStatus', 'Status:')}</span>
                       <StatusBadge status={viewWarehouse.is_active} />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Contact & PIC</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.contactPic', 'Contact & PIC')}</h4>
                   <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><User size={12} /> PIC Name:</span>
+                      <span className="text-muted-foreground flex items-center gap-1"><User size={12} /> {t('company.lblPicName', 'PIC Name:')}</span>
                       <span className="font-medium">{viewWarehouse.pic_name ?? '—'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><Phone size={12} /> PIC Phone:</span>
+                      <span className="text-muted-foreground flex items-center gap-1"><Phone size={12} /> {t('company.lblPicPhone', 'PIC Phone:')}</span>
                       <span className="font-medium">{viewWarehouse.phone ?? '—'}</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Location details</h4>
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.locationAddress', 'Location & Coordinates')}</h4>
                   <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-start gap-1"><MapPin size={14} className="mt-0.5" /> Address:</span>
+                      <span className="text-muted-foreground flex items-start gap-1"><MapPin size={14} className="mt-0.5" /> {t('company.lblAddress', 'Address:')}</span>
                       <span className="font-medium text-right max-w-[200px] break-words">{viewWarehouse.address ?? '—'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">City:</span>
+                      <span className="text-muted-foreground">{t('company.lblCity', 'City:')}</span>
                       <span className="font-medium">{viewWarehouse.city ?? '—'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Province:</span>
+                      <span className="text-muted-foreground">{t('company.lblProvince', 'Province:')}</span>
                       <span className="font-medium">{viewWarehouse.province ?? '—'}</span>
                     </div>
                   </div>
@@ -712,8 +747,30 @@ const WarehousesPage: React.FC<{ isTab?: boolean }> = ({ isTab }) => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Global Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={Boolean(deletingWarehouse)}
+        title={t('company.deleteWarehouseTitle', 'លុបឃ្លាំងស្តុក')}
+        itemName={deletingWarehouse?.name}
+        warningText={t(
+          'company.deleteWarehouseDesc',
+          'តើអ្នកពិតជាចង់លុបឃ្លាំងនេះមែនទេ? ស្តុកទាំងអស់ដែលពាក់ព័ន្ធត្រូវតែផ្ទេរចេញជាមុនសិន។'
+        )}
+        isPending={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deletingWarehouse) {
+            deleteMutation.mutate(deletingWarehouse.id, {
+              onSuccess: () => setDeletingWarehouse(null),
+            })
+          }
+        }}
+        onCancel={() => setDeletingWarehouse(null)}
+      />
     </div>
   )
-}
+})
+
+WarehousesPage.displayName = 'WarehousesPage'
 
 export default WarehousesPage

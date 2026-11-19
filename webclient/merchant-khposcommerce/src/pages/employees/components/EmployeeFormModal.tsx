@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { EnterpriseModal, ModalFooter, type ModalHeaderIconVariant, EnterpriseDatePicker, EnterpriseTimePicker } from '@/components/common'
+import { EnterpriseModal, ModalFooter, type ModalHeaderIconVariant, EnterpriseDatePicker, EnterpriseTimePicker, FormField, getFieldClass } from '@/components/common'
 import type { Tab } from '../types/employee.types'
 import { EmployeeAvatar } from './EmployeeAvatar'
 
@@ -20,6 +20,8 @@ interface EmployeeFormModalProps {
   selectedItem: any | null
   onSubmit: (e: React.FormEvent) => void
   isPending: boolean
+  errors?: Record<string, string>
+  onClearError?: (key: string) => void
   // Dropdowns data
   companiesList?: any[]
   branchesList?: any[]
@@ -118,6 +120,8 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   selectedItem,
   onSubmit,
   isPending,
+  errors = {},
+  onClearError,
   companiesList = [],
   branchesList = [],
   deptList = [],
@@ -288,7 +292,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         />
       }
     >
-      <form onSubmit={onSubmit} className="p-5 sm:p-6 space-y-4">
+      <form onSubmit={onSubmit} noValidate className="p-5 sm:p-6 space-y-4">
         {/* ─── 1. EMPLOYEES TAB (Multi-Section Form) ─────────── */}
         {activeTab === 'employees' && (
           <div className="space-y-4">
@@ -595,15 +599,20 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         {activeTab === 'departments' && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div>
-                <label className={labelCls}>
-                  {t('employees.company', 'Company')} <span className="text-rose-500">*</span>
-                </label>
+              <FormField
+                label={t('employees.company', 'Company')}
+                required
+                error={errors?.company_id}
+              >
                 <select
-                  required
+                  id="company_id"
+                  name="company_id"
                   value={formCompanyId}
-                  onChange={(e) => setFormCompanyId(e.target.value)}
-                  className={selectCls}
+                  onChange={(e) => {
+                    setFormCompanyId(e.target.value)
+                    onClearError?.('company_id')
+                  }}
+                  className={getFieldClass(errors?.company_id, selectCls)}
                 >
                   <option value="">{t('employees.select_company', '-- Select Company --')}</option>
                   {companiesList.map((c: any) => (
@@ -612,16 +621,21 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className={labelCls}>
-                  {t('employees.branch', 'Branch')} <span className="text-rose-500">*</span>
-                </label>
+              </FormField>
+              <FormField
+                label={t('employees.branch', 'Branch')}
+                required
+                error={errors?.branch_id}
+              >
                 <select
-                  required
+                  id="branch_id"
+                  name="branch_id"
                   value={formBranchId}
-                  onChange={(e) => setFormBranchId(e.target.value)}
-                  className={selectCls}
+                  onChange={(e) => {
+                    setFormBranchId(e.target.value)
+                    onClearError?.('branch_id')
+                  }}
+                  className={getFieldClass(errors?.branch_id, selectCls)}
                 >
                   <option value="">{t('employees.select_branch', '-- Select Branch --')}</option>
                   {branchesList.map((b: any) => (
@@ -630,23 +644,28 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                     </option>
                   ))}
                 </select>
-              </div>
+              </FormField>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div>
-                <label className={labelCls}>
-                  {t('employees.department_name', 'Department Name')} <span className="text-rose-500">*</span>
-                </label>
+              <FormField
+                label={t('employees.department_name', 'Department Name')}
+                required
+                error={errors?.name}
+              >
                 <input
+                  id="name"
+                  name="name"
                   type="text"
-                  required
                   value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
+                  onChange={(e) => {
+                    setFormName(e.target.value)
+                    onClearError?.('name')
+                  }}
                   placeholder={t('employees.dept_placeholder', 'e.g. Information Technology (IT)')}
-                  className={inputCls}
+                  className={getFieldClass(errors?.name, inputCls)}
                 />
-              </div>
+              </FormField>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-semibold text-foreground/90 dark:text-slate-200">
@@ -705,15 +724,20 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         {activeTab === 'positions' && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div>
-                <label className={labelCls}>
-                  {t('employees.company', 'Company')} <span className="text-rose-500">*</span>
-                </label>
+              <FormField
+                label={t('employees.company', 'Company')}
+                required
+                error={errors?.company_id}
+              >
                 <select
-                  required
+                  id="company_id"
+                  name="company_id"
                   value={formCompanyId}
-                  onChange={(e) => setFormCompanyId(e.target.value)}
-                  className={selectCls}
+                  onChange={(e) => {
+                    setFormCompanyId(e.target.value)
+                    onClearError?.('company_id')
+                  }}
+                  className={getFieldClass(errors?.company_id, selectCls)}
                 >
                   <option value="">{t('employees.select_company', '-- Select Company --')}</option>
                   {companiesList.map((c: any) => (
@@ -722,16 +746,21 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className={labelCls}>
-                  {t('employees.department', 'Department')} <span className="text-rose-500">*</span>
-                </label>
+              </FormField>
+              <FormField
+                label={t('employees.department', 'Department')}
+                required
+                error={errors?.department_id}
+              >
                 <select
-                  required
+                  id="department_id"
+                  name="department_id"
                   value={formDeptId}
-                  onChange={(e) => setFormDeptId(e.target.value)}
-                  className={selectCls}
+                  onChange={(e) => {
+                    setFormDeptId(e.target.value)
+                    onClearError?.('department_id')
+                  }}
+                  className={getFieldClass(errors?.department_id, selectCls)}
                 >
                   <option value="">{t('employees.select_department', '-- Select Department --')}</option>
                   {deptList.map((d: any) => (
@@ -740,23 +769,28 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                     </option>
                   ))}
                 </select>
-              </div>
+              </FormField>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div>
-                <label className={labelCls}>
-                  {t('employees.position_name', 'Position Name')} <span className="text-rose-500">*</span>
-                </label>
+              <FormField
+                label={t('employees.position_name', 'Position Name')}
+                required
+                error={errors?.name}
+              >
                 <input
+                  id="name"
+                  name="name"
                   type="text"
-                  required
                   value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
+                  onChange={(e) => {
+                    setFormName(e.target.value)
+                    onClearError?.('name')
+                  }}
                   placeholder={t('employees.pos_placeholder', 'e.g. Senior Software Engineer')}
-                  className={inputCls}
+                  className={getFieldClass(errors?.name, inputCls)}
                 />
-              </div>
+              </FormField>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-semibold text-foreground/90 dark:text-slate-200">

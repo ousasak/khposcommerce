@@ -3,7 +3,7 @@ import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
 import { EmptyState } from '@/components/common'
 import TableActionMenu from '@/components/shared/TableActionMenu'
-import { Tag, ArrowUp, ArrowDown, ArrowUpDown, FileText } from 'lucide-react'
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 export interface BlogTagsTableProps {
@@ -64,7 +64,7 @@ export const BlogTagsTable: React.FC<BlogTagsTableProps> = ({
           <table className="w-full data-table border-collapse">
             <thead className="bg-muted/40 sticky top-0 border-b border-border z-10 select-none">
               <tr>
-                <th className="w-10 px-3 text-center">
+                <th className="w-12 px-4 py-3.5 text-center">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -76,7 +76,7 @@ export const BlogTagsTable: React.FC<BlogTagsTableProps> = ({
                 {visibleColumns.title && (
                   <th
                     onClick={() => onSort?.('name')}
-                    className={`text-left font-bold text-xs ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-left font-bold text-xs px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{t('cms.colTagName', 'Tag Name')}</span>
@@ -87,7 +87,7 @@ export const BlogTagsTable: React.FC<BlogTagsTableProps> = ({
                 {visibleColumns.slug && (
                   <th
                     onClick={() => onSort?.('slug')}
-                    className={`text-left font-bold text-xs ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-left font-bold text-xs w-56 px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{t('cms.colSlug', 'Slug')}</span>
@@ -98,7 +98,7 @@ export const BlogTagsTable: React.FC<BlogTagsTableProps> = ({
                 {visibleColumns.posts && (
                   <th
                     onClick={() => onSort?.('posts_count')}
-                    className={`text-center font-bold text-xs w-28 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-center font-bold text-xs w-36 px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center justify-center gap-1.5">
                       <span>{t('cms.cardLinkedArticles', 'Posts Count')}</span>
@@ -106,17 +106,22 @@ export const BlogTagsTable: React.FC<BlogTagsTableProps> = ({
                     </div>
                   </th>
                 )}
-                {visibleColumns.actions && <th className="text-right font-bold text-xs w-20">{t('cms.colActions', 'Actions')}</th>}
+                {visibleColumns.actions && (
+                  <th className="text-right font-bold text-xs w-20 px-4 py-3.5">
+                    {t('cms.colActions', 'Actions')}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <LoadingSkeleton cols={colsCount} />
+                <LoadingSkeleton cols={colsCount} rows={6} />
               ) : records.length === 0 ? (
                 <EmptyState cols={colsCount} message={t('cms.noTags', 'No tags found')} />
               ) : (
                 records.map((r) => {
                   const isSelected = selectedRows.includes(r.id)
+                  const postCount = Number(r.posts_count ?? r.blogs_count ?? 0)
 
                   return (
                     <tr
@@ -125,7 +130,8 @@ export const BlogTagsTable: React.FC<BlogTagsTableProps> = ({
                         isSelected ? 'bg-primary/5 dark:bg-primary/10' : ''
                       }`}
                     >
-                      <td className="w-10 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      {/* Checkbox */}
+                      <td className="w-12 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -134,38 +140,49 @@ export const BlogTagsTable: React.FC<BlogTagsTableProps> = ({
                           aria-label={`Select tag ${r.id}`}
                         />
                       </td>
+
+                      {/* Clean Tag Name (No icon box) */}
                       {visibleColumns.title && (
-                        <td>
-                          <div className="flex items-center gap-3 py-1">
-                            <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/20">
-                              <Tag size={16} />
-                            </div>
-                            <p
-                              onClick={() => openEditModal(r)}
-                              className="font-bold text-foreground hover:text-primary cursor-pointer text-sm group-hover:text-primary transition-colors"
-                            >
-                              {r.name || r.title}
-                            </p>
-                          </div>
+                        <td className="px-4 py-3.5">
+                          <span
+                            onClick={() => openEditModal(r)}
+                            className="font-semibold text-foreground hover:text-primary cursor-pointer text-sm block leading-snug transition-colors"
+                          >
+                            {r.name || r.title}
+                          </span>
                         </td>
                       )}
+
+                      {/* Clean Slug */}
                       {visibleColumns.slug && (
-                        <td>
-                          <span className="font-mono text-xs text-muted-foreground bg-muted/60 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-border inline-block">
-                            {r.slug}
+                        <td className="px-4 py-3.5">
+                          <span
+                            className="font-mono text-xs text-muted-foreground bg-muted/60 dark:bg-slate-800/80 px-2.5 py-1 rounded-md border border-border/70 inline-block max-w-[200px] truncate select-all tracking-tight"
+                            title={r.slug}
+                          >
+                            #{r.slug}
                           </span>
                         </td>
                       )}
+
+                      {/* Clean Posts Count */}
                       {visibleColumns.posts && (
-                        <td className="text-center">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                            <FileText size={12} />
-                            <span>{r.posts_count ?? r.blogs_count ?? 0}</span>
-                          </span>
+                        <td className="px-4 py-3.5 text-center">
+                          {postCount > 0 ? (
+                            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                              {postCount} {t('cms.articlesUnit', 'អត្ថបទ')}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground font-medium">
+                              0 {t('cms.articlesUnit', 'អត្ថបទ')}
+                            </span>
+                          )}
                         </td>
                       )}
+
+                      {/* Actions */}
                       {visibleColumns.actions && (
-                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <TableActionMenu
                             onEdit={() => openEditModal(r)}
                             onDelete={() => confirmDelete(r.id)}

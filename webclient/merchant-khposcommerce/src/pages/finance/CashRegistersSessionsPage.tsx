@@ -8,6 +8,7 @@ import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
 import { Breadcrumb } from '@/components/common'
 import { HeaderActionsGroup, AddButton, ExportButton, ConfirmModal } from '@/components/common'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 import Pagination from '@/components/shared/Pagination'
 import type { RegisterForm } from './types/finance.types'
 import {
@@ -66,6 +67,17 @@ export const CashRegistersSessionsPage: React.FC = () => {
     store_id: '1',
     notes: '',
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   // Delete Confirm
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: number | null; name?: string }>({
@@ -111,6 +123,16 @@ export const CashRegistersSessionsPage: React.FC = () => {
       setEditingItem(null)
     },
     onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
       toast.error(err?.response?.data?.message ?? t('finance.save_error', 'Failed to save details.'))
     },
   })
@@ -159,6 +181,7 @@ export const CashRegistersSessionsPage: React.FC = () => {
       store_id: '1',
       notes: '',
     })
+    setErrors({})
     setDrawerOpen(true)
   }
 
@@ -173,7 +196,18 @@ export const CashRegistersSessionsPage: React.FC = () => {
       store_id: String(item.store_id || '1'),
       notes: item.notes || '',
     })
+    setErrors({})
     setDrawerOpen(true)
+  }
+
+  const handleSaveRegister = () => {
+    if (!registerForm.title.trim()) {
+      const newErrors = { title: t('finance.register_title_required', 'សូមបញ្ចូលឈ្មោះម៉ាស៊ីនគិតប្រាក់') }
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+    saveMutation.mutate(registerForm)
   }
 
   const handleExportCsv = () => {
@@ -293,12 +327,17 @@ export const CashRegistersSessionsPage: React.FC = () => {
       {/* Form Drawer */}
       <CashRegistersSessionsFormDrawer
         isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false)
+          setErrors({})
+        }}
         editingItem={editingItem}
-        onSubmit={() => saveMutation.mutate(registerForm)}
+        onSubmit={handleSaveRegister}
         isPending={saveMutation.isPending}
         registerForm={registerForm}
         setRegisterForm={setRegisterForm}
+        errors={errors}
+        onClearError={handleClearError}
       />
 
       {/* Delete Confirmation */}

@@ -63,7 +63,7 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
 }) => {
   const navigate = useNavigate()
   const { t, i18n } = useTranslation('common')
-  const [showDetails, setShowDetails] = useState(false)
+  const [showDetails, setShowDetails] = useState(Boolean(error))
 
   const isKhmer = i18n?.language === 'km' || i18n?.language?.startsWith('km') || i18n?.language?.startsWith('kh')
   const codeKey = String(code)

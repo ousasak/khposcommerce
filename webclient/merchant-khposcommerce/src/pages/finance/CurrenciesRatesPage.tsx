@@ -18,6 +18,7 @@ import {
   AddButton,
   ConfirmModal,
 } from '@/components/common'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 import type { CurrencyForm, CurrencyItem } from './types/currency.types'
 import {
   CurrenciesRatesStatsCards,
@@ -61,6 +62,17 @@ export const CurrenciesRatesPage: React.FC = () => {
     rate_source: 'manual',
     decimal_precision: 2,
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   // Delete Confirm Modal State
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -195,6 +207,16 @@ export const CurrenciesRatesPage: React.FC = () => {
     },
     onError: (err: any) => {
       sound.playError()
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
       toast.error(
         err?.response?.data?.message ||
           (isKhmer ? 'ប្រតិបត្តិការបរាជ័យ' : 'Operation failed')
@@ -236,6 +258,7 @@ export const CurrenciesRatesPage: React.FC = () => {
       rate_source: 'manual',
       decimal_precision: 2,
     })
+    setErrors({})
     setDrawerOpen(true)
   }
 
@@ -253,7 +276,30 @@ export const CurrenciesRatesPage: React.FC = () => {
       rate_source: item.rate_source || 'manual',
       decimal_precision: item.decimal_precision ?? (item.code === 'KHR' ? 0 : 2),
     })
+    setErrors({})
     setDrawerOpen(true)
+  }
+
+  const handleSaveCurrency = () => {
+    const newErrors: Record<string, string> = {}
+    if (!currencyForm.name.trim()) {
+      newErrors.name = isKhmer ? 'សូមបញ្ចូលឈ្មោះរូបិយប័ណ្ណ' : t('finance.currency_name_required', 'Please enter currency name')
+    }
+    if (!currencyForm.code.trim()) {
+      newErrors.code = isKhmer ? 'សូមបញ្ចូលលេខកូដ ISO រូបិយប័ណ្ណ' : t('finance.currency_code_required', 'Please enter ISO currency code')
+    }
+    if (!currencyForm.symbol.trim()) {
+      newErrors.symbol = isKhmer ? 'សូមបញ្ចូលនិមិត្តសញ្ញារូបិយប័ណ្ណ' : t('finance.currency_symbol_required', 'Please enter currency symbol')
+    }
+    if (!currencyForm.exchange_rate || isNaN(Number(currencyForm.exchange_rate)) || Number(currencyForm.exchange_rate) <= 0) {
+      newErrors.exchange_rate = isKhmer ? 'សូមបញ្ចូលអត្រាប្តូរប្រាក់ត្រឹមត្រូវ' : t('finance.currency_rate_required', 'Please enter exchange rate')
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+    saveMutation.mutate(currencyForm)
   }
 
   // Trigger Delete Modal
@@ -392,13 +438,16 @@ export const CurrenciesRatesPage: React.FC = () => {
           sound.playClick()
           setDrawerOpen(false)
           setEditingItem(null)
+          setErrors({})
         }}
         editingItem={editingItem}
-        onSubmit={() => saveMutation.mutate(currencyForm)}
+        onSubmit={handleSaveCurrency}
         isPending={saveMutation.isPending}
         currencyForm={currencyForm}
         setCurrencyForm={setCurrencyForm}
         existingCodes={existingCodes}
+        errors={errors}
+        onClearError={handleClearError}
       />
 
       {/* ─── DELETE CONFIRM MODAL ─── */}

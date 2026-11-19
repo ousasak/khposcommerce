@@ -42,8 +42,8 @@ class PromotionCampaignSeeder extends Seeder
                 'name'         => 'Khmer New Year Mega Celebration 2026',
                 'description'  => 'Massive festive discounts on flagship smartphones, accessories, and storewide purchases.',
                 'status'       => 'active',
-                'start_at'     => now()->subDays(5),
-                'end_at'       => now()->addDays(40),
+                'start_at'     => now()->subMonths(3),
+                'end_at'       => now()->addYears(2),
                 'priority'     => 100,
                 'is_stackable' => true,
                 'is_active'    => true,
@@ -135,8 +135,8 @@ class PromotionCampaignSeeder extends Seeder
                 'usage_limit'        => 500,
                 'usage_per_customer' => 1,
                 'used_count'         => 18,
-                'starts_at'          => now()->subDays(5),
-                'expires_at'         => now()->addDays(40),
+                'starts_at'          => now()->subMonths(3),
+                'expires_at'         => now()->addYears(2),
                 'is_active'          => true,
             ]
         );
@@ -148,8 +148,8 @@ class PromotionCampaignSeeder extends Seeder
                 'name'         => 'Phnom Penh HQ VIP Members 15% Storewide',
                 'description'  => 'Exclusive in-store loyalty discount for registered VIP tier customers at Phnom Penh flagship.',
                 'status'       => 'active',
-                'start_at'     => now()->subDays(2),
-                'end_at'       => now()->addDays(60),
+                'start_at'     => now()->subMonths(3),
+                'end_at'       => now()->addYears(2),
                 'priority'     => 150,
                 'is_stackable' => false,
                 'is_active'    => true,
@@ -187,8 +187,8 @@ class PromotionCampaignSeeder extends Seeder
                 'usage_limit'        => 100,
                 'usage_per_customer' => 1,
                 'used_count'         => 9,
-                'starts_at'          => now()->subDays(2),
-                'expires_at'         => now()->addDays(60),
+                'starts_at'          => now()->subMonths(3),
+                'expires_at'         => now()->addYears(2),
                 'is_active'          => true,
             ]
         );

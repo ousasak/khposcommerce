@@ -1,9 +1,10 @@
 import React from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { StatusBadge, EmptyState } from '@/components/common'
-import { FolderOpen, ArrowUp, ArrowDown, ArrowUpDown, FileText } from 'lucide-react'
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 export interface BlogCategoriesTableProps {
@@ -36,6 +37,7 @@ export const BlogCategoriesTable: React.FC<BlogCategoriesTableProps> = ({
   onSort,
 }) => {
   const { t } = useTranslation(['cms', 'common'])
+  const navigate = useNavigate()
   const isAllSelected = records.length > 0 && selectedRows.length === records.length
 
   const renderSortIcon = (columnKey: string) => {
@@ -64,7 +66,7 @@ export const BlogCategoriesTable: React.FC<BlogCategoriesTableProps> = ({
           <table className="w-full data-table border-collapse">
             <thead className="bg-muted/40 sticky top-0 border-b border-border z-10 select-none">
               <tr>
-                <th className="w-10 px-3 text-center">
+                <th className="w-12 px-4 py-3.5 text-center">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -76,7 +78,7 @@ export const BlogCategoriesTable: React.FC<BlogCategoriesTableProps> = ({
                 {visibleColumns.title && (
                   <th
                     onClick={() => onSort?.('name')}
-                    className={`text-left font-bold text-xs ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-left font-bold text-xs px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{t('cms.colCategoryName', 'Category Name')}</span>
@@ -87,7 +89,7 @@ export const BlogCategoriesTable: React.FC<BlogCategoriesTableProps> = ({
                 {visibleColumns.slug && (
                   <th
                     onClick={() => onSort?.('slug')}
-                    className={`text-left font-bold text-xs ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-left font-bold text-xs w-56 px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{t('cms.colSlug', 'Slug')}</span>
@@ -98,7 +100,7 @@ export const BlogCategoriesTable: React.FC<BlogCategoriesTableProps> = ({
                 {visibleColumns.posts && (
                   <th
                     onClick={() => onSort?.('posts_count')}
-                    className={`text-center font-bold text-xs w-28 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-center font-bold text-xs w-36 px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center justify-center gap-1.5">
                       <span>{t('cms.cardLinkedArticles', 'Posts Count')}</span>
@@ -109,25 +111,30 @@ export const BlogCategoriesTable: React.FC<BlogCategoriesTableProps> = ({
                 {visibleColumns.status && (
                   <th
                     onClick={() => onSort?.('is_active')}
-                    className={`text-left font-bold text-xs w-28 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-center font-bold text-xs w-32 px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-center gap-1.5">
                       <span>{t('cms.colStatus', 'Status')}</span>
                       {renderSortIcon('is_active')}
                     </div>
                   </th>
                 )}
-                {visibleColumns.actions && <th className="text-right font-bold text-xs w-20">{t('cms.colActions', 'Actions')}</th>}
+                {visibleColumns.actions && (
+                  <th className="text-right font-bold text-xs w-20 px-4 py-3.5">
+                    {t('cms.colActions', 'Actions')}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <LoadingSkeleton cols={colsCount} />
+                <LoadingSkeleton cols={colsCount} rows={6} />
               ) : records.length === 0 ? (
                 <EmptyState cols={colsCount} message={t('cms.noCategories', 'No categories found')} />
               ) : (
                 records.map((r) => {
                   const isSelected = selectedRows.includes(r.id)
+                  const postCount = Number(r.posts_count ?? r.blogs_count ?? 0)
 
                   return (
                     <tr
@@ -136,7 +143,8 @@ export const BlogCategoriesTable: React.FC<BlogCategoriesTableProps> = ({
                         isSelected ? 'bg-primary/5 dark:bg-primary/10' : ''
                       }`}
                     >
-                      <td className="w-10 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      {/* Checkbox */}
+                      <td className="w-12 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -145,53 +153,82 @@ export const BlogCategoriesTable: React.FC<BlogCategoriesTableProps> = ({
                           aria-label={`Select category ${r.id}`}
                         />
                       </td>
+
+                      {/* Clean Category Name & Description (No tacky icon box) */}
                       {visibleColumns.title && (
-                        <td>
-                          <div className="flex items-center gap-3 py-1">
-                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
-                              <FolderOpen size={18} />
-                            </div>
-                            <div className="min-w-0">
+                        <td className="px-4 py-3.5">
+                          <div className="min-w-0">
+                            <span
+                              onClick={() => openEditModal(r)}
+                              className="font-semibold text-foreground hover:text-primary cursor-pointer text-sm block leading-snug transition-colors"
+                            >
+                              {r.name}
+                            </span>
+                            {r.description && (
                               <p
-                                onClick={() => openEditModal(r)}
-                                className="font-bold text-foreground hover:text-primary cursor-pointer text-sm group-hover:text-primary transition-colors"
+                                className="text-xs text-muted-foreground/80 line-clamp-1 mt-0.5 max-w-md font-normal"
+                                title={r.description}
                               >
-                                {r.name}
+                                {r.description}
                               </p>
-                              {r.description && (
-                                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5 max-w-sm">
-                                  {r.description}
-                                </p>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </td>
                       )}
+
+                      {/* Clean Slug */}
                       {visibleColumns.slug && (
-                        <td>
-                          <span className="font-mono text-xs text-muted-foreground bg-muted/60 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-border inline-block">
-                            {r.slug}
+                        <td className="px-4 py-3.5">
+                          <span
+                            className="font-mono text-xs text-muted-foreground bg-muted/60 dark:bg-slate-800/80 px-2.5 py-1 rounded-md border border-border/70 inline-block max-w-[200px] truncate select-all tracking-tight"
+                            title={r.slug}
+                          >
+                            /{r.slug}
                           </span>
                         </td>
                       )}
+
+                      {/* Posts Count */}
                       {visibleColumns.posts && (
-                        <td className="text-center">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                            <FileText size={12} />
-                            <span>{r.posts_count ?? r.blogs_count ?? 0}</span>
-                          </span>
+                        <td className="px-4 py-3.5 text-center">
+                          {postCount > 0 ? (
+                            <Link
+                              to={`/cms/blogs?category=${r.id}`}
+                              className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/30 transition-all duration-150"
+                              title={t('cms.viewArticlesInCategory', 'View articles in this category')}
+                            >
+                              {postCount} {t('cms.articlesUnit', 'អត្ថបទ')}
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-muted-foreground font-medium">
+                              0 {t('cms.articlesUnit', 'អត្ថបទ')}
+                            </span>
+                          )}
                         </td>
                       )}
+
+                      {/* Status */}
                       {visibleColumns.status && (
-                        <td>
-                          <StatusBadge status={r.is_active ? 'active' : 'inactive'} />
+                        <td className="px-4 py-3.5 text-center">
+                          <div className="flex justify-center">
+                            <StatusBadge status={r.is_active ? 'active' : 'inactive'} />
+                          </div>
                         </td>
                       )}
+
+                      {/* Actions */}
                       {visibleColumns.actions && (
-                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <TableActionMenu
                             onEdit={() => openEditModal(r)}
                             onDelete={() => confirmDelete(r.id)}
+                            items={[
+                              {
+                                label: t('cms.viewArticles', 'View Articles'),
+                                onClick: () => navigate(`/cms/blogs?category=${r.id}`),
+                                variant: 'default',
+                              },
+                            ]}
                           />
                         </td>
                       )}

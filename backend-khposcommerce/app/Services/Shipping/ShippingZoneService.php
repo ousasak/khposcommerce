@@ -42,4 +42,26 @@ class ShippingZoneService
     {
         return $this->repository->delete($id);
     }
+
+    public function findZoneForLocation(?string $country = null, ?string $province = null, ?string $city = null): ?ShippingZone
+    {
+        $zones = $this->repository->all();
+
+        return $zones->first(function (ShippingZone $zone) use ($country, $province, $city) {
+            $countries = is_array($zone->countries) ? $zone->countries : [];
+            $provinces = is_array($zone->provinces) ? $zone->provinces : [];
+            $cities = is_array($zone->cities) ? $zone->cities : [];
+
+            if ($city && in_array($city, $cities, true)) {
+                return true;
+            }
+            if ($province && in_array($province, $provinces, true)) {
+                return true;
+            }
+            if ($country && in_array($country, $countries, true)) {
+                return true;
+            }
+            return false;
+        });
+    }
 }

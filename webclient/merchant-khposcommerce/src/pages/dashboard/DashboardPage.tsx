@@ -12,14 +12,14 @@ import { DEFAULT_WIDGETS_LIST } from '@/config/dashboardWidgets'
 import DashboardHeader from './components/DashboardHeader'
 import DashboardStats from './components/DashboardStats'
 import DashboardCharts from './components/DashboardCharts'
-import DashboardRow3 from './components/DashboardRow3'
-import DashboardRow4 from './components/DashboardRow4'
-import DashboardRow5 from './components/DashboardRow5'
-import DashboardRow6 from './components/DashboardRow6'
-import DashboardRow7 from './components/DashboardRow7'
-import DashboardRow8 from './components/DashboardRow8'
-import DashboardRow9 from './components/DashboardRow9'
-import DashboardRow10 from './components/DashboardRow10'
+import DashboardRecentOrders from './components/DashboardRecentOrders'
+import DashboardInventorySummary from './components/DashboardInventorySummary'
+import DashboardFinancialMetrics from './components/DashboardFinancialMetrics'
+import DashboardCampaignsWidget from './components/DashboardCampaignsWidget'
+import DashboardCustomerInsights from './components/DashboardCustomerInsights'
+import DashboardWebAnalyticsWidget from './components/DashboardWebAnalyticsWidget'
+import DashboardMobileAppWidget from './components/DashboardMobileAppWidget'
+import DashboardStaffPerformanceWidget from './components/DashboardStaffPerformanceWidget'
 import QuickActions from './components/QuickActions'
 import RecentActivities from './components/RecentActivities'
 import BusinessAlertsWidget from './components/BusinessAlertsWidget'
@@ -212,7 +212,7 @@ const DashboardPage: React.FC = () => {
           {/* Row 3: Top Selling, Recent Orders, Latest Customers */}
           {isWidgetVisible('recent_orders') && (
             <motion.div variants={itemVariants}>
-              <DashboardRow3 
+              <DashboardRecentOrders 
                 topProducts={topProductsRes || []} 
                 recentOrders={panelsRes?.pending_orders || []}
                 latestCustomers={panelsRes?.latest_customers || []} 
@@ -224,7 +224,7 @@ const DashboardPage: React.FC = () => {
           {/* Row 4: Inventory & Warehouse Summary */}
           {isWidgetVisible('low_stock') && (
             <motion.div variants={itemVariants}>
-              <DashboardRow4 
+              <DashboardInventorySummary 
                 lowStockList={lowStockRes || []} 
                 stats={statsRes} 
                 isLoading={lowStockLoading || statsLoading}
@@ -235,42 +235,42 @@ const DashboardPage: React.FC = () => {
           {/* Row 5: Financial Metrics & Profit Margins */}
           {isWidgetVisible('financial_metrics') && (
             <motion.div variants={itemVariants}>
-              <DashboardRow5 stats={statsRes} isLoading={statsLoading} />
+              <DashboardFinancialMetrics stats={statsRes} isLoading={statsLoading} />
             </motion.div>
           )}
 
           {/* Row 6: Active Campaigns & Coupon Usage */}
           {isWidgetVisible('campaigns_promotions') && (
             <motion.div variants={itemVariants}>
-              <DashboardRow6 />
+              <DashboardCampaignsWidget />
             </motion.div>
           )}
 
           {/* Row 7: Customer Insights & Demographics */}
           {isWidgetVisible('customer_insights') && (
             <motion.div variants={itemVariants}>
-              <DashboardRow7 />
+              <DashboardCustomerInsights />
             </motion.div>
           )}
 
           {/* Row 8: Web Conversion Metrics & Visitor Devices */}
           {isWidgetVisible('web_conversion') && (
             <motion.div variants={itemVariants}>
-              <DashboardRow8 />
+              <DashboardWebAnalyticsWidget />
             </motion.div>
           )}
 
           {/* Row 9: Mobile App Downloads & Active Users */}
           {isWidgetVisible('mobile_app') && (
             <motion.div variants={itemVariants}>
-              <DashboardRow9 />
+              <DashboardMobileAppWidget />
             </motion.div>
           )}
 
           {/* Row 10: Attendance, Top Performers & Departments */}
           {isWidgetVisible('staff_performance') && (
             <motion.div variants={itemVariants}>
-              <DashboardRow10 />
+              <DashboardStaffPerformanceWidget />
             </motion.div>
           )}
 

@@ -17,7 +17,8 @@ import { companyService } from '@/services/companyService'
 import { productService } from '@/services/productService'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/useToast'
-import { FormLayout, FormContent, FormCard, FormHeader, FormFooter } from '@/components/common'
+import { FormLayout, FormContent, FormCard, FormHeader, FormFooter, FormField, FieldError, getFieldClass } from '@/components/common'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface StockAdjustmentFormProps {
@@ -49,6 +50,16 @@ export const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ adjust
   const [reason, setReason] = useState('')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<Array<{ product_id: string; variant_id: string; quantity: number; product?: any }>>([])
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    setErrors(prev => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
   
   // Search & Filter state for adding items
   const [searchQuery, setSearchQuery] = useState('')
@@ -173,6 +184,15 @@ export const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ adjust
       handleClose()
     },
     onError: (err: any) => {
+      if (err?.response?.status === 422 && err?.response?.data?.errors) {
+        const apiErrors: Record<string, string> = {}
+        Object.entries(err.response.data.errors).forEach(([k, v]) => {
+          apiErrors[k] = Array.isArray(v) ? (v[0] as string) : String(v)
+        })
+        setErrors(apiErrors)
+        focusFirstInvalidField(apiErrors)
+        return
+      }
       toast.error(err?.response?.data?.message || t('common.saveFailed', 'Failed to save adjustment'))
     }
   })
@@ -192,6 +212,7 @@ export const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ adjust
 
   // Handlers
   const handleAddProductToItems = (prod: any) => {
+    handleClearError('items')
     const existingIndex = items.findIndex(it => String(it.product_id) === String(prod.id))
     if (existingIndex >= 0) {
       setItems(prev => {
@@ -208,6 +229,7 @@ export const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ adjust
   }
 
   const handleAddItem = () => {
+    handleClearError('items')
     setItems(prev => [...prev, { product_id: '', variant_id: '', quantity: 1 }])
   }
 
@@ -216,6 +238,7 @@ export const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ adjust
   }
 
   const handleItemChange = (index: number, field: string, value: any) => {
+    handleClearError('items')
     setItems(prev => {
       const next = [...prev]
       const current = { ...next[index], [field]: value }
@@ -243,14 +266,19 @@ export const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ adjust
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
 
+    const newErrors: Record<string, string> = {}
     if (!warehouseId) {
-      toast.error(t('selectWarehouseAlert', 'Please select a warehouse.'))
-      return
+      newErrors.warehouse_id = t('inventory.errors.warehouseRequired', 'Please select a warehouse')
     }
 
     const validItems = items.filter(it => !!it.product_id && (parseFloat(String(it.quantity)) || 0) > 0)
     if (validItems.length === 0) {
-      toast.error(t('addAtLeastOneItemHint', 'Please add at least 1 product item to proceed'))
+      newErrors.items = t('inventory.errors.itemsRequired', 'Please add at least 1 product item to proceed')
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
       return
     }
 
@@ -381,19 +409,29 @@ export const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ adjust
               ) : (
                 <div className="space-y-4">
                   {/* Warehouse Select */}
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-foreground flex items-center justify-between">
-                      <span>{t('warehouse', 'Warehouse')} <span className="text-rose-500">*</span></span>
-                      {selectedWarehouseObj && (
-                        <span className="text-[10px] text-primary font-mono font-semibold">
-                          Code: {selectedWarehouseObj.code || `WH-${selectedWarehouseObj.id}`}
-                        </span>
-                      )}
-                    </label>
+                  <FormField
+                    label={
+                      <div className="flex items-center justify-between w-full">
+                        <span>{t('warehouse', 'Warehouse')}</span>
+                        {selectedWarehouseObj && (
+                          <span className="text-[10px] text-primary font-mono font-semibold">
+                            Code: {selectedWarehouseObj.code || `WH-${selectedWarehouseObj.id}`}
+                          </span>
+                        )}
+                      </div>
+                    }
+                    required
+                    error={errors.warehouse_id}
+                  >
                     <select
+                      id="warehouse_id"
+                      name="warehouse_id"
                       value={warehouseId}
-                      onChange={(e) => setWarehouseId(e.target.value)}
-                      className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 font-medium focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer dark:[color-scheme:dark]"
+                      onChange={(e) => {
+                        setWarehouseId(e.target.value)
+                        handleClearError('warehouse_id')
+                      }}
+                      className={getFieldClass(errors.warehouse_id, "w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 font-medium focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer dark:[color-scheme:dark]")}
                     >
                       <option value="" className="dark:bg-slate-900">{t('selectWarehouse', 'Select Warehouse...')}</option>
                       {(warehouses ?? []).map((w: any) => (
@@ -402,7 +440,7 @@ export const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ adjust
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </FormField>
 
                   {/* Adjustment Type Segmented Tab */}
                   <div className="space-y-1.5">
@@ -921,6 +959,12 @@ export const StockAdjustmentForm: React.FC<StockAdjustmentFormProps> = ({ adjust
                     </table>
                   </div>
                 </div>
+
+                {errors.items && (
+                  <div id="items">
+                    <FieldError error={errors.items} />
+                  </div>
+                )}
 
                 {/* Bottom Summary Bar */}
                 <div className="pt-3.5 border-t border-border/70 flex items-center justify-between text-xs">

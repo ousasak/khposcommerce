@@ -7,6 +7,7 @@ import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
 import { Breadcrumb } from '@/components/common'
 import { HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 import Pagination from '@/components/shared/Pagination'
 import type { TransactionForm } from './types/finance.types'
 import {
@@ -56,6 +57,17 @@ export const FinancialTransactionsPage: React.FC = () => {
     reference_id: '',
     payment_method_id: '',
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   // Queries
   const {
@@ -99,11 +111,32 @@ export const FinancialTransactionsPage: React.FC = () => {
         reference_id: '',
         payment_method_id: '',
       })
+      setErrors({})
     },
     onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
       toast.error(err?.response?.data?.message ?? t('finance.save_error', 'Failed to save details.'))
     },
   })
+
+  const handleSaveTransaction = () => {
+    if (!transactionForm.amount || isNaN(Number(transactionForm.amount)) || Number(transactionForm.amount) <= 0) {
+      const newErrors = { amount: t('finance.amount_required', 'សូមបញ្ចូលចំនួនទឹកប្រាក់ដែលត្រឹមត្រូវ') }
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+    saveMutation.mutate(transactionForm)
+  }
 
   // Handlers
   const handleExportCsv = () => {
@@ -230,12 +263,17 @@ export const FinancialTransactionsPage: React.FC = () => {
       {/* Form Drawer */}
       <FinancialTransactionsFormDrawer
         isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false)
+          setErrors({})
+        }}
         editingItem={null}
-        onSubmit={() => saveMutation.mutate(transactionForm)}
+        onSubmit={handleSaveTransaction}
         isPending={saveMutation.isPending}
         transactionForm={transactionForm}
         setTransactionForm={setTransactionForm}
+        errors={errors}
+        onClearError={handleClearError}
       />
     </div>
   )

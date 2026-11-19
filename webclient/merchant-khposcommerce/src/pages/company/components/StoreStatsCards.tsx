@@ -14,7 +14,7 @@ export const StoreStatsCards: React.FC<StoreStatsCardsProps> = ({
   total,
   isLoading = false,
 }) => {
-  const { t } = useTranslation(['settings', 'common'])
+  const { t } = useTranslation(['company', 'settings', 'common'])
 
   const stats = useMemo(() => {
     const totalCount = total !== undefined ? total : stores.length
@@ -35,18 +35,18 @@ export const StoreStatsCards: React.FC<StoreStatsCardsProps> = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 print:hidden">
       <StatCard
-        title={t('stores.statsTotal', 'Total Stores')}
+        title={t('company.statsTotalStores', 'Total Stores')}
         value={stats.totalCount}
-        suffix={` ${t('stores.storeUnit', 'stores')}`}
+        suffix={` ${t('company.unitStores', 'stores')}`}
         useCounter={true}
         icon={Store}
         variant="primary"
         loading={isLoading}
       />
       <StatCard
-        title={t('stores.statsActive', 'Active Outlets')}
+        title={t('company.statsActiveStores', 'Active Outlets')}
         value={stats.activeCount}
-        suffix={` ${t('stores.activeUnit', 'active')}`}
+        suffix={` ${t('company.unitActive', 'active')}`}
         useCounter={true}
         icon={CheckCircle2}
         variant="emerald"
@@ -54,22 +54,22 @@ export const StoreStatsCards: React.FC<StoreStatsCardsProps> = ({
         change={{
           value: stats.activeRate,
           trend: 'up',
-          label: t('stores.activeRate', 'ratio'),
+          label: t('company.unitRatio', 'ratio'),
         }}
       />
       <StatCard
-        title={t('stores.statsPOS', 'Physical & Hybrid Outlets')}
+        title={t('company.statsPosOutlets', 'Physical & Hybrid Outlets')}
         value={stats.physicalOrHybridCount}
-        suffix={` ${t('stores.posUnit', 'outlets')}`}
+        suffix={` ${t('company.unitOutlets', 'outlets')}`}
         useCounter={true}
         icon={ShoppingBag}
         variant="purple"
         loading={isLoading}
       />
       <StatCard
-        title={t('stores.statsOnline', 'Online Channels')}
+        title={t('company.statsOnlineChannels', 'Online Channels')}
         value={stats.onlineCount}
-        suffix={` ${t('stores.onlineUnit', 'channels')}`}
+        suffix={` ${t('company.unitChannels', 'channels')}`}
         useCounter={true}
         icon={Globe}
         variant="blue"

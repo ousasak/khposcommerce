@@ -3,7 +3,7 @@ import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { StatusBadge, EmptyState } from '@/components/common'
-import { HelpCircle, Folder, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 export interface FaqsHelpTableProps {
@@ -67,7 +67,7 @@ export const FaqsHelpTable: React.FC<FaqsHelpTableProps> = ({
           <table className="w-full data-table border-collapse">
             <thead className="bg-muted/40 sticky top-0 border-b border-border z-10 select-none">
               <tr>
-                <th className="w-10 px-3 text-center">
+                <th className="w-12 px-4 py-3.5 text-center">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -79,7 +79,7 @@ export const FaqsHelpTable: React.FC<FaqsHelpTableProps> = ({
                 {visibleColumns.title && (
                   <th
                     onClick={() => onSort?.('question')}
-                    className={`text-left font-bold text-xs ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-left font-bold text-xs px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{t('cms.colQuestionAnswer', 'Question & Answer')}</span>
@@ -90,7 +90,7 @@ export const FaqsHelpTable: React.FC<FaqsHelpTableProps> = ({
                 {visibleColumns.category && (
                   <th
                     onClick={() => onSort?.('category')}
-                    className={`text-left font-bold text-xs ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-left font-bold text-xs w-48 px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{t('cms.colCategory', 'Category')}</span>
@@ -98,36 +98,27 @@ export const FaqsHelpTable: React.FC<FaqsHelpTableProps> = ({
                     </div>
                   </th>
                 )}
-                {visibleColumns.sortOrder && (
-                  <th
-                    onClick={() => onSort?.('sort_order')}
-                    className={`text-left font-bold text-xs w-28 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <span>{t('cms.colOrder', 'Display Order')}</span>
-                      {renderSortIcon('sort_order')}
-                    </div>
-                  </th>
-                )}
                 {visibleColumns.status && (
                   <th
-                    onClick={() => onSort?.('status')}
-                    className={`text-left font-bold text-xs w-28 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    onClick={() => onSort?.('is_active')}
+                    className={`text-center font-bold text-xs w-32 px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-center gap-1.5">
                       <span>{t('cms.colStatus', 'Status')}</span>
-                      {renderSortIcon('status')}
+                      {renderSortIcon('is_active')}
                     </div>
                   </th>
                 )}
                 {visibleColumns.actions && (
-                  <th className="text-right font-bold text-xs w-20">{t('cms.colActions', 'Actions')}</th>
+                  <th className="text-right font-bold text-xs w-20 px-4 py-3.5">
+                    {t('cms.colActions', 'Actions')}
+                  </th>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <LoadingSkeleton cols={colsCount} />
+                <LoadingSkeleton cols={colsCount} rows={6} />
               ) : records.length === 0 ? (
                 <EmptyState cols={colsCount} message={t('cms.noFaqs', 'No FAQs or help articles found')} />
               ) : (
@@ -141,7 +132,8 @@ export const FaqsHelpTable: React.FC<FaqsHelpTableProps> = ({
                         isSelected ? 'bg-primary/5 dark:bg-primary/10' : ''
                       }`}
                     >
-                      <td className="w-10 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      {/* Checkbox */}
+                      <td className="w-12 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -150,50 +142,47 @@ export const FaqsHelpTable: React.FC<FaqsHelpTableProps> = ({
                           aria-label={`Select FAQ ${r.id}`}
                         />
                       </td>
+
+                      {/* Clean Question & Answer (No icon box) */}
                       {visibleColumns.title && (
-                        <td>
-                          <div className="flex items-start gap-3 py-1">
-                            <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 border border-sky-500/20 mt-0.5">
-                              <HelpCircle size={17} />
-                            </div>
-                            <div className="min-w-0">
-                              <p
-                                onClick={() => openEditModal(r)}
-                                className="font-bold text-foreground hover:text-primary cursor-pointer text-sm group-hover:text-primary transition-colors"
-                              >
-                                {r.question || r.title}
+                        <td className="px-4 py-3.5">
+                          <div className="min-w-0">
+                            <span
+                              onClick={() => openEditModal(r)}
+                              className="font-semibold text-foreground hover:text-primary cursor-pointer text-sm block leading-snug transition-colors"
+                            >
+                              {r.question || r.title}
+                            </span>
+                            {(r.answer || r.content) && (
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 max-w-xl leading-relaxed font-normal">
+                                {r.answer || r.content}
                               </p>
-                              {(r.answer || r.content) && (
-                                <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 max-w-lg leading-relaxed">
-                                  {r.answer || r.content}
-                                </p>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </td>
                       )}
+
+                      {/* Clean Category (No folder icon) */}
                       {visibleColumns.category && (
-                        <td>
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-muted text-foreground border border-border/70">
-                            <Folder size={11} className="text-muted-foreground" />
-                            <span>{r.category || t('cms.general', 'General')}</span>
+                        <td className="px-4 py-3.5">
+                          <span className="inline-block text-xs font-medium px-2.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60">
+                            {r.category || t('cms.general', 'General')}
                           </span>
                         </td>
                       )}
-                      {visibleColumns.sortOrder && (
-                        <td>
-                          <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-muted text-muted-foreground font-semibold border border-border/50">
-                            #{r.sort_order ?? 0}
-                          </span>
-                        </td>
-                      )}
+
+                      {/* Status */}
                       {visibleColumns.status && (
-                        <td>
-                          <StatusBadge status={r.is_active ? 'active' : 'inactive'} />
+                        <td className="px-4 py-3.5 text-center">
+                          <div className="flex justify-center">
+                            <StatusBadge status={r.is_active ? 'active' : 'inactive'} />
+                          </div>
                         </td>
                       )}
+
+                      {/* Actions */}
                       {visibleColumns.actions && (
-                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <TableActionMenu
                             onEdit={() => openEditModal(r)}
                             onDelete={() => confirmDelete(r.id)}

@@ -11,7 +11,6 @@ export const CMSPage: React.FC = () => {
   if (tab === 'faqs') return <Navigate to="/cms/faqs" replace />
   if (tab === 'announcements') return <Navigate to="/cms/announcements" replace />
   if (tab === 'testimonials') return <Navigate to="/cms/testimonials" replace />
-  if (tab === 'media') return <Navigate to="/cms/media" replace />
   return <Navigate to="/cms/blogs" replace />
 }
 

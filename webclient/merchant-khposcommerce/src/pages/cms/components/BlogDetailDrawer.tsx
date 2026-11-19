@@ -554,14 +554,7 @@ export const BlogDetailDrawer: React.FC<BlogDetailDrawerProps> = ({
 
       {/* ─── 4. Action Footer (បាតទំព័រ - Global ActionButton) ─── */}
       <DetailDrawerFooter
-        leftActions={
-          <ActionButton
-            variant="outline"
-            size="md"
-            label={t('common.close', 'បិទ')}
-            onClick={onClose}
-          />
-        }
+        onClose={onClose}
         rightActions={
           <div className="flex items-center gap-2">
             {slug && (

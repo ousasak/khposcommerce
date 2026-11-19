@@ -13,11 +13,11 @@ interface SwitchAccountModalProps {
 
 const MOCK_ACCOUNTS = [
   {
-    role: 'super_admin',
-    name: 'Super Admin',
-    email: 'admin@enterprise.com',
+    role: 'owner',
+    name: 'Business Owner (Sokha Heng)',
+    email: 'owner@enterprise-pos.com',
     company: 'Enterprise POS',
-    branch: 'Head Office',
+    branch: 'All Branches (HQ)',
     icon: <Shield className="w-5 h-5 text-blue-500" />,
     permissions: ['*'],
   },

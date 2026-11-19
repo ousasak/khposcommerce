@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Store, Building2, Warehouse, Monitor, Clock, Wifi, WifiOff, User, ShieldCheck, Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { ModernSelect } from './ModernSelect'
+import { ModernSelect } from '@/components/shared/ModernSelect'
 
 interface StoreOption { id: number; name: string }
 

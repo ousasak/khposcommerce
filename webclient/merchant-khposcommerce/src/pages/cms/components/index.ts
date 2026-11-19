@@ -9,11 +9,11 @@ export { BlogDetailDrawer } from './BlogDetailDrawer'
 
 // 2. Editorial & Content (Blogs, Categories, Tags)
 export {
-  BlogArticlesTable,
-  BlogArticlesTable as BlogsTable,
-  BlogArticlesTable as BlogsTab,
-} from './BlogArticlesTable'
-export type { BlogArticlesTableProps } from './BlogArticlesTable'
+  BlogArticlesGrid,
+  BlogArticlesGrid as BlogsGrid,
+  BlogArticlesGrid as BlogsCardGrid,
+} from './BlogArticlesGrid'
+export type { BlogArticlesGridProps } from './BlogArticlesGrid'
 
 export {
   BlogCategoriesTable,
@@ -61,8 +61,25 @@ export {
 } from './TestimonialsTable'
 export type { TestimonialsTableProps } from './TestimonialsTable'
 
-export {
-  MediaLibraryGrid,
-  MediaLibraryGrid as MediaLibraryTab,
-} from './MediaLibraryGrid'
-export type { MediaLibraryGridProps } from './MediaLibraryGrid'
+// 5. SmartHR-style Unified SearchBars (matching ProductSearchBar)
+export { BlogArticlesSearchBar } from './BlogArticlesSearchBar'
+export type { BlogArticlesSearchBarProps } from './BlogArticlesSearchBar'
+
+export { BlogCategoriesSearchBar } from './BlogCategoriesSearchBar'
+export type { BlogCategoriesSearchBarProps } from './BlogCategoriesSearchBar'
+
+export { BlogTagsSearchBar } from './BlogTagsSearchBar'
+export type { BlogTagsSearchBarProps } from './BlogTagsSearchBar'
+
+export { PagesPoliciesSearchBar } from './PagesPoliciesSearchBar'
+export type { PagesPoliciesSearchBarProps } from './PagesPoliciesSearchBar'
+
+export { FaqsHelpSearchBar } from './FaqsHelpSearchBar'
+export type { FaqsHelpSearchBarProps } from './FaqsHelpSearchBar'
+
+export { AnnouncementsSearchBar } from './AnnouncementsSearchBar'
+export type { AnnouncementsSearchBarProps } from './AnnouncementsSearchBar'
+
+export { TestimonialsSearchBar } from './TestimonialsSearchBar'
+export type { TestimonialsSearchBarProps } from './TestimonialsSearchBar'
+

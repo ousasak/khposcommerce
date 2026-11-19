@@ -14,7 +14,7 @@ export const BranchStatsCards: React.FC<BranchStatsCardsProps> = ({
   total,
   isLoading = false,
 }) => {
-  const { t } = useTranslation(['settings', 'common'])
+  const { t } = useTranslation(['company', 'settings', 'common'])
 
   const stats = useMemo(() => {
     const totalCount = total !== undefined ? total : branches.length
@@ -35,18 +35,18 @@ export const BranchStatsCards: React.FC<BranchStatsCardsProps> = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 print:hidden">
       <StatCard
-        title={t('branches.statsTotal', 'Total Branches')}
+        title={t('company.statsTotalBranches', 'Total Branches')}
         value={stats.totalCount}
-        suffix={` ${t('branches.branchUnit', 'branches')}`}
+        suffix={` ${t('company.unitBranches', 'branches')}`}
         useCounter={true}
         icon={Building2}
         variant="primary"
         loading={isLoading}
       />
       <StatCard
-        title={t('branches.statsActive', 'Active Branches')}
+        title={t('company.statsActiveBranches', 'Active Branches')}
         value={stats.activeCount}
-        suffix={` ${t('branches.activeUnit', 'active')}`}
+        suffix={` ${t('company.unitActive', 'active')}`}
         useCounter={true}
         icon={CheckCircle2}
         variant="emerald"
@@ -54,22 +54,22 @@ export const BranchStatsCards: React.FC<BranchStatsCardsProps> = ({
         change={{
           value: stats.activeRate,
           trend: 'up',
-          label: t('branches.activeRate', 'ratio'),
+          label: t('company.unitRatio', 'ratio'),
         }}
       />
       <StatCard
-        title={t('branches.statsMainHQ', 'Headquarters / Main')}
+        title={t('company.statsMainHQ', 'Main Headquarters')}
         value={stats.mainBranches}
-        suffix={` ${t('branches.hqUnit', 'HQ')}`}
+        suffix={` ${t('company.unitHQ', 'HQ')}`}
         useCounter={true}
         icon={Star}
         variant="purple"
         loading={isLoading}
       />
       <StatCard
-        title={t('branches.statsCities', 'Covered Cities / Areas')}
+        title={t('company.statsCoveredCities', 'Covered Cities / Areas')}
         value={stats.citiesCount}
-        suffix={` ${t('branches.citiesUnit', 'cities')}`}
+        suffix={` ${t('company.unitCities', 'cities')}`}
         useCounter={true}
         icon={MapPin}
         variant="blue"

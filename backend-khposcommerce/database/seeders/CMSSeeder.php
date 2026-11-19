@@ -17,7 +17,7 @@ class CMSSeeder extends Seeder
 
         // Truncate existing CMS tables cleanly to allow safe repeatable execution
         if (DB::getDriverName() === 'pgsql') {
-            DB::statement('TRUNCATE TABLE blog_blog_tag, blogs, blog_tags, blog_categories, pages, faqs, banners, media, announcements RESTART IDENTITY CASCADE');
+            DB::statement('TRUNCATE TABLE blog_blog_tag, blogs, blog_tags, blog_categories, pages, faqs, banners, announcements RESTART IDENTITY CASCADE');
         } else {
             DB::statement('SET FOREIGN_KEY_CHECKS=0');
             DB::table('blog_blog_tag')->truncate();
@@ -27,7 +27,6 @@ class CMSSeeder extends Seeder
             DB::table('pages')->truncate();
             DB::table('faqs')->truncate();
             DB::table('banners')->truncate();
-            DB::table('media')->truncate();
             DB::table('announcements')->truncate();
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
         }
@@ -760,24 +759,6 @@ class CMSSeeder extends Seeder
         }
         DB::table('banners')->insert($banners);
 
-        // 8. Media (10 records)
-        $media = [];
-        for ($i = 1; $i <= 10; $i++) {
-            $media[] = [
-                'company_id' => $companyId,
-                'user_id' => 1,
-                'name' => "media-file-$i",
-                'file_name' => "file-$i.jpg",
-                'mime_type' => 'image/jpeg',
-                'path' => "media/file-$i.jpg",
-                'disk' => 'public',
-                'size' => rand(10000, 500000),
-                'type' => 'image',
-                'conversions' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }
         // 9. Announcements (Authentic Cambodian E-Commerce Campaigns)
         $announcements = [
             [
@@ -839,8 +820,11 @@ class CMSSeeder extends Seeder
         ];
         DB::table('announcements')->insert($announcements);
 
+        // 9. Testimonials (Customer feedback 10 records)
+        $this->call(TestimonialSeeder::class);
+
         if (DB::getDriverName() === 'pgsql') {
-            $tables = ['blog_categories', 'blog_tags', 'blogs', 'blog_blog_tag', 'pages', 'faqs', 'banners', 'media', 'announcements'];
+            $tables = ['blog_categories', 'blog_tags', 'blogs', 'blog_blog_tag', 'pages', 'faqs', 'banners', 'announcements', 'testimonials'];
             foreach ($tables as $table) {
                 try {
                     DB::statement("SELECT setval('{$table}_id_seq', COALESCE((SELECT MAX(id) FROM {$table}), 0) + 1, false);");

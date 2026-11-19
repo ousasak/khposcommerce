@@ -8,15 +8,17 @@ import { usePermission } from '@/hooks/usePermission'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
 import { Breadcrumb } from '@/components/common'
-import { HeaderActionsGroup, AddButton, ExportButton, TableToolbar } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 
 import {
   CMSStatsCards,
   CMSFormModal,
   BlogTagsTable,
+  BlogTagsSearchBar,
 } from './components'
 
 export const BlogTagsPage: React.FC = () => {
@@ -55,6 +57,17 @@ export const BlogTagsPage: React.FC = () => {
   const [editingItem, setEditingItem] = useState<any>(null)
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   // Column Settings
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -106,7 +119,19 @@ export const BlogTagsPage: React.FC = () => {
       closeModal()
       toast.success(t('cms.createdSuccess'))
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? t('cms.createFailed')),
+    onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
+      toast.error(err?.response?.data?.message ?? t('cms.createFailed'))
+    },
   })
 
   const updateMutation = useMutation({
@@ -118,7 +143,19 @@ export const BlogTagsPage: React.FC = () => {
       closeModal()
       toast.success(t('cms.updatedSuccess'))
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? t('cms.updateFailed')),
+    onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
+      toast.error(err?.response?.data?.message ?? t('cms.updateFailed'))
+    },
   })
 
   const deleteMutation = useMutation({
@@ -162,6 +199,7 @@ export const BlogTagsPage: React.FC = () => {
     setEditingItem(null)
     setName('')
     setSlug('')
+    setErrors({})
     setModalOpen(true)
   }
 
@@ -169,19 +207,28 @@ export const BlogTagsPage: React.FC = () => {
     setEditingItem(item)
     setName(item.name || item.title || '')
     setSlug(item.slug || '')
+    setErrors({})
     setModalOpen(true)
   }
 
   const closeModal = () => {
     setModalOpen(false)
     setEditingItem(null)
+    setErrors({})
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!name.trim()) {
+      const newErrors = { name: t('cms.tagNameRequired', 'សូមបញ្ចូលឈ្មោះស្លាកមាតិកា') }
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+
     const payload = {
-      name,
-      slug: slug || name.toLowerCase().replace(/ /g, '-'),
+      name: name.trim(),
+      slug: slug.trim() || name.toLowerCase().replace(/ /g, '-'),
     }
     if (editingItem) {
       updateMutation.mutate({ id: editingItem.id, data: payload })
@@ -278,23 +325,15 @@ export const BlogTagsPage: React.FC = () => {
       {/* ── 3. EXECUTIVE KPI OVERVIEW ── */}
       <CMSStatsCards activeTab="blog-tags" records={records} stats={cmsStats} pagination={pagination} />
 
-      {/* ── 4. GLOBAL STANDARD TABLE TOOLBAR ── */}
+      {/* ── 4. SMARTHR-STYLE PRODUCT-MATCHING SEARCH & FILTER BAR ── */}
       <div className="space-y-4">
-        <TableToolbar
+        <BlogTagsSearchBar
           search={search}
           onSearchChange={(val) => {
             setSearch(val)
             setPage(1)
           }}
-          searchPlaceholder={t('cms.searchTagPlaceholder', 'Search tags...')}
-          isFilterActive={Boolean(search)}
           onReset={resetAllFilters}
-          onRefresh={() => {
-            qc.invalidateQueries({ queryKey: ['blog-tags'] })
-            qc.invalidateQueries({ queryKey: ['cms-stats'] })
-          }}
-          refreshLoading={isFetching}
-          manageTableLabel={t('common.manageTable', 'Manage Table')}
           columns={[
             { key: 'title', label: t('cms.colTagName', 'Tag Name') },
             { key: 'slug', label: t('cms.colSlug', 'Slug') },
@@ -303,20 +342,8 @@ export const BlogTagsPage: React.FC = () => {
           ]}
           visibleColumns={visibleColumns}
           onColumnChange={setVisibleColumns}
-          leftActions={
-            selectedRows.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setBulkDeleteConfirmOpen(true)}
-                className="inline-flex items-center gap-1.5 h-10 min-h-[40px] max-h-[40px] px-3.5 text-xs sm:text-[13px] font-semibold bg-rose-500/10 text-rose-600 rounded-lg border border-rose-500/20 hover:bg-rose-500/20 active:scale-[0.98] transition-all cursor-pointer shrink-0 box-border leading-normal"
-              >
-                <Trash2 size={14} />
-                <span>
-                  {t('common.deleteSelected', 'Delete Selected')} ({selectedRows.length})
-                </span>
-              </button>
-            ) : null
-          }
+          selectedCount={selectedRows.length}
+          onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
         />
 
         {/* Bulk Selection Banner */}
@@ -364,6 +391,8 @@ export const BlogTagsPage: React.FC = () => {
         editingItem={editingItem}
         onSubmit={handleSubmit}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
+        errors={errors}
+        onClearError={handleClearError}
         activeTab="blog-tags"
         getAddButtonLabel={() => t('cms.addTag')}
         title={name}

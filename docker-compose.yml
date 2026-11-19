@@ -109,7 +109,7 @@ services:
     ports:
       - "5174:5174"
     volumes:
-      - ./webclient/admin-khposcommerce:/app
+      - ./webclient/merchant-khposcommerce:/app
     environment:
       - VITE_API_URL=http://localhost:8000/api/v1
     networks:

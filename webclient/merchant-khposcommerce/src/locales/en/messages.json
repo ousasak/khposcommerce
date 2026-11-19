@@ -16,6 +16,7 @@
   "downloadStarted": "Download started...",
   "error": "Something went wrong. Please try again.",
   "exportSuccess": "Export completed successfully.",
+  "exportedSuccessfully": "Export completed successfully.",
   "importSuccess": "Import completed successfully.",
   "networkError": "Network error. Please check your connection.",
   "permissionDenied": "Permission denied.",

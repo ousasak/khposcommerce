@@ -10,159 +10,212 @@ class CompanySeeder extends Seeder
 {
     public function run(): void
     {
-        $cambodiaLocations = [
-            1 => [
-                'name'     => 'NexTech Cambodia (HQ) - សាខា A (ភ្នំពេញ)',
-                'city'     => 'Khan Daun Penh',
-                'province' => 'Phnom Penh',
-                'code'     => 'A',
-                'postal'   => '120200',
-                'phone'    => '+855 71 888 999',
-                'address'  => '#128, មហាវិថីព្រះនរោត្តម, សង្កាត់ចតុមុខ, ខណ្ឌដូនពេញ',
-            ],
-            2 => [
-                'name'     => 'NexTech Tbong Khmum - សាខា B (ត្បូងឃ្មុំ)',
-                'city'     => 'ក្រុងសួង (Suong)',
-                'province' => 'Tbong Khmum',
-                'code'     => 'B',
-                'postal'   => '030101',
-                'phone'    => '+855 71 888 991',
-                'address'  => 'ផ្លូវជាតិលេខ ៧, ភូមិជើងវត្ត, សង្កាត់សួង, ក្រុងសួង',
-            ],
-            3 => [
-                'name'     => 'NexTech Siem Reap - សាខា C (សៀមរាប)',
-                'city'     => 'ក្រុងសៀមរាប',
-                'province' => 'Siem Reap',
-                'code'     => 'C',
-                'postal'   => '17252',
-                'phone'    => '+855 63 963 888',
-                'address'  => 'ផ្លូវស៊ីវុត្ថា, សង្កាត់ស្វាយដង្គំ, ក្រុងសៀមរាប',
-            ],
-        ];
-
-        // Seed 3 Companies (Enterprise Multi-Tenant Scope)
-        $companyNames = [
-            1 => 'NexTech Cambodia Co., Ltd. (HQ) - សាខា A',
-            2 => 'NexTech Electronics (Tbong Khmum) Co., Ltd. - សាខា B',
-            3 => 'NexTech Retail Solutions (Siem Reap) Co., Ltd. - សាខា C',
-        ];
+        // ─── Single Business Mode ──────────────────────────────────────────
+        // Seed exactly 1 company (the business owner's company)
+        // Branches are physical locations/stores of this single business
 
         DB::table('companies')->truncate();
-        $companies = [];
-        for ($i = 1; $i <= 3; $i++) {
-            $loc = $cambodiaLocations[$i];
-            $companies[] = [
-                'id'            => $i,
-                'name'          => $companyNames[$i],
-                'slug'          => Str::slug($companyNames[$i]),
-                'email'         => $i === 1 ? 'tbongkhmum@enterprise-pos.com' : "contact.branch{$loc['code']}@nextech-cambodia.com",
-                'phone'         => $loc['phone'],
-                'website'       => 'https://www.enterprise-pos.com',
-                'address'       => $loc['address'],
-                'city'          => $loc['city'],
-                'province'      => $loc['province'],
-                'country'       => 'KH',
-                'postal_code'   => $loc['postal'],
-                'tax_number'    => 'K00' . str_pad($i, 7, '0', STR_PAD_LEFT),
-                'currency_code' => 'USD',
-                'timezone'      => 'Asia/Phnom_Penh',
-                'language'      => 'km',
-                'is_active'     => true,
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ];
-        }
-        DB::table('companies')->insert($companies);
+        DB::table('companies')->insert([
+            'id'            => 1,
+            'name'          => 'NexTech Cambodia Co., Ltd.',
+            'slug'          => 'nextech-cambodia',
+            'email'         => 'info@nextech-cambodia.com',
+            'phone'         => '+855 71 888 999',
+            'website'       => 'https://www.nextech-cambodia.com',
+            'address'       => '#128, មហាវិថីព្រះនរោត្តម, សង្កាត់ចតុមុខ, ខណ្ឌដូនពេញ',
+            'city'          => 'Khan Daun Penh',
+            'province'      => 'Phnom Penh',
+            'country'       => 'KH',
+            'postal_code'   => '120200',
+            'tax_number'    => 'K000000001',
+            'currency_code' => 'USD',
+            'timezone'      => 'Asia/Phnom_Penh',
+            'language'      => 'km',
+            'is_active'     => true,
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
 
-        // Seed 3 Branches (all unified under primary company 1 with multi-branch operational scoping)
+        // ─── Branches (3 physical locations of the same business) ──────────
         DB::table('branches')->truncate();
-        $branches = [];
-        for ($i = 1; $i <= 3; $i++) {
-            $loc = $cambodiaLocations[$i];
-            $branches[] = [
-                'id'          => $i,
+        $branches = [
+            [
+                'id'          => 1,
                 'company_id'  => 1,
-                'name'        => $loc['name'],
-                'code'        => "BR-KH-{$loc['code']}",
-                'email'       => "branch{$loc['code']}@nextech-cambodia.com",
-                'phone'       => $loc['phone'],
-                'address'     => $loc['address'],
-                'city'        => $loc['city'],
-                'province'    => $loc['province'],
-                'postal_code' => $loc['postal'],
-                'is_main'     => $i === 1,
+                'name'        => 'NexTech HQ - សាខាកណ្តាល (ភ្នំពេញ)',
+                'code'        => 'BR-KH-A',
+                'email'       => 'branchA@nextech-cambodia.com',
+                'phone'       => '+855 71 888 999',
+                'address'     => '#128, មហាវិថីព្រះនរោត្តម, សង្កាត់ចតុមុខ, ខណ្ឌដូនពេញ',
+                'city'        => 'Khan Daun Penh',
+                'province'    => 'Phnom Penh',
+                'postal_code' => '120200',
+                'is_main'     => true,
                 'is_active'   => true,
                 'created_at'  => now(),
                 'updated_at'  => now(),
-            ];
-        }
+            ],
+            [
+                'id'          => 2,
+                'company_id'  => 1,
+                'name'        => 'NexTech - សាខាត្បូងឃ្មុំ',
+                'code'        => 'BR-KH-B',
+                'email'       => 'branchB@nextech-cambodia.com',
+                'phone'       => '+855 71 888 991',
+                'address'     => 'ផ្លូវជាតិលេខ ៧, ភូមិជើងវត្ត, សង្កាត់សួង, ក្រុងសួង',
+                'city'        => 'ក្រុងសួង (Suong)',
+                'province'    => 'Tbong Khmum',
+                'postal_code' => '030101',
+                'is_main'     => false,
+                'is_active'   => true,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ],
+            [
+                'id'          => 3,
+                'company_id'  => 1,
+                'name'        => 'NexTech - សាខាសៀមរាប',
+                'code'        => 'BR-KH-C',
+                'email'       => 'branchC@nextech-cambodia.com',
+                'phone'       => '+855 63 963 888',
+                'address'     => 'ផ្លូវស៊ីវុត្ថា, សង្កាត់ស្វាយដង្គំ, ក្រុងសៀមរាប',
+                'city'        => 'ក្រុងសៀមរាប',
+                'province'    => 'Siem Reap',
+                'postal_code' => '17252',
+                'is_main'     => false,
+                'is_active'   => true,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ],
+        ];
         DB::table('branches')->insert($branches);
 
-        // Seed 3 Stores
+        // ─── Stores (1 per branch — hybrid online+offline) ─────────────────
         DB::table('stores')->truncate();
-        $stores = [];
-        for ($i = 1; $i <= 3; $i++) {
-            $loc = $cambodiaLocations[$i];
-            $stores[] = [
-                'id'          => $i,
+        $stores = [
+            [
+                'id'          => 1,
                 'company_id'  => 1,
-                'branch_id'   => $i,
-                'name'        => "NexTech Store - សាខា {$loc['code']} ({$loc['province']})",
-                'slug'        => "nextech-store-branch-{$loc['code']}",
-                'domain'      => "store-{$loc['code']}.nextech-cambodia.com",
-                'email'       => "store.{$loc['code']}@nextech-cambodia.com",
-                'phone'       => $loc['phone'],
-                'address'     => $loc['address'],
-                'logo'        => "companies/logo_1789034319_6aa27f4fe25bf.png",
-                'banner'      => "banners/banner_hero_1.webp",
-                'description' => "Official smart retail store in {$loc['province']}, Cambodia",
+                'branch_id'   => 1,
+                'name'        => 'NexTech Store - ភ្នំពេញ',
+                'slug'        => 'nextech-store-phnompenh',
+                'domain'      => null,
+                'email'       => 'store.a@nextech-cambodia.com',
+                'phone'       => '+855 71 888 999',
+                'address'     => '#128, មហាវិថីព្រះនរោត្តម, ខណ្ឌដូនពេញ',
+                'logo'        => 'companies/logo_1789034319_6aa27f4fe25bf.png',
+                'banner'      => 'banners/banner_hero_1.webp',
+                'description' => 'NexTech Official Smart Retail Store - Phnom Penh',
                 'type'        => 'hybrid',
                 'is_active'   => true,
                 'settings'    => null,
                 'created_at'  => now(),
                 'updated_at'  => now(),
-            ];
-        }
+            ],
+            [
+                'id'          => 2,
+                'company_id'  => 1,
+                'branch_id'   => 2,
+                'name'        => 'NexTech Store - ត្បូងឃ្មុំ',
+                'slug'        => 'nextech-store-tbongkhmum',
+                'domain'      => null,
+                'email'       => 'store.b@nextech-cambodia.com',
+                'phone'       => '+855 71 888 991',
+                'address'     => 'ផ្លូវជាតិលេខ ៧, ក្រុងសួង',
+                'logo'        => 'companies/logo_1789034319_6aa27f4fe25bf.png',
+                'banner'      => 'banners/banner_hero_1.webp',
+                'description' => 'NexTech Official Smart Retail Store - Tbong Khmum',
+                'type'        => 'hybrid',
+                'is_active'   => true,
+                'settings'    => null,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ],
+            [
+                'id'          => 3,
+                'company_id'  => 1,
+                'branch_id'   => 3,
+                'name'        => 'NexTech Store - សៀមរាប',
+                'slug'        => 'nextech-store-siemreap',
+                'domain'      => null,
+                'email'       => 'store.c@nextech-cambodia.com',
+                'phone'       => '+855 63 963 888',
+                'address'     => 'ផ្លូវស៊ីវុត្ថា, ក្រុងសៀមរាប',
+                'logo'        => 'companies/logo_1789034319_6aa27f4fe25bf.png',
+                'banner'      => 'banners/banner_hero_1.webp',
+                'description' => 'NexTech Official Smart Retail Store - Siem Reap',
+                'type'        => 'hybrid',
+                'is_active'   => true,
+                'settings'    => null,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ],
+        ];
         DB::table('stores')->insert($stores);
 
-        // Seed 3 Warehouses
-        $warehouseDetails = [
-            1 => ['name' => 'Phnom Penh Central Distribution Depot (សាខា A)', 'pic' => 'Heng Piseth'],
-            2 => ['name' => 'Tbong Khmum Regional Logistics Depot (សាខា B)',  'pic' => 'Sok Dara'],
-            3 => ['name' => 'Siem Reap Northern Fulfillment Hub (សាខា C)',    'pic' => 'Chan Vanna'],
-        ];
-
+        // ─── Warehouses (1 per branch) ──────────────────────────────────────
         DB::table('warehouses')->truncate();
-        $warehouses = [];
-        for ($i = 1; $i <= 3; $i++) {
-            $loc = $cambodiaLocations[$i];
-            $wh  = $warehouseDetails[$i];
-            $warehouses[] = [
-                'id'         => $i,
+        $warehouses = [
+            [
+                'id'         => 1,
                 'company_id' => 1,
-                'branch_id'  => $i,
-                'name'       => $wh['name'],
-                'code'       => "WH-KH-{$loc['code']}",
-                'address'    => "Logistics Depot, {$loc['address']}",
-                'city'       => $loc['city'],
-                'province'   => $loc['province'],
-                'phone'      => $loc['phone'],
-                'pic_name'   => $wh['pic'],
-                'is_main'    => $i === 1,
+                'branch_id'  => 1,
+                'name'       => 'Phnom Penh Central Warehouse',
+                'code'       => 'WH-KH-A',
+                'address'    => '#128, មហាវិថីព្រះនរោត្តម, ខណ្ឌដូនពេញ',
+                'city'       => 'Khan Daun Penh',
+                'province'   => 'Phnom Penh',
+                'phone'      => '+855 71 888 999',
+                'pic_name'   => 'Heng Piseth',
+                'is_main'    => true,
                 'is_active'  => true,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ];
-        }
+            ],
+            [
+                'id'         => 2,
+                'company_id' => 1,
+                'branch_id'  => 2,
+                'name'       => 'Tbong Khmum Regional Warehouse',
+                'code'       => 'WH-KH-B',
+                'address'    => 'ផ្លូវជាតិលេខ ៧, ក្រុងសួង',
+                'city'       => 'ក្រុងសួង',
+                'province'   => 'Tbong Khmum',
+                'phone'      => '+855 71 888 991',
+                'pic_name'   => 'Sok Dara',
+                'is_main'    => false,
+                'is_active'  => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'id'         => 3,
+                'company_id' => 1,
+                'branch_id'  => 3,
+                'name'       => 'Siem Reap Northern Warehouse',
+                'code'       => 'WH-KH-C',
+                'address'    => 'ផ្លូវស៊ីវុត្ថា, ក្រុងសៀមរាប',
+                'city'       => 'ក្រុងសៀមរាប',
+                'province'   => 'Siem Reap',
+                'phone'      => '+855 63 963 888',
+                'pic_name'   => 'Chan Vanna',
+                'is_main'    => false,
+                'is_active'  => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ];
         DB::table('warehouses')->insert($warehouses);
 
+        // Reset PostgreSQL sequences
         if (DB::getDriverName() === 'pgsql') {
-            $tables = ['companies', 'branches', 'stores', 'warehouses'];
-            foreach ($tables as $table) {
+            foreach (['companies', 'branches', 'stores', 'warehouses'] as $table) {
                 try {
                     DB::statement("SELECT setval('{$table}_id_seq', COALESCE((SELECT MAX(id) FROM {$table}), 0) + 1, false);");
                 } catch (\Throwable $e) {}
             }
         }
+
+        $this->command->info('✅ Single-Business CompanySeeder: 1 company + 3 branches + 3 stores + 3 warehouses seeded.');
     }
 }

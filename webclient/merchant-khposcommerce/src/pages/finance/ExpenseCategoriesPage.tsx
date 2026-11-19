@@ -8,6 +8,7 @@ import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
 import { Breadcrumb } from '@/components/common'
 import { HeaderActionsGroup, AddButton, ExportButton, ConfirmModal, BulkSelectionBanner } from '@/components/common'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 import Pagination from '@/components/shared/Pagination'
 import type { CategoryForm } from './types/finance.types'
 import { ExpenseCategoriesFormDrawer, ExpenseCategoriesTable, ExpenseCategorySearchBar } from './components'
@@ -60,6 +61,17 @@ export const ExpenseCategoriesPage: React.FC = () => {
     description: '',
     is_active: true,
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   // Selection & Modals
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([])
@@ -109,6 +121,16 @@ export const ExpenseCategoriesPage: React.FC = () => {
       setEditingItem(null)
     },
     onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
       toast.error(err?.response?.data?.message ?? t('finance.save_error', 'Failed to save details.'))
     },
   })
@@ -179,6 +201,7 @@ export const ExpenseCategoriesPage: React.FC = () => {
   const openCreateDrawer = () => {
     setEditingItem(null)
     setCategoryForm({ name: '', code: '', description: '', is_active: true })
+    setErrors({})
     setDrawerOpen(true)
   }
 
@@ -190,7 +213,18 @@ export const ExpenseCategoriesPage: React.FC = () => {
       description: item.description || '',
       is_active: Boolean(item.is_active ?? true),
     })
+    setErrors({})
     setDrawerOpen(true)
+  }
+
+  const handleSaveCategory = () => {
+    if (!categoryForm.name.trim()) {
+      const newErrors = { name: t('finance.category_name_required', 'សូមបញ្ចូលឈ្មោះប្រភេទចំណាយ') }
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+    saveMutation.mutate(categoryForm)
   }
 
   const handleExportCsv = () => {
@@ -334,12 +368,17 @@ export const ExpenseCategoriesPage: React.FC = () => {
       {/* Form Drawer */}
       <ExpenseCategoriesFormDrawer
         isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false)
+          setErrors({})
+        }}
         editingItem={editingItem}
-        onSubmit={() => saveMutation.mutate(categoryForm)}
+        onSubmit={handleSaveCategory}
         isPending={saveMutation.isPending}
         categoryForm={categoryForm}
         setCategoryForm={setCategoryForm}
+        errors={errors}
+        onClearError={handleClearError}
       />
 
       {/* Delete Confirmation */}

@@ -30,7 +30,7 @@ export const ShippingImportModal: React.FC<ShippingImportModalProps> = ({
     <CsvImportModal
       isOpen={isOpen}
       onClose={onClose}
-      resourceName={t('shipping.shipping', 'Logistics & Shipping')}
+      resourceName={t('shipping.pageTitle', 'Shipping & Logistics Management')}
       expectedHeaders={SHIPPING_EXPECTED_HEADERS}
       importFile={importFile}
       setImportFile={(file) => {

@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, StatusBadge } from '@/components/common'
+import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, StatusBadge, ActionButton } from '@/components/common'
 import { EmployeeAvatar } from './EmployeeAvatar'
 import {
   Calendar,
@@ -270,32 +270,32 @@ export const LeaveDetailDrawer: React.FC<LeaveDetailDrawerProps> = ({
       </DetailDrawerBody>
 
       {/* ─── Drawer Footer ─── */}
-      <DetailDrawerFooter onClose={onClose}>
-        {isPending && onApprove && onReject && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={isApproving}
-              onClick={() => onApprove(record.id)}
-              className="h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
-            >
-              <Check size={14} />
-              <span>{t('employees.approve', 'Approve')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onClose()
-                onReject(record)
-              }}
-              className="h-9 px-3.5 rounded-xl border border-rose-300 hover:bg-rose-50 dark:border-rose-800 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-300 text-xs font-bold inline-flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
-            >
-              <X size={14} />
-              <span>{t('employees.reject', 'Reject')}</span>
-            </button>
-          </div>
-        )}
-      </DetailDrawerFooter>
+      <DetailDrawerFooter
+        onClose={onClose}
+        rightActions={
+          isPending && onApprove && onReject ? (
+            <div className="flex items-center gap-2">
+              <ActionButton
+                variant="emerald"
+                disabled={isApproving}
+                loading={isApproving}
+                icon={<Check size={14} />}
+                label={t('employees.approve', 'Approve')}
+                onClick={() => onApprove(record.id)}
+              />
+              <ActionButton
+                variant="danger"
+                icon={<X size={14} />}
+                label={t('employees.reject', 'Reject')}
+                onClick={() => {
+                  onClose()
+                  onReject(record)
+                }}
+              />
+            </div>
+          ) : undefined
+        }
+      />
     </DetailDrawer>
   )
 }

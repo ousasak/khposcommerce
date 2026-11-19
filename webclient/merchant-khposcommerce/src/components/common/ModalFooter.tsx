@@ -25,6 +25,8 @@ export interface ModalFooterProps {
   onConfirm?: (e?: React.FormEvent | React.MouseEvent) => void
   /** Submit button HTML type ('submit' | 'button'). Defaults to 'submit' */
   submitButtonType?: 'submit' | 'button'
+  /** HTML form id to connect submit button to form when rendered outside */
+  form?: string
   /** Whether to show the Submit button (default: true) */
   showSubmit?: boolean
   /** Whether submission is in progress */
@@ -59,6 +61,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
   onSubmit,
   onConfirm,
   submitButtonType = 'submit',
+  form,
   showSubmit = true,
   isSubmitting = false,
   isLoading,
@@ -148,6 +151,7 @@ export const ModalFooter: React.FC<ModalFooterProps> = ({
         {showSubmit && (
           <button
             type={submitButtonType}
+            form={form}
             onClick={effectiveOnSubmit}
             disabled={effectiveIsSubmitting || disabled}
             className={`h-10 inline-flex items-center justify-center gap-2 px-6 rounded-xl text-xs sm:text-[13px] font-bold hover:shadow transition-all disabled:opacity-50 cursor-pointer active:scale-95 disabled:cursor-not-allowed select-none ${getSubmitVariantStyles()}`}

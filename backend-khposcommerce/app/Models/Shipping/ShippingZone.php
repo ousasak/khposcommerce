@@ -24,6 +24,57 @@ class ShippingZone extends Model
         'cities'    => 'array',
     ];
 
+    public function setCountriesAttribute($value): void
+    {
+        $val = is_string($value) && str_starts_with(trim($value), '[')
+            ? (json_decode($value, true) ?? $value)
+            : $value;
+
+        $this->attributes['countries'] = is_array($val) ? json_encode($val) : $val;
+    }
+
+    public function getCountriesAttribute($value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        return $value ? json_decode($value, true) : null;
+    }
+
+    public function setProvincesAttribute($value): void
+    {
+        $val = is_string($value) && str_starts_with(trim($value), '[')
+            ? (json_decode($value, true) ?? $value)
+            : $value;
+
+        $this->attributes['provinces'] = is_array($val) ? json_encode($val) : $val;
+    }
+
+    public function getProvincesAttribute($value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        return $value ? json_decode($value, true) : null;
+    }
+
+    public function setCitiesAttribute($value): void
+    {
+        $val = is_string($value) && str_starts_with(trim($value), '[')
+            ? (json_decode($value, true) ?? $value)
+            : $value;
+
+        $this->attributes['cities'] = is_array($val) ? json_encode($val) : $val;
+    }
+
+    public function getCitiesAttribute($value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+        return $value ? json_decode($value, true) : null;
+    }
+
     public function company(): BelongsTo { return $this->belongsTo(Company::class); }
     public function rates(): HasMany     { return $this->hasMany(ShippingRate::class); }
 }

@@ -12,7 +12,8 @@ export function usePermission() {
   const hasAnyPermission = useAuthStore((s) => s.hasAnyPermission)
   const hasAllPermissions = useAuthStore((s) => s.hasAllPermissions)
 
-  const isSuperAdmin = Boolean(user?.roles?.includes('super_admin'))
+  const isOwner = Boolean(user?.roles?.includes('owner'))
+  const isSuperAdmin = Boolean(user?.roles?.includes('super_admin') || isOwner)
   const isAdmin = Boolean(user?.roles?.includes('admin'))
   const isManager = Boolean(user?.roles?.includes('manager'))
   const isCashier = Boolean(user?.roles?.includes('cashier'))
@@ -26,6 +27,7 @@ export function usePermission() {
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
+    isOwner,
     isSuperAdmin,
     isAdmin,
     isManager,

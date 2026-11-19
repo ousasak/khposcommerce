@@ -1047,6 +1047,7 @@ export const ProductDetailDrawer: React.FC<ProductDetailDrawerProps> = ({
         </DetailDrawerBody>
 
         <DetailDrawerFooter
+          onClose={onClose}
           rightActions={
             <>
               {onQuickStockAdjust && (

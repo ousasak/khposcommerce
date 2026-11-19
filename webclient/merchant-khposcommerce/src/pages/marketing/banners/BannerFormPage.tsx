@@ -1,46 +1,47 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
-  Image as ImageIcon,
   UploadCloud,
   Trash2,
-  Globe,
-  Tag,
-  Sparkles,
-  Layers,
-  Calendar,
-  Eye,
-  Link as LinkIcon,
-  CheckCircle2,
-  LayoutTemplate,
-  ExternalLink,
-  Info,
-  Store,
-  Smartphone,
+  RefreshCw,
   ArrowRight,
-  Monitor
+  Monitor,
+  Smartphone,
+  Store,
+  ExternalLink,
+  Image as ImageIcon,
 } from 'lucide-react'
 import { marketingService } from '@/services/marketingService'
-import { EnterpriseDatePicker, FieldError, getFieldClass } from '@/components/common'
+import {
+  FormLayout,
+  FormContent,
+  FormCard,
+  FormHeader,
+  FormFooter,
+  FormField,
+  Input,
+  ToggleSwitch,
+  EnterpriseDatePicker,
+  LoadingSpinner,
+} from '@/components/common'
 import { useToast } from '@/hooks/useToast'
-import { FormHeader, FormFooter, LoadingSpinner } from '@/components/common'
 import { getAbsoluteImageUrl } from '@/utils/image'
 import { focusFirstInvalidField } from '@/utils/formValidation'
 import type { Banner, BannerPlacement, BannerTargetType } from './types'
 
 export const BannerFormPage: React.FC = () => {
-  const { t } = useTranslation(['marketing', 'cms', 'common', 'toast'])
+  const { t } = useTranslation(['marketing', 'common', 'nav', 'toast'])
   const { id } = useParams<{ id?: string }>()
-  const isEdit = !!id
+  const isEdit = Boolean(id)
   const bannerId = id ? parseInt(id, 10) : null
   const navigate = useNavigate()
   const location = useLocation()
   const qc = useQueryClient()
   const toast = useToast()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Determine back path
   const backPath = '/marketing/banners'
 
   // Form states
@@ -48,7 +49,7 @@ export const BannerFormPage: React.FC = () => {
   const [subtitle, setSubtitle] = useState('')
   const [badge, setBadge] = useState('')
   const [discountTag, setDiscountTag] = useState('')
-  const [buttonText, setButtonText] = useState('ទិញឥឡូវនេះ (Shop Now)')
+  const [buttonText, setButtonText] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [base64Image, setBase64Image] = useState<string>('')
@@ -62,6 +63,16 @@ export const BannerFormPage: React.FC = () => {
   const [endsAt, setEndsAt] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  // Mockup device switcher state
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile' | 'pos_cfd'>('desktop')
+
+  // Set default button text for new banners
+  useEffect(() => {
+    if (!isEdit && !buttonText) {
+      setButtonText(t('marketing.ctaButtonPlaceholder', 'ទិញឥឡូវនេះ'))
+    }
+  }, [isEdit, t])
+
   const handleClearError = (key: string) => {
     if (errors[key]) {
       setErrors((prev) => {
@@ -72,10 +83,7 @@ export const BannerFormPage: React.FC = () => {
     }
   }
 
-  // Live Device Mockup Preview Switcher
-  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile' | 'pos_cfd'>('desktop')
-
-  // Fetch banner detail if in edit mode
+  // Fetch banner detail when in edit mode
   const {
     data: bannerDetail,
     isLoading: isLoadingDetail,
@@ -85,13 +93,14 @@ export const BannerFormPage: React.FC = () => {
     enabled: isEdit && !isNaN(bannerId as number),
   })
 
+  // Populate data when editing
   useEffect(() => {
     if (bannerDetail) {
       setTitle(bannerDetail.title || '')
       setSubtitle(bannerDetail.subtitle || '')
       setBadge(bannerDetail.badge || '')
       setDiscountTag(bannerDetail.discount_tag || '')
-      setButtonText(bannerDetail.button_text || 'ទិញឥឡូវនេះ (Shop Now)')
+      setButtonText(bannerDetail.button_text || t('marketing.ctaButtonPlaceholder', 'ទិញឥឡូវនេះ'))
       const img = bannerDetail.image_url || bannerDetail.image || ''
       setImageUrl(img)
       setImageMode(img.startsWith('http') || img.startsWith('/storage') ? 'url' : 'upload')
@@ -102,7 +111,28 @@ export const BannerFormPage: React.FC = () => {
       setStartsAt(bannerDetail.starts_at ? bannerDetail.starts_at.split(/[T ]/)[0] : '')
       setEndsAt(bannerDetail.ends_at ? bannerDetail.ends_at.split(/[T ]/)[0] : '')
     }
-  }, [bannerDetail])
+  }, [bannerDetail, t])
+
+  // Populate data when duplicating
+  useEffect(() => {
+    if (!isEdit && location.state?.duplicateFrom) {
+      const d: Banner = location.state.duplicateFrom
+      setTitle(d.title ? `${d.title} (ចម្លង)` : '')
+      setSubtitle(d.subtitle || '')
+      setBadge(d.badge || '')
+      setDiscountTag(d.discount_tag || '')
+      setButtonText(d.button_text || t('marketing.ctaButtonPlaceholder', 'ទិញឥឡូវនេះ'))
+      const img = d.image_url || d.image || ''
+      setImageUrl(img)
+      setImageMode(img.startsWith('http') || img.startsWith('/storage') ? 'url' : 'upload')
+      setLinkUrl(d.link_url || d.link || '')
+      setPosition((d.position as any) || 'hero')
+      setSortOrder(d.sort_order ?? 0)
+      setIsActive(d.is_active ?? true)
+      setStartsAt(d.starts_at ? d.starts_at.split(/[T ]/)[0] : '')
+      setEndsAt(d.ends_at ? d.ends_at.split(/[T ]/)[0] : '')
+    }
+  }, [isEdit, location.state, t])
 
   // Handle file select
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,8 +150,6 @@ export const BannerFormPage: React.FC = () => {
         }
       }
       reader.readAsDataURL(file)
-
-      toast.success(t('toast.fileSelected', { fileName: file.name, defaultValue: `File "${file.name}" selected.` }))
     }
   }
 
@@ -129,6 +157,9 @@ export const BannerFormPage: React.FC = () => {
     setSelectedFile(null)
     setBase64Image('')
     setImageUrl('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   // Create & Update mutations
@@ -136,11 +167,11 @@ export const BannerFormPage: React.FC = () => {
     mutationFn: (newBanner: any) => marketingService.createBanner(newBanner),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['banners'] })
-      toast.success(t('toast.created', { item: t('marketing.banners', 'Banner') }))
+      toast.success(t('toast.created', { item: t('marketing.banners', 'ផ្ទាំងបដា') }))
       navigate(backPath)
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error', 'Failed to create banner'))
+      toast.error(err?.response?.data?.message ?? t('toast.error', 'មិនអាចបង្កើតផ្ទាំងបដាបានទេ។'))
     },
   })
 
@@ -149,11 +180,11 @@ export const BannerFormPage: React.FC = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['banners'] })
       qc.invalidateQueries({ queryKey: ['banner-detail', bannerId] })
-      toast.success(t('toast.updated', { item: t('marketing.banners', 'Banner') }))
+      toast.success(t('toast.updated', { item: t('marketing.banners', 'ផ្ទាំងបដា') }))
       navigate(backPath)
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error', 'Failed to update banner'))
+      toast.error(err?.response?.data?.message ?? t('toast.error', 'មិនអាចកែប្រែផ្ទាំងបដាបានទេ។'))
     },
   })
 
@@ -164,10 +195,10 @@ export const BannerFormPage: React.FC = () => {
 
     const newErrors: Record<string, string> = {}
     if (!title.trim()) {
-      newErrors.title = t('marketing.bannerTitleRequired', 'Please enter banner title')
+      newErrors.title = t('marketing.bannerTitleRequired', 'សូមបញ្ចូលចំណងជើងផ្ទាំងបដា')
     }
     if (!selectedFile && !imageUrl.trim()) {
-      newErrors.image = t('marketing.bannerImageRequired', 'Please select an image or enter image URL')
+      newErrors.image = t('marketing.bannerImageRequired', 'សូមជ្រើសរើសរូបភាព ឬបញ្ចូល URL រូបភាព')
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -208,347 +239,441 @@ export const BannerFormPage: React.FC = () => {
     }
   }
 
-  const resolveDisplayImage = (url?: string): string => {
-    if (!url || url === '[]' || url === '""' || url.includes('/storage/[]')) {
-      return '/logo.png'
+  const resolveDisplayImage = (url?: string): string | null => {
+    if (!url || url === '[]' || url === '""' || url.includes('/storage/[]') || url === '/logo.png') {
+      return null
     }
     if (url.startsWith('blob:') || url.startsWith('data:')) {
       return url
     }
-    return getAbsoluteImageUrl(url) || '/logo.png'
+    const resolved = getAbsoluteImageUrl(url)
+    if (!resolved || resolved.includes('/logo.png')) {
+      return null
+    }
+    return resolved
   }
 
-  if (isEdit && isLoadingDetail) {
-    return (
-      <div className="flex h-[400px] items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    )
-  }
+  const displayImage = resolveDisplayImage(imageUrl)
+
+  const selectCls =
+    'w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-xl border border-border/80 bg-background text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium cursor-pointer shadow-2xs'
 
   return (
-    <div className="w-full space-y-6 pb-12">
-      {/* ─── Standard Form Header ─── */}
-      <FormHeader
-        isEdit={isEdit}
-        title={
-          isEdit
-            ? t('marketing.editBanner', 'Edit Banner')
-            : t('marketing.addBanner', 'Add New Banner')
-        }
-        subtitle={t('marketing.bannerSubtitle', 'Manage promotional banners and omnichannel visual marketing assets')}
-        breadcrumbs={[
-          { label: t('marketing.breadcrumbDashboard', 'Dashboard'), path: '/dashboard' },
-          { label: t('marketing.breadcrumbMarketing', 'Marketing'), path: '/marketing/coupons' },
-          { label: t('marketing.banners', 'Banners'), path: backPath },
-          { label: isEdit ? `#${bannerId}` : t('marketing.addBanner', 'Create New') },
-        ]}
-        statusBadge={
-          isEdit ? (
+    <FormLayout
+      onSubmit={handleSubmit}
+      noValidate
+      isLoading={isEdit && isLoadingDetail}
+      isSubmitting={isSubmitting}
+      header={
+        <FormHeader
+          isEdit={isEdit}
+          title={
+            isEdit
+              ? t('marketing.editBanner', 'កែសម្រួលផ្ទាំងបដា')
+              : t('marketing.addBanner', 'បន្ថែមផ្ទាំងបដាថ្មី')
+          }
+          subtitle={t(
+            'marketing.bannerSubtitle',
+            'គ្រប់គ្រងផ្ទាំងផ្សព្វផ្សាយពាណិជ្ជកម្ម និងប្រូម៉ូសិនលើគេហទំព័រ អេក្រង់អតិថិជន POS (CFD) កម្មវិធីទូរស័ព្ទ និងផ្ទាំង Popup'
+          )}
+          breadcrumbs={[
+            { label: t('nav.marketing', 'ទីផ្សារ'), path: '/marketing/promotions' },
+            { label: t('marketing.banners', 'ផ្ទាំងបដា'), path: backPath },
+            {
+              label: isEdit ? t('common.edit', 'កែប្រែ') : t('common.create', 'បង្កើតថ្មី'),
+            },
+          ]}
+          statusBadge={
             <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
                 isActive
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                  : 'bg-muted text-muted-foreground border border-border'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                  : 'bg-muted text-muted-foreground border-border'
               }`}
             >
-              {isActive ? t('marketing.active', 'Active') : t('marketing.inactive', 'Inactive')}
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isActive ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground'
+                }`}
+              />
+              {isActive ? t('common.active', 'សកម្ម') : t('common.inactive', 'អសកម្ម')}
             </span>
-          ) : undefined
-        }
-        onBack={() => navigate(backPath)}
-        backLabel={t('common.back', 'Back')}
-      />
+          }
+          backPath={backPath}
+          backLabel={t('common.back', 'ត្រឡប់ក្រោយ')}
+        />
+      }
+      footer={
+        <FormFooter
+          isEdit={isEdit}
+          isSubmitting={isSubmitting}
+          onCancel={() => navigate(backPath)}
+          cancelPath={backPath}
+          cancelLabel={t('common.cancel', 'បោះបង់')}
+          submitLabel={
+            isEdit
+              ? t('marketing.updateBanner', 'ធ្វើបច្ចុប្បន្នភាពផ្ទាំងបដា')
+              : t('marketing.createBanner', 'បង្កើតផ្ទាំងបដា')
+          }
+        />
+      }
+    >
+      <FormContent maxWidth="full" layout="two-column">
+        {/* ══════════════════════════════════════════════════════════
+            LEFT COLUMN (7 cols): Main Content, Media & Link
+        ══════════════════════════════════════════════════════════ */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* CARD 1: GENERAL INFO & CONTENT */}
+          <FormCard
+            title={t('marketing.bannerTypographyContent', 'ព័ត៌មានទូទៅ & ខ្លឹមសារបដា')}
+            subtitle={t('marketing.bannerTypographySubtitle', 'កំណត់ចំណងជើង អត្ថបទរង ស្លាកសញ្ញា និងប៊ូតុងសកម្មភាព')}
+            contentClassName="space-y-4"
+          >
+            {/* Banner Title */}
+            <FormField
+              label={t('marketing.bannerTitleLabel', 'ចំណងជើងផ្ទាំងបដា')}
+              required
+              error={errors.title}
+            >
+              <Input
+                id="title"
+                name="title"
+                required
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value)
+                  handleClearError('title')
+                }}
+                placeholder={t('marketing.bannerTitleFormPlaceholder', 'ឧ. មហោស្រពចូលឆ្នាំថ្មី បញ្ចុះតម្លៃពិសេស ៥០%')}
+                error={errors.title}
+                className="font-bold"
+              />
+            </FormField>
 
+            {/* Subtitle / Promotional Body */}
+            <FormField
+              label={t('marketing.bannerSubtitleLabel', 'ចំណងជើងរង / អត្ថបទផ្សព្វផ្សាយ')}
+            >
+              <textarea
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                rows={2}
+                placeholder={t(
+                  'marketing.bannerSubtitleFormPlaceholder',
+                  'ឧ. ការបញ្ចុះតម្លៃពិសេសសម្រាប់រដូវកាលបុណ្យ លើឧបករណ៍បច្ចេកវិទ្យាទំនើបៗ...'
+                )}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-border/80 bg-background text-foreground text-xs sm:text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none shadow-2xs font-medium placeholder:text-muted-foreground/60 leading-relaxed"
+              />
+            </FormField>
 
-      {/* ─── Form Body ─── */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
-          {/* ══════════════════════════════════════════════════════════
-              LEFT COLUMN: Main Content & Media (7 cols)
-          ══════════════════════════════════════════════════════════ */}
-          <div className="lg:col-span-7 space-y-6">
-            
-            {/* General Info Card */}
-            <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5">
-              <div className="flex items-center gap-2 border-b border-border/60 pb-3">
-                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                  <Info size={16} />
-                </div>
-                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-                  Banner Typography & Content
-                </h3>
-              </div>
+            {/* 3-Column: Badge, Discount Tag & CTA Button */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <FormField label={t('marketing.badgeLabelForm', 'ស្លាកសញ្ញា')}>
+                <Input
+                  value={badge}
+                  onChange={(e) => setBadge(e.target.value)}
+                  placeholder={t('marketing.badgePlaceholder', 'ឧ. KNY 2026')}
+                  size="sm"
+                />
+              </FormField>
 
-              <div className="space-y-4">
-                {/* Banner Title */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-foreground">
-                    Banner Title <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    id="title"
-                    name="title"
-                    type="text"
-                    value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value)
-                      handleClearError('title')
-                    }}
-                    placeholder="e.g. 🌸 មហោស្រពចូលឆ្នាំខ្មែរ បញ្ចុះតម្លៃពិសេស ៥០%"
-                    className={getFieldClass(
-                      errors.title,
-                      'w-full px-3.5 py-2.5 rounded-xl border border-border/80 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-2xs font-bold placeholder:text-muted-foreground/60'
-                    )}
-                  />
-                  <FieldError error={errors.title} />
-                </div>
+              <FormField label={t('marketing.discountTagForm', 'ស្លាកបញ្ចុះតម្លៃ')}>
+                <Input
+                  value={discountTag}
+                  onChange={(e) => setDiscountTag(e.target.value)}
+                  placeholder={t('marketing.discountTagPlaceholder', 'ឧ. បញ្ចុះ 50%')}
+                  size="sm"
+                />
+              </FormField>
 
-                {/* Subtitle / Description */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-foreground">
-                    Subtitle / Promotional Body Text
-                  </label>
-                  <textarea
-                    value={subtitle}
-                    onChange={(e) => setSubtitle(e.target.value)}
-                    rows={2}
-                    placeholder="e.g. Exclusive festive savings on premium gadgets with instant Bakong KHQR cashback."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-border/80 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none shadow-2xs font-medium placeholder:text-muted-foreground/60"
-                  />
-                </div>
-
-                {/* Badge Label & Discount Tag & Button CTA */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-foreground">Badge Label</label>
-                    <div className="relative">
-                      <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                      <input
-                        type="text"
-                        value={badge}
-                        onChange={(e) => setBadge(e.target.value)}
-                        placeholder="e.g. KNY 2026"
-                        className="w-full pl-8 pr-3 py-2 rounded-xl border border-border/80 bg-background text-foreground text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-foreground">Discount Tag</label>
-                    <div className="relative">
-                      <Sparkles size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                      <input
-                        type="text"
-                        value={discountTag}
-                        onChange={(e) => setDiscountTag(e.target.value)}
-                        placeholder="e.g. 50% OFF"
-                        className="w-full pl-8 pr-3 py-2 rounded-xl border border-border/80 bg-background text-foreground text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-foreground">CTA Button Text</label>
-                    <input
-                      type="text"
-                      value={buttonText}
-                      onChange={(e) => setButtonText(e.target.value)}
-                      placeholder="e.g. ទិញឥឡូវនេះ"
-                      className="w-full px-3 py-2 rounded-xl border border-border/80 bg-background text-foreground text-xs font-bold"
-                    />
-                  </div>
-                </div>
-              </div>
+              <FormField label={t('marketing.ctaButtonText', 'អត្ថបទប៊ូតុងសកម្មភាព (CTA)')}>
+                <Input
+                  value={buttonText}
+                  onChange={(e) => setButtonText(e.target.value)}
+                  placeholder={t('marketing.ctaButtonPlaceholder', 'ឧ. ទិញឥឡូវនេះ')}
+                  size="sm"
+                  className="font-semibold"
+                />
+              </FormField>
             </div>
+          </FormCard>
 
-            {/* Media & Image Card */}
-            <div id="image" data-field="image" className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-5">
-              <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                    <ImageIcon size={16} />
-                  </div>
-                  <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-                    Banner Graphic Asset <span className="text-rose-500">*</span>
-                  </h3>
-                </div>
-
-                {/* Upload Mode Switcher */}
-                <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-xl border border-border/60">
-                  <button
-                    type="button"
-                    onClick={() => setImageMode('upload')}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                      imageMode === 'upload'
-                        ? 'bg-card text-foreground shadow-2xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Upload File
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setImageMode('url')}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                      imageMode === 'url'
-                        ? 'bg-card text-foreground shadow-2xs'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Image URL
-                  </button>
-                </div>
+          {/* CARD 2: BANNER GRAPHIC ASSET */}
+          <FormCard
+            title={t('marketing.bannerGraphicAsset', 'រូបភាព & ឯកសារក្រាហ្វិកបដា')}
+            subtitle={t('marketing.bannerGraphicSubtitle', 'បង្ហោះឯកសាររូបភាព ឬភ្ជាប់ជាមួយតំណភ្ជាប់ URL រូបភាពផ្ទាល់')}
+            badge={<span className="text-rose-500 font-bold">*</span>}
+            action={
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/70">
+                <button
+                  type="button"
+                  onClick={() => setImageMode('upload')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    imageMode === 'upload'
+                      ? 'bg-card text-foreground shadow-2xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {t('marketing.uploadFile', 'បង្ហោះឯកសារ')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageMode('url')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    imageMode === 'url'
+                      ? 'bg-card text-foreground shadow-2xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {t('marketing.directImageUrl', 'តំណភ្ជាប់ URL រូបភាពផ្ទាល់')}
+                </button>
               </div>
-
+            }
+            contentClassName="space-y-3"
+          >
+            <div id="image">
               {imageMode === 'upload' ? (
-                <div className="space-y-3">
-                  <label className={`border-2 border-dashed ${errors.image ? 'border-rose-500 bg-rose-50/20' : 'border-border/80 hover:border-primary/60 bg-muted/20 hover:bg-muted/40'} rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all group`}>
-                    <UploadCloud size={36} className={`${errors.image ? 'text-rose-500' : 'text-muted-foreground group-hover:text-primary'} transition-colors mb-2`} />
-                    <span className="text-xs font-bold text-foreground">Click to upload banner image</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">Supports PNG, JPG, WEBP, AVIF (Up to 10MB)</span>
-                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-                  </label>
+                <div>
+                  {displayImage ? (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border/80 bg-muted/20">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-24 h-14 rounded-lg overflow-hidden border border-border bg-slate-950 shrink-0 shadow-2xs">
+                          <img
+                            src={displayImage}
+                            alt={title || 'Preview'}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0 space-y-0.5">
+                          <p className="text-xs font-bold text-foreground truncate">
+                            {selectedFile ? selectedFile.name : (title || t('marketing.bannerGraphicAsset', 'រូបភាពផ្ទាំងបដា'))}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB` : t('marketing.uploadSupportFormats', 'រូបភាពបច្ចុប្បន្ន')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-foreground text-xs font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
+                        >
+                          <RefreshCw size={12} />
+                          <span>{t('common.change', 'ប្តូររូបភាព')}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-600 dark:text-rose-400 text-xs font-semibold transition-all shadow-2xs cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Trash2 size={12} />
+                          <span>{t('common.remove', 'លុប')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label
+                      className={`border-2 border-dashed ${
+                        errors.image
+                          ? 'border-rose-500 bg-rose-50/20'
+                          : 'border-border/80 hover:border-primary/60 bg-muted/10 hover:bg-muted/30'
+                      } rounded-2xl p-7 flex flex-col items-center justify-center cursor-pointer transition-all group`}
+                    >
+                      <UploadCloud
+                        size={32}
+                        className={`${
+                          errors.image ? 'text-rose-500' : 'text-muted-foreground group-hover:text-primary'
+                        } transition-colors mb-2`}
+                      />
+                      <span className="text-xs font-bold text-foreground">
+                        {t('marketing.clickToUpload', 'ចុចដើម្បីបង្ហោះរូបភាពផ្ទាំងបដា')}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground mt-0.5">
+                        {t('marketing.uploadSupportFormats', 'គាំទ្រ PNG, JPG, WEBP, AVIF (ទំហំអតិបរមា 10MB)')}
+                      </span>
+                    </label>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-foreground">Direct Image URL</label>
-                  <input
+                <FormField
+                  label={t('marketing.directImageUrl', 'តំណភ្ជាប់ URL រូបភាពផ្ទាល់')}
+                  error={errors.image}
+                >
+                  <Input
                     type="url"
                     value={imageUrl}
                     onChange={(e) => {
                       setImageUrl(e.target.value)
                       handleClearError('image')
                     }}
-                    placeholder="/api/v1/storage/banners/banner_hero_1.webp"
-                    className={getFieldClass(errors.image, 'w-full px-3.5 py-2 rounded-xl border border-border/80 bg-background text-foreground text-xs')}
+                    placeholder="https://example.com/banners/promo-hero.webp"
+                    error={errors.image}
                   />
-                </div>
+                </FormField>
               )}
-              <FieldError error={errors.image} />
+
+              {errors.image && !imageMode && (
+                <p className="text-[11px] text-rose-500 font-semibold mt-1">
+                  {errors.image}
+                </p>
+              )}
             </div>
+          </FormCard>
 
-            {/* Deep Linking & Target Card */}
-            <div className="bg-card border border-border/80 rounded-2xl p-5 sm:p-6 shadow-2xs space-y-4">
-              <div className="flex items-center gap-2 border-b border-border/60 pb-3">
-                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                  <LinkIcon size={16} />
-                </div>
-                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-                  Deep-Linking & Destination Trigger
-                </h3>
-              </div>
+          {/* CARD 3: LINK & DESTINATION TARGET */}
+          <FormCard
+            title={t('marketing.deepLinkingDestination', 'តំណភ្ជាប់ & គោលដៅបញ្ជូន')}
+            subtitle={t('marketing.deepLinkingSubtitle', 'កំណត់ទីតាំងដែលអតិថិជននឹងត្រូវបញ្ជូនទៅនៅពេលចុចលើបដា')}
+            contentClassName="space-y-4"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField label={t('marketing.destinationTargetType', 'ប្រភេទគោលដៅបញ្ជូន')}>
+                <select
+                  value={targetType}
+                  onChange={(e) => setTargetType(e.target.value as any)}
+                  className={selectCls}
+                >
+                  <option value="flash_sale">{t('marketing.targetFlashSale', 'យុទ្ធនាការ Flash Sale សកម្ម')}</option>
+                  <option value="coupon">{t('marketing.targetCoupon', 'ប័ណ្ណបញ្ចុះតម្លៃឌីជីថល')}</option>
+                  <option value="product">{t('marketing.targetProduct', 'ទំព័រមុខទំនិញផ្ទាល់')}</option>
+                  <option value="category">{t('marketing.targetCategory', 'បណ្តុំប្រភេទមុខទំនិញ')}</option>
+                  <option value="custom_url">{t('marketing.targetCustomUrl', 'តំណភ្ជាប់ខាងក្រៅផ្ទាល់ខ្លួន')}</option>
+                </select>
+              </FormField>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-foreground mb-1">Destination Target Type</label>
-                  <select
-                    value={targetType}
-                    onChange={(e) => setTargetType(e.target.value as any)}
-                    className="w-full p-2.5 rounded-xl border border-border bg-card text-foreground text-xs font-medium"
-                  >
-                    <option value="flash_sale">⚡ Active Flash Sale Campaign</option>
-                    <option value="coupon">🏷️ Digital Coupon Voucher</option>
-                    <option value="product">🎯 Direct Product SKU Checkout</option>
-                    <option value="category">📂 Category Collection</option>
-                    <option value="custom_url">🔗 Custom External Link</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-foreground mb-1">Link URL / Slug</label>
-                  <input
-                    type="text"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    placeholder="e.g. /marketing/flash-sales or /catalog"
-                    className="w-full p-2.5 rounded-xl border border-border bg-card text-foreground text-xs font-mono"
-                  />
-                </div>
-              </div>
+              <FormField label={t('marketing.linkUrlSlug', 'តំណភ្ជាប់ URL / Slug')}>
+                <Input
+                  type="text"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder={t('marketing.linkUrlPlaceholder', 'ឧ. /marketing/flash-sales ឬ /catalog')}
+                  className="font-mono"
+                />
+              </FormField>
             </div>
-          </div>
+          </FormCard>
+        </div>
 
-          {/* ══════════════════════════════════════════════════════════
-              RIGHT COLUMN: Settings & Live Device Mockup (5 cols)
-          ══════════════════════════════════════════════════════════ */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            {/* Live Interactive Device Rendering Mockup */}
-            <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                    <Eye size={16} />
-                  </div>
-                  <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-                    Interactive Device Mockup
-                  </h3>
-                </div>
-
-                {/* Device Switcher */}
-                <div className="flex items-center gap-1 bg-muted/60 p-0.5 rounded-xl border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewDevice('desktop')}
-                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                      previewDevice === 'desktop' ? 'bg-card text-primary shadow-2xs' : 'text-muted-foreground'
-                    }`}
-                    title="Desktop Web (21:9)"
-                  >
-                    <Monitor size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewDevice('mobile')}
-                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                      previewDevice === 'mobile' ? 'bg-card text-primary shadow-2xs' : 'text-muted-foreground'
-                    }`}
-                    title="Mobile App (9:16)"
-                  >
-                    <Smartphone size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewDevice('pos_cfd')}
-                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                      previewDevice === 'pos_cfd' ? 'bg-card text-primary shadow-2xs' : 'text-muted-foreground'
-                    }`}
-                    title="POS Customer Screen CFD (4:3)"
-                  >
-                    <Store size={14} />
-                  </button>
-                </div>
+        {/* ══════════════════════════════════════════════════════════
+            RIGHT COLUMN (5 cols): Preview, Placement & Schedule
+        ══════════════════════════════════════════════════════════ */}
+        <div className="lg:col-span-5 space-y-6">
+          {/* CARD 4: LIVE DEVICE MOCKUP */}
+          <FormCard
+            title={t('marketing.interactiveDeviceMockup', 'ការបង្ហាញគំរូឧបករណ៍ផ្ទាល់')}
+            subtitle={t('marketing.interactiveDeviceSubtitle', 'ពិនិត្យមើលទម្រង់បង្ហាញជាក់ស្តែងលើ Desktop, Mobile និង POS CFD')}
+            action={
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/70">
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice('desktop')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    previewDevice === 'desktop'
+                      ? 'bg-card text-foreground shadow-2xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={t('marketing.deviceDesktop', 'កុំព្យូទ័រ')}
+                >
+                  <Monitor size={13} />
+                  <span>{t('marketing.deviceDesktop', 'កុំព្យូទ័រ')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice('mobile')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    previewDevice === 'mobile'
+                      ? 'bg-card text-foreground shadow-2xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={t('marketing.deviceMobile', 'ទូរស័ព្ទ')}
+                >
+                  <Smartphone size={13} />
+                  <span>{t('marketing.deviceMobile', 'ទូរស័ព្ទ')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice('pos_cfd')}
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    previewDevice === 'pos_cfd'
+                      ? 'bg-card text-foreground shadow-2xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={t('marketing.devicePosCfd', 'អេក្រង់ POS')}
+                >
+                  <Store size={13} />
+                  <span>{t('marketing.devicePosCfd', 'អេក្រង់ POS')}</span>
+                </button>
               </div>
-
-              {/* Rendered Frame */}
-              <div className="rounded-2xl border border-border bg-slate-950 p-2 overflow-hidden shadow-inner flex items-center justify-center min-h-[220px]">
-                <div className={`relative overflow-hidden rounded-xl border border-white/10 ${
+            }
+            contentClassName="space-y-3"
+          >
+            {/* Viewport Frame */}
+            <div className="rounded-2xl border border-border bg-slate-950 p-2.5 overflow-hidden shadow-inner flex items-center justify-center min-h-[220px]">
+              <div
+                className={`relative overflow-hidden rounded-xl border border-white/10 transition-all duration-300 ${
                   previewDevice === 'desktop'
                     ? 'w-full aspect-[21/9]'
                     : previewDevice === 'mobile'
-                    ? 'w-52 aspect-[9/16]'
-                    : 'w-72 aspect-[4/3]'
-                }`}>
+                    ? 'w-48 aspect-[9/16]'
+                    : 'w-64 aspect-[4/3]'
+                }`}
+              >
+                {displayImage ? (
                   <img
-                    src={resolveDisplayImage(imageUrl)}
-                    alt={title || 'Banner Preview'}
+                    src={displayImage}
+                    alt={title || t('marketing.bannerTitleHeadline', 'ចំណងជើងផ្ទាំងបដា')}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      ;(e.target as HTMLImageElement).src = '/logo.png'
+                      ;(e.target as HTMLImageElement).style.display = 'none'
                     }}
                   />
-                  {/* Live Text Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-3 flex flex-col justify-end text-white">
-                    {badge && (
-                      <span className="w-fit px-1.5 py-0.2 rounded-full text-[8px] font-extrabold bg-primary text-white mb-1 uppercase tracking-wider">
-                        {badge}
-                      </span>
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-4 text-center select-none">
+                    <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-2 shadow-inner">
+                      <ImageIcon size={20} className="text-slate-500" />
+                    </div>
+                    <p className="text-xs font-semibold text-slate-400">
+                      {t('marketing.noImagePreview', 'មិនទាន់មានរូបភាពផ្ទាំងបដា')}
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 max-w-[200px]">
+                      {t('marketing.noImagePreviewHint', 'សូមបង្ហោះរូបភាព ឬភ្ជាប់ URL រូបភាពដើម្បីមើលការបង្ហាញ')}
+                    </p>
+                  </div>
+                )}
+
+                {/* Text Overlay */}
+                {(title || subtitle || badge || discountTag || buttonText) && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent p-3.5 flex flex-col justify-end text-white pointer-events-none">
+                    <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                      {badge && (
+                        <span className="w-fit px-1.5 py-0.5 rounded-md text-[8px] font-extrabold bg-primary text-white uppercase tracking-wider">
+                          {badge}
+                        </span>
+                      )}
+                      {discountTag && (
+                        <span className="w-fit px-1.5 py-0.5 rounded-md text-[8px] font-extrabold bg-amber-500 text-slate-950 uppercase tracking-wider">
+                          {discountTag}
+                        </span>
+                      )}
+                    </div>
+                    {title && (
+                      <h4 className="font-bold text-xs sm:text-sm text-white line-clamp-2 leading-snug">
+                        {title}
+                      </h4>
                     )}
-                    <h4 className="font-bold text-xs text-white line-clamp-2">{title || 'Banner Title Headline'}</h4>
                     {subtitle && (
-                      <p className="text-[10px] text-white/80 line-clamp-1 mt-0.5">{subtitle}</p>
+                      <p className="text-[10px] text-white/80 line-clamp-1 mt-0.5">
+                        {subtitle}
+                      </p>
                     )}
                     {buttonText && (
                       <div className="mt-2 w-fit px-2.5 py-1 bg-primary text-white text-[9px] font-bold rounded-lg shadow-sm flex items-center gap-1">
@@ -557,109 +682,87 @@ export const BannerFormPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                </div>
+                )}
               </div>
             </div>
+          </FormCard>
 
-            {/* Display Placement & Scope Card */}
-            <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-2xs space-y-4">
-              <div className="flex items-center gap-2 border-b border-border/60 pb-3">
-                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                  <LayoutTemplate size={16} />
-                </div>
-                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-                  Placement & Screen Position
-                </h3>
-              </div>
+          {/* CARD 5: PLACEMENT & PRIORITY */}
+          <FormCard
+            title={t('marketing.placementScreenPosition', 'ទីតាំងបង្ហាញ & អាទិភាព')}
+            subtitle={t('marketing.placementScreenSubtitle', 'កំណត់ទីតាំងបង្ហាញលើប្រព័ន្ធ និងលំដាប់រៀបចំ')}
+            contentClassName="space-y-4"
+          >
+            <FormField label={t('marketing.targetScreenPlacement', 'ទីតាំងអេក្រង់បង្ហាញ')}>
+              <select
+                value={position}
+                onChange={(e) => setPosition(e.target.value as any)}
+                className={selectCls}
+              >
+                <option value="hero">{t('marketing.placementHero', 'ផ្ទាំងធំទំព័រដើម (Hero)')}</option>
+                <option value="pos_cfd">{t('marketing.placementPosCfd', 'អេក្រង់អតិថិជន POS (CFD)')}</option>
+                <option value="app_splash">{t('marketing.placementMobileApp', 'ផ្ទាំងបើកកម្មវិធីទូរស័ព្ទ (App)')}</option>
+                <option value="sidebar">{t('marketing.placementSidebar', 'ផ្ទាំងបដាចំហៀង (Sidebar)')}</option>
+                <option value="popup">{t('marketing.placementPopup', 'ផ្ទាំងផុសឡើង (Popup)')}</option>
+                <option value="footer">{t('marketing.posFooter', 'ផ្ទាំងបាតក្រោម (Footer)')}</option>
+              </select>
+            </FormField>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-foreground mb-1">Target Screen Placement</label>
-                  <select
-                    value={position}
-                    onChange={(e) => setPosition(e.target.value as any)}
-                    className="w-full p-2.5 rounded-xl border border-border bg-card text-foreground text-xs font-medium"
-                  >
-                    <option value="hero">Storefront Web Hero Carousel</option>
-                    <option value="pos_cfd">POS Customer Display (CFD)</option>
-                    <option value="app_splash">Mobile App Splash & Home</option>
-                    <option value="sidebar">Sidebar Spotlight</option>
-                    <option value="popup">Promotional Modal Popup</option>
-                    <option value="footer">Footer Banner</option>
-                  </select>
-                </div>
+            <FormField
+              label={t('marketing.sortPriorityOrder', 'លំដាប់អាទិភាពបង្ហាញ')}
+              helper={t('marketing.sortPriorityHint', 'លេខកាន់តែតូច នឹងបង្ហាញមុនគេក្នុងស្លាយ។')}
+            >
+              <Input
+                type="number"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(parseInt(e.target.value, 10) || 0)}
+                className="font-bold font-mono"
+              />
+            </FormField>
+          </FormCard>
 
-                <div>
-                  <label className="block text-xs font-bold text-foreground mb-1">Sort Priority Order</label>
-                  <input
-                    type="number"
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(parseInt(e.target.value, 10) || 0)}
-                    className="w-full p-2.5 rounded-xl border border-border bg-card text-foreground text-xs font-bold"
-                  />
-                  <span className="text-[10px] text-muted-foreground mt-0.5 block">
-                    Lower number displays first in slideshows.
-                  </span>
-                </div>
-              </div>
+          {/* CARD 6: SCHEDULE & ACTIVATION */}
+          <FormCard
+            title={t('marketing.scheduleActivation', 'កាលវិភាគ & ស្ថានភាពដំណើរការ')}
+            subtitle={t('marketing.scheduleActivationSubtitle', 'កំណត់កាលបរិច្ឆេទចាប់ផ្តើម បញ្ចប់ និងស្ថានភាពបើកដំណើរការ')}
+            contentClassName="space-y-4"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <EnterpriseDatePicker
+                label={t('marketing.startDate', 'កាលបរិច្ឆេទចាប់ផ្តើម')}
+                value={startsAt}
+                onChange={setStartsAt}
+                placeholder={t('marketing.startDate', 'កាលបរិច្ឆេទចាប់ផ្តើម')}
+              />
+              <EnterpriseDatePicker
+                label={t('marketing.endDate', 'កាលបរិច្ឆេទបញ្ចប់')}
+                minDate={startsAt}
+                value={endsAt}
+                onChange={setEndsAt}
+                placeholder={t('marketing.endDate', 'កាលបរិច្ឆេទបញ្ចប់')}
+              />
             </div>
 
-            {/* Schedule & Active Status Card */}
-            <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-2xs space-y-4">
-              <div className="flex items-center gap-2 border-b border-border/60 pb-3">
-                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                  <Calendar size={16} />
-                </div>
-                <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider">
-                  Schedule & Activation
-                </h3>
+            {/* Active Status Toggle */}
+            <div className="flex items-center justify-between p-3.5 rounded-xl border border-border/80 bg-muted/20">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-foreground">
+                  {t('marketing.bannerActiveLabel', 'បើកដំណើរការផ្ទាំងបដា (សកម្ម)')}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {t('marketing.bannerActiveHint', 'អនុញ្ញាតឱ្យអតិថិជនមើលឃើញផ្ទាំងបដានេះលើប្រព័ន្ធលក់')}
+                </p>
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <EnterpriseDatePicker
-                    label="Start Date"
-                    value={startsAt}
-                    onChange={setStartsAt}
-                    placeholder="Start Date"
-                  />
-                </div>
-                <div>
-                  <EnterpriseDatePicker
-                    label="End Date"
-                    minDate={startsAt}
-                    value={endsAt}
-                    onChange={setEndsAt}
-                    placeholder="End Date"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-2 border-t border-border/60">
-                <input
-                  type="checkbox"
-                  id="isBannerActive"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="rounded text-primary focus:ring-primary h-4 w-4 cursor-pointer"
-                />
-                <label htmlFor="isBannerActive" className="text-xs font-bold text-foreground cursor-pointer">
-                  Banner is Active and Visible to Customers
-                </label>
-              </div>
+              <ToggleSwitch
+                checked={isActive}
+                onChange={setIsActive}
+                activeColor="emerald"
+              />
             </div>
-
-            {/* Form Action Footer */}
-            <FormFooter
-              isEdit={isEdit}
-              isSubmitting={isSubmitting}
-              onCancel={() => navigate(backPath)}
-              submitLabel={isEdit ? 'Update Banner' : 'Create Banner'}
-            />
-          </div>
+          </FormCard>
         </div>
-      </form>
-    </div>
+      </FormContent>
+    </FormLayout>
   )
 }
 

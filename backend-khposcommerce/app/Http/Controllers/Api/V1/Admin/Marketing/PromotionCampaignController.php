@@ -451,4 +451,64 @@ class PromotionCampaignController extends BaseApiController
 
         return $this->successResponse($usages, 'Usage history retrieved successfully');
     }
+
+    /**
+     * Get all promotion usages across campaigns with filters.
+     */
+    public function allUsages(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $companyId = (int) ($user?->company_id ?? 1);
+
+        $query = PromotionUsage::whereHas('campaign', function ($q) use ($companyId) {
+            $q->where('company_id', $companyId);
+        })
+        ->with([
+            'campaign:id,name,code,is_active',
+            'campaign.rules:id,promotion_campaign_id,name,rule_type,discount_type,discount_value',
+            'customer:id,name,phone,email',
+            'branch:id,name,code',
+            'sale:id,invoice_number,grand_total,created_at',
+            'order:id,order_number,grand_total,created_at',
+            'coupon:id,code',
+        ]);
+
+        if ($request->filled('campaign_id') && $request->input('campaign_id') !== 'all') {
+            $query->where('promotion_campaign_id', $request->input('campaign_id'));
+        }
+
+        if ($request->filled('channel') && $request->input('channel') !== 'all') {
+            $channel = strtolower($request->input('channel'));
+            if ($channel === 'pos') {
+                $query->whereNotNull('sale_id');
+            } elseif ($channel === 'web' || $channel === 'mobile') {
+                $query->whereNotNull('order_id');
+            }
+        }
+
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('customer', function ($cq) use ($search) {
+                    $cq->where('name', 'like', "%{$search}%")
+                       ->orWhere('phone', 'like', "%{$search}%");
+                })
+                ->orWhereHas('campaign', function ($cq) use ($search) {
+                    $cq->where('name', 'like', "%{$search}%")
+                       ->orWhere('code', 'like', "%{$search}%");
+                })
+                ->orWhereHas('sale', function ($sq) use ($search) {
+                    $sq->where('invoice_number', 'like', "%{$search}%");
+                })
+                ->orWhereHas('order', function ($oq) use ($search) {
+                    $oq->where('order_number', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        $usages = $query->orderBy('used_at', 'desc')->orderBy('id', 'desc')->paginate($perPage);
+
+        return $this->successResponse($usages, 'Promotion usages retrieved successfully');
+    }
 }

@@ -33,18 +33,7 @@ const ReportsPage: React.FC<{ type?: string }> = ({ type = 'sales' }) => {
   const [searchParams] = useSearchParams()
   const tab = searchParams.get('tab')
   const currentType = tab || type // 'purchase', 'sales', 'inventory', 'profit-loss'
-
-  if (currentType === 'sales') {
-    return <SalesReportPage />
-  }
-
-  if (currentType === 'purchase' || currentType === 'purchases') {
-    return <PurchaseReportPage />
-  }
-
-  if (currentType === 'inventory') {
-    return <InventoryReportPage />
-  }
+  const hasPermission = useAuthStore((s) => s.hasPermission)
 
   const [filters, setFilters] = useState<ReportFilters>({
     date_from: thirtyDaysAgo,
@@ -75,6 +64,18 @@ const ReportsPage: React.FC<{ type?: string }> = ({ type = 'sales' }) => {
     queryFn: () => reportService.profitLossSummary(filters),
     enabled: currentType === 'profit-loss',
   })
+
+  if (currentType === 'sales') {
+    return <SalesReportPage />
+  }
+
+  if (currentType === 'purchase' || currentType === 'purchases') {
+    return <PurchaseReportPage />
+  }
+
+  if (currentType === 'inventory') {
+    return <InventoryReportPage />
+  }
 
   const handleExcelExport = async () => {
     setExporting(true)
@@ -114,7 +115,6 @@ const ReportsPage: React.FC<{ type?: string }> = ({ type = 'sales' }) => {
     currentType === 'inventory'                                 ? 'Inventory Valuation Report'  :
                                                                   'Profit & Loss Report'
 
-  const hasPermission = useAuthStore((s) => s.hasPermission)
   const canExport = hasPermission('report.export')
 
   return (

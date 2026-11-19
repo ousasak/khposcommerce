@@ -1049,5 +1049,17 @@
   "searchAdjustmentsPlaceholder": "Search adjustment number, notes...",
   "searchOpnamesPlaceholder": "Search opname number, title...",
   "searchLevelsPlaceholder": "Search SKU, item name, barcode...",
-  "telegramChatIdPlaceholder": "-1001234567890 or 987654321"
+  "telegramChatIdPlaceholder": "-1001234567890 or 987654321",
+  "errors.fromWarehouseRequired": "Please select source warehouse",
+  "errors.toWarehouseRequired": "Please select destination warehouse",
+  "errors.warehouseRequired": "Please select a warehouse",
+  "errors.itemsRequired": "Please add at least 1 item to proceed",
+  "errors.sameWarehouse": "Source and destination warehouses must be different!",
+  "errors": {
+    "fromWarehouseRequired": "Please select source warehouse",
+    "toWarehouseRequired": "Please select destination warehouse",
+    "warehouseRequired": "Please select a warehouse",
+    "itemsRequired": "Please add at least 1 item to proceed",
+    "sameWarehouse": "Source and destination warehouses must be different!"
+  }
 }

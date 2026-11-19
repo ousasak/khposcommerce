@@ -1050,5 +1050,17 @@
   "searchAdjustmentsPlaceholder": "ស្វែងរកលេខប័ណ្ណកែសម្រួល, កំណត់សម្គាល់...",
   "searchOpnamesPlaceholder": "ស្វែងរកលេខសវនកម្ម, ចំណងជើង...",
   "searchLevelsPlaceholder": "ស្វែងរក SKU, ឈ្មោះទំនិញ, Barcode...",
-  "telegramChatIdPlaceholder": "-1001234567890 ឬ 987654321"
+  "telegramChatIdPlaceholder": "-1001234567890 ឬ 987654321",
+  "errors.fromWarehouseRequired": "សូមជ្រើសរើសឃ្លាំងដើម",
+  "errors.toWarehouseRequired": "សូមជ្រើសរើសឃ្លាំងគោលដៅ",
+  "errors.warehouseRequired": "សូមជ្រើសរើសឃ្លាំង",
+  "errors.itemsRequired": "សូមបន្ថែមយ៉ាងហោចណាស់មុខទំនិញចំនួន ១",
+  "errors.sameWarehouse": "ឃ្លាំងដើម និងឃ្លាំងគោលដៅមិនអាចដូចគ្នាបានទេ",
+  "errors": {
+    "fromWarehouseRequired": "សូមជ្រើសរើសឃ្លាំងដើម",
+    "toWarehouseRequired": "សូមជ្រើសរើសឃ្លាំងគោលដៅ",
+    "warehouseRequired": "សូមជ្រើសរើសឃ្លាំង",
+    "itemsRequired": "សូមបន្ថែមយ៉ាងហោចណាស់មុខទំនិញចំនួន ១",
+    "sameWarehouse": "ឃ្លាំងដើម និងឃ្លាំងគោលដៅមិនអាចដូចគ្នាបានទេ"
+  }
 }

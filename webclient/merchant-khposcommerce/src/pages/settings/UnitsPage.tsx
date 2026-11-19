@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ModalHeader, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter } from '@/components/common'
+import { ModalHeader, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter, FormField, getFieldClass } from '@/components/common'
 import { 
   Plus, Edit2, Trash2, X, Scale, ToggleLeft, ToggleRight, Loader2, 
   ChevronUp, ChevronDown, Download, Upload, Trash, RefreshCw, AlertCircle,
@@ -11,6 +11,7 @@ import {
 import { unitService } from '@/services/unitService'
 import { useToast } from '@/hooks/useToast'
 import { downloadBlob } from '@/utils/export'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 import Pagination from '@/components/shared/Pagination'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import TableWrapper from '@/components/shared/TableWrapper'
@@ -119,6 +120,16 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
   const [symbol, setSymbol] = useState('')
   const [description, setDescription] = useState('')
   const [isActive, setIsActive] = useState(true)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    setErrors((prev) => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
 
   // Sorting states
   const [sortBy, setSortBy] = useState('id')
@@ -165,6 +176,15 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
       closeModal()
     },
     onError: (err: any) => {
+      if (err?.response?.status === 422 && err?.response?.data?.errors) {
+        const apiErrors: Record<string, string> = {}
+        Object.entries(err.response.data.errors).forEach(([k, v]) => {
+          apiErrors[k] = Array.isArray(v) ? (v[0] as string) : String(v)
+        })
+        setErrors(apiErrors)
+        focusFirstInvalidField(apiErrors)
+        return
+      }
       toast.error(err?.response?.data?.message ?? t('toast.error'))
     }
   })
@@ -177,6 +197,15 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
       closeModal()
     },
     onError: (err: any) => {
+      if (err?.response?.status === 422 && err?.response?.data?.errors) {
+        const apiErrors: Record<string, string> = {}
+        Object.entries(err.response.data.errors).forEach(([k, v]) => {
+          apiErrors[k] = Array.isArray(v) ? (v[0] as string) : String(v)
+        })
+        setErrors(apiErrors)
+        focusFirstInvalidField(apiErrors)
+        return
+      }
       toast.error(err?.response?.data?.message ?? t('toast.error'))
     }
   })
@@ -226,6 +255,7 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
     setSymbol('')
     setDescription('')
     setIsActive(true)
+    setErrors({})
     setModalOpen(true)
   }
 
@@ -235,21 +265,38 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
     setSymbol(unit.symbol)
     setDescription(unit.description ?? '')
     setIsActive(unit.is_active)
+    setErrors({})
     setModalOpen(true)
   }
 
   const closeModal = () => {
     setModalOpen(false)
     setEditingUnit(null)
+    setErrors({})
   }
 
   const handleSubmit = (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault()
+
+    const newErrors: Record<string, string> = {}
+    if (!name.trim()) {
+      newErrors.name = t('products.errors.unitNameRequired', 'Please enter unit name')
+    }
+    if (!symbol.trim()) {
+      newErrors.symbol = t('products.errors.unitSymbolRequired', 'Please enter unit symbol')
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+
     const payload = {
       company_id: 1,
-      name,
-      symbol,
-      description: description || null,
+      name: name.trim(),
+      symbol: symbol.trim(),
+      description: description.trim() || null,
       is_active: isActive,
     }
 
@@ -553,7 +600,7 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
           />
         }
       >
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="p-5 sm:p-6 space-y-4">
           {/* Popular Quick Presets */}
           {!editingUnit && (
             <div className="p-3 bg-muted/20 dark:bg-slate-900/40 rounded-2xl border border-border/70 space-y-2">
@@ -572,6 +619,8 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
                       onClick={() => {
                         setName(displayName)
                         setSymbol(p.symbol)
+                        handleClearError('name')
+                        handleClearError('symbol')
                       }}
                       className={`px-2.5 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
                         isSelected
@@ -589,32 +638,42 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {/* Unit Name */}
-            <div>
-              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
-                {t('products.colUnitName', 'Unit Name')} <span className="text-rose-500 font-bold">*</span>
-              </label>
+            <FormField
+              label={t('products.colUnitName', 'Unit Name')}
+              required
+              error={errors.name}
+            >
               <input
+                id="name"
+                name="name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
+                onChange={(e) => {
+                  setName(e.target.value)
+                  handleClearError('name')
+                }}
                 placeholder={t('products.unitNamePlaceholder', 'e.g. Pieces, Kilograms, Boxes, Sets...')}
-                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                className={getFieldClass(errors.name, "w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium")}
               />
-            </div>
+            </FormField>
 
             {/* Symbol */}
-            <div>
-              <label className="block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5">
-                {t('products.colSymbol', 'Symbol')} <span className="text-rose-500 font-bold">*</span>
-              </label>
+            <FormField
+              label={t('products.colSymbol', 'Symbol')}
+              required
+              error={errors.symbol}
+            >
               <input
+                id="symbol"
+                name="symbol"
                 value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-                required
+                onChange={(e) => {
+                  setSymbol(e.target.value)
+                  handleClearError('symbol')
+                }}
                 placeholder={t('products.unitSymbolPlaceholder', 'e.g. pcs, kg, box')}
-                className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-semibold"
+                className={getFieldClass(errors.symbol, "w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-mono font-semibold")}
               />
-            </div>
+            </FormField>
           </div>
 
           {/* Description */}

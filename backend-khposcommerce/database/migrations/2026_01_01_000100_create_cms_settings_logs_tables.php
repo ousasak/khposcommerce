@@ -155,25 +155,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // ─── MEDIA ────────────────────────────────────────────────────────────
-        Schema::create('media', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('company_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('name');
-            $table->string('file_name');
-            $table->string('mime_type')->nullable();
-            $table->string('path');
-            $table->string('disk')->default('public');
-            $table->unsignedBigInteger('size')->default(0);
-            $table->string('type')->default('image'); // image, video, document
-            $table->json('conversions')->nullable(); // thumbnails, etc.
-            $table->timestamps();
-            $table->softDeletes();
-
-            $table->index('company_id');
-        });
-
         // ─── NOTIFICATION LOGS ────────────────────────────────────────────────
         Schema::create('notification_logs', function (Blueprint $table) {
             $table->id();

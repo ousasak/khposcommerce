@@ -3,7 +3,7 @@ import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { StatusBadge, EmptyState } from '@/components/common'
-import { FileCode, ShieldCheck, Globe, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 export interface PagesPoliciesTableProps {
@@ -77,7 +77,7 @@ export const PagesPoliciesTable: React.FC<PagesPoliciesTableProps> = ({
           <table className="w-full data-table border-collapse">
             <thead className="bg-muted/40 sticky top-0 border-b border-border z-10 select-none">
               <tr>
-                <th className="w-10 px-3 text-center">
+                <th className="w-12 px-4 py-3.5 text-center">
                   <input
                     type="checkbox"
                     checked={isAllSelected}
@@ -89,7 +89,7 @@ export const PagesPoliciesTable: React.FC<PagesPoliciesTableProps> = ({
                 {visibleColumns.title && (
                   <th
                     onClick={() => onSort?.('title')}
-                    className={`text-left font-bold text-xs ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-left font-bold text-xs px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{t('cms.colPageTitle', 'Page Title')}</span>
@@ -100,7 +100,7 @@ export const PagesPoliciesTable: React.FC<PagesPoliciesTableProps> = ({
                 {visibleColumns.slug && (
                   <th
                     onClick={() => onSort?.('slug')}
-                    className={`text-left font-bold text-xs ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-left font-bold text-xs w-56 px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{t('cms.colSlug', 'Slug')}</span>
@@ -109,31 +109,38 @@ export const PagesPoliciesTable: React.FC<PagesPoliciesTableProps> = ({
                   </th>
                 )}
                 {visibleColumns.category && (
-                  <th className="text-left font-bold text-xs">{t('cms.colPageType', 'Type')}</th>
+                  <th className="text-left font-bold text-xs w-44 px-4 py-3.5">
+                    {t('cms.colPageType', 'Type')}
+                  </th>
                 )}
                 {visibleColumns.status && (
                   <th
                     onClick={() => onSort?.('status')}
-                    className={`text-left font-bold text-xs w-28 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
+                    className={`text-center font-bold text-xs w-32 px-4 py-3.5 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-center gap-1.5">
                       <span>{t('cms.colStatus', 'Status')}</span>
                       {renderSortIcon('status')}
                     </div>
                   </th>
                 )}
-                {visibleColumns.actions && <th className="text-right font-bold text-xs w-20">{t('cms.colActions', 'Actions')}</th>}
+                {visibleColumns.actions && (
+                  <th className="text-right font-bold text-xs w-20 px-4 py-3.5">
+                    {t('cms.colActions', 'Actions')}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
               {isLoading ? (
-                <LoadingSkeleton cols={colsCount} />
+                <LoadingSkeleton cols={colsCount} rows={6} />
               ) : records.length === 0 ? (
                 <EmptyState cols={colsCount} message={t('cms.noPages', 'No pages found')} />
               ) : (
                 records.map((r) => {
                   const isSelected = selectedRows.includes(r.id)
                   const isPolicy = isPolicyPage(r.slug || '', r.title || '')
+                  const cleanDesc = r.description || r.meta_description || ''
 
                   return (
                     <tr
@@ -142,7 +149,8 @@ export const PagesPoliciesTable: React.FC<PagesPoliciesTableProps> = ({
                         isSelected ? 'bg-primary/5 dark:bg-primary/10' : ''
                       }`}
                     >
-                      <td className="w-10 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      {/* Checkbox */}
+                      <td className="w-12 px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -151,66 +159,68 @@ export const PagesPoliciesTable: React.FC<PagesPoliciesTableProps> = ({
                           aria-label={`Select page ${r.id}`}
                         />
                       </td>
+
+                      {/* Clean Page Title */}
                       {visibleColumns.title && (
-                        <td>
-                          <div className="flex items-center gap-3 py-1">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
-                              isPolicy
-                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                                : 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20'
-                            }`}>
-                              {isPolicy ? <ShieldCheck size={18} /> : <FileCode size={18} />}
-                            </div>
-                            <div className="min-w-0">
+                        <td className="px-4 py-3.5">
+                          <div className="min-w-0">
+                            <span
+                              onClick={() => openEditModal(r)}
+                              className="font-semibold text-foreground hover:text-primary cursor-pointer text-sm block leading-snug transition-colors"
+                            >
+                              {r.title}
+                            </span>
+                            {cleanDesc && cleanDesc !== r.title && (
                               <p
-                                onClick={() => openEditModal(r)}
-                                className="font-bold text-foreground hover:text-primary cursor-pointer text-sm group-hover:text-primary transition-colors"
+                                className="text-xs text-muted-foreground line-clamp-1 mt-0.5 max-w-md font-normal"
+                                title={cleanDesc}
                               >
-                                {r.title}
+                                {cleanDesc}
                               </p>
-                              {r.meta_title ? (
-                                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5 max-w-sm">
-                                  {r.meta_title}
-                                </p>
-                              ) : (
-                                <p className="text-[11px] text-muted-foreground/80 flex items-center gap-1 mt-0.5">
-                                  <span>{t('cms.htmlRichContent', 'Rich HTML/Markdown')}</span>
-                                </p>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </td>
                       )}
+
+                      {/* Clean Slug */}
                       {visibleColumns.slug && (
-                        <td>
-                          <span className="font-mono text-xs text-muted-foreground bg-muted/60 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-border inline-flex items-center gap-1.5">
-                            <Globe size={11} className="text-primary" />
-                            <span>/{r.slug}</span>
+                        <td className="px-4 py-3.5">
+                          <span
+                            className="font-mono text-xs text-muted-foreground bg-muted/60 dark:bg-slate-800/80 px-2.5 py-1 rounded-md border border-border/70 inline-block max-w-[200px] truncate select-all tracking-tight"
+                            title={r.slug}
+                          >
+                            /{r.slug}
                           </span>
                         </td>
                       )}
+
+                      {/* Clean Type Badge (No Icon Spammed) */}
                       {visibleColumns.category && (
-                        <td>
+                        <td className="px-4 py-3.5">
                           {isPolicy ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                              <ShieldCheck size={11} />
-                              <span>{t('cms.storePolicyBadge', 'Store Policy')}</span>
+                            <span className="inline-block text-xs font-medium px-2.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              {t('cms.storePolicyBadge', 'Store Policy')}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                              <FileCode size={11} />
-                              <span>{t('cms.landingPageBadge', 'Landing Page')}</span>
+                            <span className="inline-block text-xs font-medium px-2.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                              {t('cms.landingPageBadge', 'Landing Page')}
                             </span>
                           )}
                         </td>
                       )}
+
+                      {/* Status */}
                       {visibleColumns.status && (
-                        <td>
-                          <StatusBadge status={(r.status || 'published').toLowerCase()} />
+                        <td className="px-4 py-3.5 text-center">
+                          <div className="flex justify-center">
+                            <StatusBadge status={(r.status || 'published').toLowerCase()} />
+                          </div>
                         </td>
                       )}
+
+                      {/* Actions */}
                       {visibleColumns.actions && (
-                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <TableActionMenu
                             onEdit={() => openEditModal(r)}
                             onDelete={() => confirmDelete(r.id)}

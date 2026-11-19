@@ -1,133 +1,112 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Image as ImageIcon, Eye, MousePointerClick, DollarSign, Store, Globe, Smartphone } from 'lucide-react'
-import { EnterpriseStatsCard, EnterpriseMiniStatsCard, EnterpriseStatsGrid } from '@/components/common'
-import { AnimatedCounter } from '@/components/shared/AnimatedCounter'
+import {
+  Layers,
+  Eye,
+  MousePointerClick,
+  TrendingUp,
+} from 'lucide-react'
+import { FlattenStatCard, FlattenStatsGrid } from '@/components/common'
 import type { BannerAnalytics } from '../types'
-
-export { AnimatedCounter, CircularProgressRing } from '@/components/common'
 
 interface BannerStatsCardsProps {
   analytics: BannerAnalytics
+  currentPositionFilter?: string
+  onSelectPosition?: (pos: string) => void
 }
 
-export const BannerStatsCards: React.FC<BannerStatsCardsProps> = ({ analytics }) => {
+/**
+ * BannerStatsCards Component
+ * Uses the global FlattenStatCard & FlattenStatsGrid design standard from @/components/common,
+ * matching the signature Employee & Dashboard design standard (solid icon boxes, clean typography,
+ * omnichannel placement breakdowns, and responsive grid).
+ */
+export const BannerStatsCards: React.FC<BannerStatsCardsProps> = ({
+  analytics,
+  currentPositionFilter = 'all',
+  onSelectPosition,
+}) => {
   const { t } = useTranslation(['marketing', 'common'])
 
-  const activeRatio = analytics.totalBanners > 0
-    ? (analytics.activeBanners / analytics.totalBanners) * 100
-    : 0
-
   return (
-    <div className="space-y-4 print:hidden select-none">
-      {/* 4 Main Global Enterprise KPI Cards */}
-      <EnterpriseStatsGrid columns={4}>
-        {/* Card 1: Total Banners */}
-        <EnterpriseStatsCard
-          title={t('marketing:totalBanners', 'Store Banners')}
+    <div className="print:hidden select-none">
+      <FlattenStatsGrid columns={4}>
+        {/* Card 1: Total Banners & Omnichannel Breakdown */}
+        <FlattenStatCard
+          title={t('marketing.totalBanners', 'ផ្ទាំងបដាសរុប')}
           value={analytics.totalBanners}
+          useCounter={true}
+          color="teal"
+          icon={Layers}
+          isActive={currentPositionFilter === 'all'}
+          onClick={() => onSelectPosition?.('all')}
           subtitle={
-            <span className="flex items-center gap-1">
-              <span className="text-emerald-500 font-bold">
-                <AnimatedCounter value={analytics.activeBanners} />
-              </span>{' '}
-              {t('marketing:active', 'active now')}
+            <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {analytics.activeBanners} {t('marketing.active', 'សកម្ម')}
+              </span>
+              <span>•</span>
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                Web: {analytics.heroBannersCount}
+              </span>
+              <span>•</span>
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                POS: {analytics.posCfdBannersCount}
+              </span>
+              <span>•</span>
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                App: {analytics.appBannersCount}
+              </span>
             </span>
           }
-          progressRing={{
-            percentage: activeRatio,
-            colorClass: 'text-blue-500',
-          }}
-          icon={ImageIcon}
-          variant="blue"
-          delay={0.05}
         />
 
-        {/* Card 2: Total Impressions */}
-        <EnterpriseStatsCard
-          title={t('marketing:totalImpressions', 'Total Impressions')}
+        {/* Card 2: Total Impressions (Views across all screens) */}
+        <FlattenStatCard
+          title={t('marketing.totalImpressions', 'ចំនួនមើលសរុប (Impressions)')}
           value={analytics.totalImpressions}
+          useCounter={true}
+          color="blue"
+          icon={Eye}
           subtitle={
-            <span>
-              {analytics.viewsToday.toLocaleString()} views today
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {analytics.viewsToday.toLocaleString()} {t('marketing.viewsUnit', 'ដង')} {t('marketing.todayLabel', 'ថ្ងៃនេះ')} • គ្រប់អេក្រង់
             </span>
           }
-          progressRing={{
-            percentage: Math.min(analytics.avgCtrPercent * 5, 100),
-            colorClass: 'text-purple-500',
-          }}
-          icon={Eye}
-          variant="purple"
-          delay={0.1}
         />
 
-        {/* Card 3: Click-Through Rate (CTR) */}
-        <EnterpriseStatsCard
-          title={t('marketing:clickThroughRate', 'Click-Through Rate')}
+        {/* Card 3: Click-Through Rate & Total User Interactions */}
+        <FlattenStatCard
+          title={t('marketing.clickThroughRate', 'អត្រាចុចចូលមើល (CTR)')}
           value={analytics.avgCtrPercent}
           suffix="%"
           decimals={1}
+          useCounter={true}
+          color="purple"
+          icon={MousePointerClick}
           subtitle={
-            <span>
-              {analytics.totalClicks.toLocaleString()} total clicks
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {analytics.totalClicks.toLocaleString()} {t('marketing.userClicksUnit', 'ការចុច')} ({analytics.clicksToday} {t('marketing.todayLabel', 'ថ្ងៃនេះ')})
             </span>
           }
-          trend={{
-            value: `${analytics.clicksToday} today`,
-            isPositive: analytics.clicksToday > 0,
-          }}
-          icon={MousePointerClick}
-          variant="amber"
-          delay={0.15}
         />
 
-        {/* Card 4: Attributed Revenue */}
-        <EnterpriseStatsCard
-          title={t('marketing:attributedRevenue', 'Attributed Revenue')}
+        {/* Card 4: Attributed Revenue & Omnichannel ROI */}
+        <FlattenStatCard
+          title={t('marketing.attributedRevenue', 'ចំណូលបានពីបដា (Revenue)')}
           value={analytics.totalRevenueAttributed}
           prefix="$"
           decimals={2}
-          subtitle="Omnichannel conversions"
-          trend={{
-            value: '+ROI',
-            isPositive: true,
-          }}
-          icon={DollarSign}
-          variant="emerald"
-          delay={0.2}
+          useCounter={true}
+          color="emerald"
+          icon={TrendingUp}
+          subtitle={
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+              +ROI {t('marketing.omnichannelConversions', 'ការបំប្លែងគ្រប់បណ្តាញ')}
+            </span>
+          }
         />
-      </EnterpriseStatsGrid>
-
-      {/* Secondary 4 Mini-Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <EnterpriseMiniStatsCard
-          label="Hero Main Banners"
-          value={analytics.heroBannersCount}
-          icon={Globe}
-          valueColor="blue"
-        />
-
-        <EnterpriseMiniStatsCard
-          label="POS Customer Displays"
-          value={analytics.posCfdBannersCount}
-          icon={Store}
-          valueColor="emerald"
-        />
-
-        <EnterpriseMiniStatsCard
-          label="Mobile App Slides"
-          value={analytics.appBannersCount}
-          icon={Smartphone}
-          valueColor="purple"
-        />
-
-        <EnterpriseMiniStatsCard
-          label="Clicks Today"
-          value={analytics.clicksToday}
-          icon={MousePointerClick}
-          valueColor="amber"
-        />
-      </div>
+      </FlattenStatsGrid>
     </div>
   )
 }

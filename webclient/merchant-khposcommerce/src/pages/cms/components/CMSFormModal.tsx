@@ -18,9 +18,13 @@ import {
   Building2,
   ShieldCheck,
   FileCheck,
+  Megaphone,
+  Power,
+  Check,
+  Eye,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { EnterpriseModal, ModalFooter, RichTextEditor, type ModalHeaderIconVariant } from '@/components/common'
+import { EnterpriseModal, ModalFooter, RichTextEditor, FormField, getFieldClass, type ModalHeaderIconVariant } from '@/components/common'
 import { generateSlug } from '@/utils/slug'
 import { POLICY_TEMPLATES } from '../policyTemplates'
 import type { Tab } from '../types/cms.types'
@@ -68,6 +72,10 @@ export interface CMSFormModalProps {
   handleRemoveImage: () => void
   categoriesList: any[]
 
+  // Validation props
+  errors?: Record<string, string>
+  onClearError?: (key: string) => void
+
   // Testimonial specific props
   testimonialRole?: string
   setTestimonialRole?: (val: string) => void
@@ -79,6 +87,20 @@ export interface CMSFormModalProps {
   setTestimonialComment?: (val: string) => void
   isFeatured?: boolean
   setIsFeatured?: (val: boolean) => void
+
+  // Announcement specific props
+  messageKm?: string
+  setMessageKm?: (val: string) => void
+  messageEn?: string
+  setMessageEn?: (val: string) => void
+  badgeText?: string
+  setBadgeText?: (val: string) => void
+  couponCode?: string
+  setCouponCode?: (val: string) => void
+  linkUrl?: string
+  setLinkUrl?: (val: string) => void
+  bgGradient?: string
+  setBgGradient?: (val: string) => void
 }
 
 const labelCls = 'block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5'
@@ -130,6 +152,8 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
   handleFileChange,
   handleRemoveImage,
   categoriesList = [],
+  errors = {},
+  onClearError,
   testimonialRole = '',
   setTestimonialRole,
   testimonialCompany = '',
@@ -140,6 +164,20 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
   setTestimonialComment,
   isFeatured = false,
   setIsFeatured,
+
+  // Announcements props
+  messageKm = '',
+  setMessageKm,
+  messageEn = '',
+  setMessageEn,
+  badgeText = 'SPECIAL PROMO',
+  setBadgeText,
+  couponCode = '',
+  setCouponCode,
+  linkUrl = '/promotions',
+  setLinkUrl,
+  bgGradient = 'from-indigo-600 to-purple-700',
+  setBgGradient,
 }) => {
   const { t } = useTranslation(['cms', 'common'])
   const isEdit = Boolean(editingItem)
@@ -199,6 +237,15 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
           icon: <Quote size={20} />,
           variant: 'emerald' as ModalHeaderIconVariant,
         }
+      case 'announcements':
+        return {
+          title: isEdit
+            ? t('cms.editCampaignNumber', { id: editingItem?.id, defaultValue: `កែសម្រួលយុទ្ធនាការ #${editingItem?.id}` })
+            : t('cms.createAnnouncementCampaign', 'បង្កើតយុទ្ធនាការប្រកាសថ្មី'),
+          subtitle: t('cms.announcementFormSubtitle', 'កំណត់សារប្រកាស ស្លាកប្រូម៉ូសិន កូដបញ្ចុះតម្លៃ និងពណ៌ផ្ទាំង'),
+          icon: <Megaphone size={20} />,
+          variant: 'primary' as ModalHeaderIconVariant,
+        }
       default:
         return {
           title: isEdit ? t('cms.editContent') : t('cms.addContent'),
@@ -219,7 +266,7 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
       subtitle={config.subtitle}
       icon={config.icon}
       iconVariant={config.variant}
-      size={activeTab === 'pages' ? '2xl' : 'xl'}
+      size={activeTab === 'pages' || activeTab === 'announcements' ? '2xl' : 'xl'}
       badge={
         isEdit && editingItem?.id ? (
           <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border">
@@ -242,29 +289,34 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
         />
       }
     >
-      <form onSubmit={onSubmit} className="p-5 sm:p-6 space-y-4">
+      <form onSubmit={onSubmit} noValidate className="p-5 sm:p-6 space-y-4">
         {/* ══════════════════════════════════════════════════
             1. BLOG CATEGORIES FORM
         ══════════════════════════════════════════════════ */}
         {activeTab === 'blog-categories' && (
           <div className="space-y-4">
             <div>
-              <label className={labelCls}>
-                {t('cms.formCategoryName')} <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
+              <FormField
+                label={t('cms.formCategoryName')}
                 required
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
-                  if (!slug || slug === generateSlug(name)) {
-                    setSlug(generateSlug(e.target.value))
-                  }
-                }}
-                placeholder={t('cms.categoryNamePlaceholder')}
-                className={inputCls}
-              />
+                error={errors.name}
+              >
+                <input
+                  id="cat-name"
+                  name="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    onClearError?.('name')
+                    if (!slug || slug === generateSlug(name)) {
+                      setSlug(generateSlug(e.target.value))
+                    }
+                  }}
+                  placeholder={t('cms.categoryNamePlaceholder')}
+                  className={getFieldClass(errors.name)}
+                />
+              </FormField>
             </div>
 
             <div>
@@ -311,22 +363,27 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
         {activeTab === 'blog-tags' && (
           <div className="space-y-4">
             <div>
-              <label className={labelCls}>
-                {t('cms.formTagName')} <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
+              <FormField
+                label={t('cms.formTagName')}
                 required
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
-                  if (!slug || slug === generateSlug(name)) {
-                    setSlug(generateSlug(e.target.value))
-                  }
-                }}
-                placeholder={t('cms.tagPlaceholder')}
-                className={inputCls}
-              />
+                error={errors.name}
+              >
+                <input
+                  id="tag-name"
+                  name="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    onClearError?.('name')
+                    if (!slug || slug === generateSlug(name)) {
+                      setSlug(generateSlug(e.target.value))
+                    }
+                  }}
+                  placeholder={t('cms.tagPlaceholder')}
+                  className={getFieldClass(errors.name)}
+                />
+              </FormField>
             </div>
 
             <div>
@@ -379,22 +436,27 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
             )}
 
             <div>
-              <label className={labelCls}>
-                {t('cms.formPageTitle')} <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
+              <FormField
+                label={t('cms.formPageTitle')}
                 required
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value)
-                  if (!slug || slug === generateSlug(title)) {
-                    setSlug(generateSlug(e.target.value))
-                  }
-                }}
-                placeholder={t('cms.policyTitlePlaceholder')}
-                className={inputCls}
-              />
+                error={errors.title}
+              >
+                <input
+                  id="page-title"
+                  name="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value)
+                    onClearError?.('title')
+                    if (!slug || slug === generateSlug(title)) {
+                      setSlug(generateSlug(e.target.value))
+                    }
+                  }}
+                  placeholder={t('cms.policyTitlePlaceholder')}
+                  className={getFieldClass(errors.title)}
+                />
+              </FormField>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -429,13 +491,17 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
 
             {/* Rich Text Editor for Content */}
             <div>
-              <label className={labelCls}>{t('cms.formPageContent')}</label>
-              <RichTextEditor
-                value={content}
-                onChange={setContent}
-                placeholder={t('cms.formPageContentPlaceholder')}
-                minHeight="220px"
-              />
+              <FormField label={t('cms.formPageContent')} error={errors.content}>
+                <RichTextEditor
+                  value={content}
+                  onChange={(val) => {
+                    setContent(val)
+                    onClearError?.('content')
+                  }}
+                  placeholder={t('cms.formPageContentPlaceholder')}
+                  minHeight="220px"
+                />
+              </FormField>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -469,31 +535,45 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
         {activeTab === 'faqs' && (
           <div className="space-y-4">
             <div>
-              <label className={labelCls}>
-                {t('cms.formQuestion')} <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
+              <FormField
+                label={t('cms.formQuestion')}
                 required
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder={t('cms.formQuestionPlaceholder')}
-                className={inputCls}
-              />
+                error={errors.question}
+              >
+                <input
+                  id="faq-question"
+                  name="question"
+                  type="text"
+                  value={question}
+                  onChange={(e) => {
+                    setQuestion(e.target.value)
+                    onClearError?.('question')
+                  }}
+                  placeholder={t('cms.formQuestionPlaceholder')}
+                  className={getFieldClass(errors.question)}
+                />
+              </FormField>
             </div>
 
             <div>
-              <label className={labelCls}>
-                {t('cms.formAnswer')} <span className="text-rose-500">*</span>
-              </label>
-              <textarea
+              <FormField
+                label={t('cms.formAnswer')}
                 required
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                placeholder={t('cms.formAnswerPlaceholder')}
-                rows={4}
-                className={textareaCls}
-              />
+                error={errors.answer}
+              >
+                <textarea
+                  id="faq-answer"
+                  name="answer"
+                  value={answer}
+                  onChange={(e) => {
+                    setAnswer(e.target.value)
+                    onClearError?.('answer')
+                  }}
+                  placeholder={t('cms.formAnswerPlaceholder')}
+                  rows={4}
+                  className={`${getFieldClass(errors.answer)} h-auto py-2.5 resize-none`}
+                />
+              </FormField>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -542,20 +622,26 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
         {activeTab === 'testimonials' && (
           <div className="space-y-4">
             <div>
-              <label className={labelCls}>
-                {t('cms.authorName')} <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
+              <FormField
+                label={t('cms.authorName')}
                 required
-                value={name || title}
-                onChange={(e) => {
-                  setName(e.target.value)
-                  setTitle(e.target.value)
-                }}
-                placeholder={t('cms.clientNamePlaceholder')}
-                className={inputCls}
-              />
+                error={errors.authorName || errors.name}
+              >
+                <input
+                  id="author-name"
+                  name="authorName"
+                  type="text"
+                  value={name || title}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    setTitle(e.target.value)
+                    onClearError?.('authorName')
+                    onClearError?.('name')
+                  }}
+                  placeholder={t('cms.clientNamePlaceholder')}
+                  className={getFieldClass(errors.authorName || errors.name)}
+                />
+              </FormField>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -598,38 +684,202 @@ export const CMSFormModal: React.FC<CMSFormModalProps> = ({
                   </button>
                 ))}
                 <span className="text-xs font-bold text-foreground ml-2">
-                  {testimonialRating} / 5 {t('cms.starsUnit')}
+                  {testimonialRating} / 5 {t('cms.starsUnit', 'Stars')}
                 </span>
               </div>
             </div>
 
             <div>
-              <label className={labelCls}>
-                {t('cms.testimonialComment')} <span className="text-rose-500">*</span>
-              </label>
-              <textarea
+              <FormField
+                label={t('cms.testimonialComment', 'Feedback / Review')}
                 required
-                value={testimonialComment || content}
-                onChange={(e) => {
-                  setTestimonialComment?.(e.target.value)
-                  setContent(e.target.value)
-                }}
-                placeholder={t('cms.testimonialCommentPlaceholder')}
-                rows={3}
-                className={textareaCls}
-              />
+                error={errors.comment}
+              >
+                <textarea
+                  id="testimonial-comment"
+                  name="comment"
+                  value={testimonialComment || content}
+                  onChange={(e) => {
+                    setTestimonialComment?.(e.target.value)
+                    setContent(e.target.value)
+                    onClearError?.('comment')
+                  }}
+                  placeholder={t('cms.testimonialCommentPlaceholder', 'Enter genuine customer feedback...')}
+                  rows={3}
+                  className={`${getFieldClass(errors.comment)} h-auto py-2.5 resize-none`}
+                />
+              </FormField>
             </div>
 
             <div className="flex items-center justify-between p-3.5 rounded-lg bg-muted/40 border border-border">
               <div>
-                <p className="text-xs font-semibold text-foreground">{t('cms.featuredOnHome')}</p>
-                <p className="text-[11px] text-muted-foreground">{t('cms.featuredOnHomeDesc')}</p>
+                <p className="text-xs font-semibold text-foreground">{t('cms.featuredOnHome', 'Featured on Home')}</p>
+                <p className="text-[11px] text-muted-foreground">{t('cms.featuredOnHomeDesc', 'Showcase this testimonial on the storefront homepage')}</p>
               </div>
               <input
                 type="checkbox"
                 checked={isFeatured}
                 onChange={(e) => setIsFeatured?.(e.target.checked)}
                 className="w-4 h-4 rounded text-primary border-border focus:ring-primary cursor-pointer accent-primary"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════
+            7. ANNOUNCEMENTS FORM (Harmonized with Categories & FAQs)
+        ══════════════════════════════════════════════════ */}
+        {activeTab === 'announcements' && (
+          <div className="space-y-4">
+            {/* Campaign Name (Full Width like Category Name) */}
+            <div>
+              <FormField
+                label={t('cms.campaignName')}
+                required
+                error={errors.title}
+              >
+                <input
+                  id="announcement-title"
+                  name="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value)
+                    onClearError?.('title')
+                  }}
+                  placeholder={t('cms.campaignTitlePlaceholder')}
+                  className={getFieldClass(errors.title)}
+                />
+              </FormField>
+            </div>
+
+            {/* Announcement Message (Bilingual Khmer & English - Clean without Country Flags) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <FormField
+                  label={t('cms.messageKmLabel')}
+                  required
+                  error={errors.messageKm}
+                >
+                  <textarea
+                    id="announcement-message-km"
+                    name="messageKm"
+                    rows={3}
+                    value={messageKm}
+                    onChange={(e) => {
+                      setMessageKm?.(e.target.value)
+                      onClearError?.('messageKm')
+                    }}
+                    placeholder={t('cms.messageKmPlaceholder')}
+                    className={`${getFieldClass(errors.messageKm)} h-auto py-2.5 resize-none`}
+                  />
+                </FormField>
+              </div>
+
+              <div>
+                <label className={labelCls}>
+                  {t('cms.messageEnLabel')}
+                </label>
+                <textarea
+                  rows={3}
+                  value={messageEn}
+                  onChange={(e) => setMessageEn?.(e.target.value)}
+                  placeholder={t('cms.messageEnPlaceholder')}
+                  className={textareaCls}
+                />
+              </div>
+            </div>
+
+            {/* Promo Attributes: Badge, Coupon Code & Link URL */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div>
+                <label className={labelCls}>
+                  {t('cms.badgeLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={badgeText}
+                  onChange={(e) => setBadgeText?.(e.target.value)}
+                  placeholder={t('cms.badgePlaceholder')}
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>
+                  {t('cms.couponCodeLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode?.(e.target.value.toUpperCase())}
+                  placeholder={t('cms.couponPlaceholder')}
+                  className={`${inputCls} font-mono font-bold uppercase`}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>
+                  {t('cms.linkUrlLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl?.(e.target.value)}
+                  placeholder={t('cms.linkPlaceholder')}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+
+            {/* Sleek Theme Palette Swatches (Clean, Compact Circular Swatches) */}
+            <div>
+              <label className={labelCls}>
+                {t('cms.bgGradientLabel')}
+              </label>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                {[
+                  { label: t('cms.gradientIndigoPurple'), val: 'from-indigo-600 to-purple-700' },
+                  { label: t('cms.gradientAmberRed'), val: 'from-amber-600 to-rose-600' },
+                  { label: t('cms.gradientEmeraldTeal'), val: 'from-emerald-600 to-teal-700' },
+                  { label: t('cms.gradientBlueIndigo'), val: 'from-blue-600 to-indigo-700' },
+                  { label: t('cms.gradientFuchsiaPink'), val: 'from-fuchsia-600 to-pink-600' },
+                  { label: t('cms.gradientDarkSleek'), val: 'from-slate-900 to-zinc-800' },
+                  { label: t('cms.gradientSunsetGlow'), val: 'from-orange-500 to-rose-600' },
+                  { label: t('cms.gradientVioletIndigo'), val: 'from-violet-600 to-blue-600' },
+                ].map((grad, i) => {
+                  const isSelected = bgGradient === grad.val
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      title={grad.label}
+                      onClick={() => setBgGradient?.(grad.val)}
+                      className={`relative w-8 h-8 rounded-full bg-gradient-to-r ${grad.val} transition-all cursor-pointer flex items-center justify-center shadow-xs ${
+                        isSelected
+                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 shadow-sm'
+                          : 'opacity-80 hover:opacity-100 hover:scale-105'
+                      }`}
+                    >
+                      {isSelected && <Check size={14} className="text-white drop-shadow-xs stroke-[3]" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Active Status Box (Matching Category, FAQ & Testimonial Standard) */}
+            <div className="flex items-center justify-between p-3.5 rounded-lg bg-muted/40 dark:bg-slate-800/40 border border-border/70 dark:border-slate-700/70">
+              <div>
+                <p className="text-xs font-semibold text-foreground">{t('cms.formActiveAnnouncement')}</p>
+                <p className="text-[11px] text-muted-foreground">{t('cms.formActiveAnnouncementDesc')}</p>
+              </div>
+              <input
+                type="checkbox"
+                id="announcementActive"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="w-4 h-4 rounded-md text-primary border-border focus:ring-primary cursor-pointer accent-primary"
               />
             </div>
           </div>

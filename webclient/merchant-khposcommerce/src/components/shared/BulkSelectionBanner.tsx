@@ -2,7 +2,7 @@ import React from 'react'
 import { AlertCircle, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-interface BulkSelectionBannerProps {
+export interface BulkSelectionBannerProps {
   selectedCount: number
   onDelete?: () => void
   onClear?: () => void

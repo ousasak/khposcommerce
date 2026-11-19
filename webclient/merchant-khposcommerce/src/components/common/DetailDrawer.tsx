@@ -2,12 +2,12 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Copy, Check } from 'lucide-react'
 import CloseButton from './CloseButton'
-import { CancelButton } from './GlobalActionButtons'
+import { CancelButton, ActionButton } from './GlobalActionButtons'
 import {
   Sheet,
-  SheetPortal,
-  SheetOverlay,
   SheetContent,
+  SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
@@ -165,26 +165,25 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
         if (!nextOpen) onClose()
       }}
     >
-      <SheetPortal>
-        <SheetOverlay className={closeOnBackdropClick ? 'cursor-pointer' : ''} />
-        <SheetContent
-          side="right"
-          showClose={false}
-          className={cn(
-            'p-0 w-full overflow-hidden flex flex-col h-full bg-card border-l border-border/80 shadow-2xl',
-            sizeStyles[size] || sizeStyles.xl,
-            className
-          )}
-          onEscapeKeyDown={(e) => {
-            if (!closeOnEsc) e.preventDefault()
-          }}
-          onPointerDownOutside={(e) => {
-            if (!closeOnBackdropClick) e.preventDefault()
-          }}
-        >
-          {children}
-        </SheetContent>
-      </SheetPortal>
+      <SheetContent
+        side="right"
+        showClose={false}
+        className={cn(
+          'p-0 w-full overflow-hidden flex flex-col h-full bg-card border-l border-border/80 shadow-2xl',
+          sizeStyles[size] || sizeStyles.xl,
+          className
+        )}
+        onEscapeKeyDown={(e) => {
+          if (!closeOnEsc) e.preventDefault()
+        }}
+        onPointerDownOutside={(e) => {
+          if (!closeOnBackdropClick) e.preventDefault()
+        }}
+      >
+        <SheetTitle className="sr-only">ព័ត៌មានលម្អិត</SheetTitle>
+        <SheetDescription className="sr-only">ផ្ទាំងបង្ហាញព័ត៌មានលម្អិត</SheetDescription>
+        {children}
+      </SheetContent>
     </Sheet>
   )
 }
@@ -328,6 +327,23 @@ export const DetailDrawerBody: React.FC<DetailDrawerBodyProps> = ({
 
 // ─── 5. DETAIL DRAWER FOOTER ─────────────────────────────────────────────────
 
+export interface DetailDrawerFooterProps {
+  /** Optional Close button handler (renders standard ActionButton variant="secondary" on right) */
+  onClose?: () => void
+  /** Custom label for close button */
+  closeLabel?: string
+  /** Left-aligned actions (e.g. Delete, Print, Copy Link, Duplicate) */
+  leftActions?: React.ReactNode
+  /** Right-aligned actions (e.g. Edit, Duplicate, Save) */
+  rightActions?: React.ReactNode
+  /** Custom full footer content */
+  children?: React.ReactNode
+  /** Custom class for footer */
+  className?: string
+  /** Button size for standard footer actions (default: 'md') */
+  size?: 'sm' | 'md' | 'lg'
+}
+
 export const DetailDrawerFooter: React.FC<DetailDrawerFooterProps> = ({
   onClose,
   closeLabel,
@@ -335,6 +351,7 @@ export const DetailDrawerFooter: React.FC<DetailDrawerFooterProps> = ({
   rightActions,
   children,
   className = '',
+  size = 'md',
 }) => {
   const { t } = useTranslation(['common'])
 
@@ -346,26 +363,35 @@ export const DetailDrawerFooter: React.FC<DetailDrawerFooterProps> = ({
     )
   }
 
-  const hasLeft = Boolean(onClose || leftActions)
+  const hasLeft = Boolean(leftActions)
 
   return (
-    <div className={cn("px-6 py-4 border-t border-border/80 bg-card/95 backdrop-blur-md flex items-center gap-3 shrink-0 z-20 print:hidden", hasLeft ? 'justify-between' : 'justify-end', className)}>
-      {/* Left Area: Close Button and/or Left Actions */}
-      {hasLeft && (
+    <div
+      className={cn(
+        "px-6 py-4 border-t border-border/80 bg-card/95 backdrop-blur-md flex items-center gap-3 shrink-0 z-20 print:hidden",
+        hasLeft ? 'justify-between' : 'justify-end',
+        className
+      )}
+    >
+      {/* Left Area: Optional Actions (e.g. Duplicate, Delete, Print) */}
+      {hasLeft ? (
         <div className="flex items-center gap-2">
-          {onClose && (
-            <CancelButton onClick={onClose} label={closeLabel || t('common.close', 'Close')} />
-          )}
           {leftActions}
         </div>
-      )}
+      ) : <div />}
 
-      {/* Right Area: Primary/Secondary Action Buttons */}
-      {rightActions && (
-        <div className="flex items-center gap-2">
-          {rightActions}
-        </div>
-      )}
+      {/* Right Area: Close Button & Primary Actions (Matching EmployeeDetailDrawer) */}
+      <div className="flex items-center gap-2.5">
+        {onClose && (
+          <ActionButton
+            variant="secondary"
+            size={size}
+            onClick={onClose}
+            label={closeLabel || t('common.close', 'Close')}
+          />
+        )}
+        {rightActions}
+      </div>
     </div>
   )
 }

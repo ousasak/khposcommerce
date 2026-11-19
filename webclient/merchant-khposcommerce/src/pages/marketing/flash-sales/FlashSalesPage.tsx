@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence } from 'framer-motion'
 import {
@@ -8,22 +9,21 @@ import { marketingService } from '@/services/marketingService'
 import { useToast } from '@/hooks/useToast'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import { Breadcrumb } from '@/components/common'
-import { TableToolbar, HeaderActionsGroup, AddButton, ExportButton, ImportButton } from '@/components/common'
+import { Breadcrumb, PageHeader } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, ImportButton } from '@/components/common'
 import { downloadCsv } from '@/utils/export'
 import { useTranslation } from 'react-i18next'
 
 import { FlashSaleStatsCards } from './components/FlashSaleStatsCards'
+import { FlashSaleSearchBar } from './components/FlashSaleSearchBar'
 import { FlashSaleTableSection } from './components/FlashSaleTableSection'
-import { FlashSaleFormModal } from './components/FlashSaleFormModal'
 import { FlashSaleDetailDrawer } from './components/FlashSaleDetailDrawer'
-import { FlashSaleFilterDrawer } from './components/FlashSaleFilterDrawer'
-import { FlashSaleSimulatorModal } from './components/FlashSaleSimulatorModal'
 import { FlashSaleImportModal } from './components/FlashSaleImportModal'
 import type { FlashSale, FlashSaleAnalytics, ChannelScope } from './types'
 
 const FlashSalesPage: React.FC = () => {
-  const { t } = useTranslation(['marketing', 'common', 'toast'])
+  const { t } = useTranslation(['marketing', 'common', 'toast', 'buttons', 'tables', 'nav'])
+  const navigate = useNavigate()
   const qc = useQueryClient()
   const toast = useToast()
 
@@ -40,12 +40,8 @@ const FlashSalesPage: React.FC = () => {
   } = useServerPagination({ storageKey: 'flashsales' })
 
   // Modals & Drawers
-  const [modalOpen, setModalOpen] = useState(false)
-  const [simulatorOpen, setSimulatorOpen] = useState(false)
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [detailDrawerSale, setDetailDrawerSale] = useState<FlashSale | null>(null)
   const [importModalOpen, setImportModalOpen] = useState(false)
-  const [editingSale, setEditingSale] = useState<FlashSale | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<FlashSale | null>(null)
 
   // CSV Import
@@ -66,12 +62,6 @@ const FlashSalesPage: React.FC = () => {
   // Filters State
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterChannel, setFilterChannel] = useState<string>('all')
-  const [filterCategory, setFilterCategory] = useState<string>('all')
-  const [filterBrand, setFilterBrand] = useState<string>('')
-  const [filterStartDate, setFilterStartDate] = useState<string>('')
-  const [filterEndDate, setFilterEndDate] = useState<string>('')
-  const [filterMinRevenue, setFilterMinRevenue] = useState<string>('')
-  const [filterMaxRevenue, setFilterMaxRevenue] = useState<string>('')
 
   // API Queries
   const { data, isLoading, isFetching } = useQuery({
@@ -98,13 +88,9 @@ const FlashSalesPage: React.FC = () => {
       const st = getSaleStatus(sale)
       if (filterStatus !== 'all' && st !== filterStatus) return false
       if (filterChannel !== 'all' && sale.channel_scope && sale.channel_scope !== filterChannel) return false
-      if (filterCategory !== 'all' && sale.category && sale.category !== filterCategory) return false
-      if (filterBrand && sale.brand && !sale.brand.toLowerCase().includes(filterBrand.toLowerCase())) return false
-      if (filterStartDate && sale.starts_at && new Date(sale.starts_at) < new Date(filterStartDate)) return false
-      if (filterEndDate && sale.ends_at && new Date(sale.ends_at) > new Date(filterEndDate)) return false
       return true
     })
-  }, [salesRaw, filterStatus, filterChannel, filterCategory, filterBrand, filterStartDate, filterEndDate])
+  }, [salesRaw, filterStatus, filterChannel])
 
   // Enterprise Dynamic Analytics Calculations
   const analytics: FlashSaleAnalytics = useMemo(() => {
@@ -212,19 +198,6 @@ const FlashSalesPage: React.FC = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['flash-sales'] })
       toast.success(t('toast.created', { item: t('nav.flashSales', 'Flash Sale') }))
-      closeModal()
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('toast.error', 'Operation failed.'))
-    },
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => marketingService.updateFlashSale(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['flash-sales'] })
-      toast.success(t('toast.updated', { item: t('nav.flashSales', 'Flash Sale') }))
-      closeModal()
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? t('toast.error', 'Operation failed.'))
@@ -250,26 +223,23 @@ const FlashSalesPage: React.FC = () => {
       marketingService.updateFlashSale(id, { is_active }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['flash-sales'] })
-      toast.success('Flash sale campaign status updated.')
+      toast.success(t('marketing.statusUpdatedSuccess', 'Campaign status updated successfully.'))
     },
     onError: () => {
-      toast.error('Failed to update flash sale status.')
+      toast.error(t('marketing.statusUpdatedFailed', 'Failed to update campaign status.'))
     },
   })
 
-  // Modal handlers
+  // Navigation handlers
   const openCreateModal = () => {
-    setEditingSale(null)
-    setModalOpen(true)
+    navigate('/marketing/flash-sales/create')
   }
 
   const openEditModal = (sale: FlashSale) => {
-    setEditingSale(sale)
-    setModalOpen(true)
+    navigate(`/marketing/flash-sales/${sale.id}/edit`, { state: { sale } })
   }
 
   const handleDuplicate = (sale: FlashSale) => {
-    setEditingSale(null)
     createMutation.mutate({
       name: `${sale.name} (Copy)`,
       description: sale.description,
@@ -280,20 +250,7 @@ const FlashSalesPage: React.FC = () => {
       is_active: true,
       products: sale.products,
     })
-    toast.info('Campaign duplicated successfully.')
-  }
-
-  const closeModal = () => {
-    setModalOpen(false)
-    setEditingSale(null)
-  }
-
-  const handleFormSubmit = (payload: any) => {
-    if (editingSale) {
-      updateMutation.mutate({ id: editingSale.id, data: payload })
-    } else {
-      createMutation.mutate(payload)
-    }
+    toast.success(t('marketing.duplicateSuccess', 'Campaign duplicated successfully.'))
   }
 
   // CSV Export & Import Handlers
@@ -348,85 +305,91 @@ const FlashSalesPage: React.FC = () => {
     }
   }
 
-  const hasActiveFilters =
-    filterStatus !== 'all' ||
-    filterChannel !== 'all' ||
-    filterCategory !== 'all' ||
-    filterBrand !== '' ||
-    filterStartDate !== '' ||
-    filterEndDate !== ''
-
   const resetAllFilters = () => {
     setFilterStatus('all')
     setFilterChannel('all')
-    setFilterCategory('all')
-    setFilterBrand('')
-    setFilterStartDate('')
-    setFilterEndDate('')
-    setFilterMinRevenue('')
-    setFilterMaxRevenue('')
     reset()
   }
+
+  const columnOptions = useMemo(
+    () => [
+      { key: 'name', label: t('marketing.colCampaignChannel', 'Campaign & Channel') },
+      { key: 'dates', label: t('marketing.colSchedule', 'Schedule (Starts / Ends)') },
+      { key: 'productsCount', label: t('marketing.colProductsQuota', 'Products & Quota') },
+      { key: 'performance', label: t('marketing.colPerformance', 'Performance') },
+      { key: 'status', label: t('common.status', 'Status') },
+      { key: 'actions', label: t('common.actions', 'Actions') },
+    ],
+    [t]
+  )
 
   return (
     <div className="space-y-5 print:p-0">
       <Breadcrumb
         items={[
           { label: t('nav.marketingManagement', t('nav.marketing', 'Marketing')), path: '/marketing/promotions' },
-          { label: t('marketing.flashSales', 'Flash Sales') },
+          { label: t('nav.flashSales', 'Flash Sales') },
         ]}
       />
 
-      {/* ── 2. FRAMELESS HERO HEADER ────────────────────────────────────────── */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 py-1 print:hidden">
-        <div className="space-y-1 min-w-0 flex-1 z-10">
-          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
-            Flash Sales Management
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-            Manage limited-time rush campaigns, product-level quota allocations, dual currency pricing ($ / ៛), session countdowns, and omnichannel POS synchronization.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap w-full xl:w-auto xl:justify-end shrink-0 z-10">
-          <button
-            onClick={() => setSimulatorOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-all shadow-2xs cursor-pointer"
-          >
-            <Calculator size={14} />
-            <span>Live Price Simulator</span>
-          </button>
-          <ImportButton onClick={() => setImportModalOpen(true)} />
-          <ExportButton onClick={handleExportCSV} />
-          <AddButton
-            label="Create Flash Sale"
-            onClick={openCreateModal}
-          />
-        </div>
-      </div>
+      {/* ── 2. PAGE HEADER ─────────────────────────────────────────────────── */}
+      <PageHeader
+        title={t('marketing.flashSalesTitle', 'Flash Sales Management')}
+        subtitle={t(
+          'marketing.flashSalesSubtitle',
+          'Manage limited-time rush campaigns, product-level quota allocations, dual currency pricing ($ / ៛), session countdowns, and omnichannel POS synchronization.'
+        )}
+        action={
+          <HeaderActionsGroup>
+            <ImportButton
+              onClick={() => setImportModalOpen(true)}
+              label={t('common.importCsv', 'Import CSV')}
+            />
+            <ExportButton
+              onClick={handleExportCSV}
+              label={t('common.exportCsv', 'Export CSV')}
+            />
+            <AddButton
+              label={t('marketing.createFlashSale', 'Create Flash Sale')}
+              onClick={openCreateModal}
+            />
+          </HeaderActionsGroup>
+        }
+      />
 
       {/* ── 3. KPI STATS CARDS ─────────────────────────────────────────────── */}
       <FlashSaleStatsCards analytics={analytics} />
 
-      {/* ── 4. TABLE TOOLBAR ───────────────────────────────────────────────── */}
-      <TableToolbar
+      {/* ── 4. SEARCH & FILTER TOOLBAR ─────────────────────────────────────── */}
+      <FlashSaleSearchBar
         search={search}
-        onSearchChange={setSearch}
-        searchPlaceholder={t('marketing.searchFlashSalesPlaceholder', 'Search flash sale, product, SKU, brand...')}
-        onFilterClick={() => setFilterDrawerOpen(true)}
-        isFilterActive={hasActiveFilters}
+        onSearchChange={(val) => {
+          setSearch(val)
+          setPage(1)
+        }}
+        statusFilter={filterStatus}
+        onStatusChange={(val) => {
+          setFilterStatus(val)
+          setPage(1)
+        }}
+        channelFilter={filterChannel}
+        onChannelChange={(val) => {
+          setFilterChannel(val)
+          setPage(1)
+        }}
         onReset={resetAllFilters}
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['flash-sales'] })}
-        refreshLoading={isFetching}
-        columns={[
-          { key: 'name', label: t('marketing.campaignName', 'Campaign & Channel') },
-          { key: 'dates', label: t('marketing.startEndDates', 'Schedule (Starts / Ends)') },
-          { key: 'productsCount', label: t('marketing.productsCount', 'Products & Quotas') },
-          { key: 'performance', label: t('marketing.performance', 'Performance') },
-          { key: 'status', label: t('common.status', 'Status') },
-        ]}
+        columns={columnOptions}
         visibleColumns={visibleColumns}
+        defaultVisibleColumns={{
+          name: true,
+          dates: true,
+          productsCount: true,
+          performance: true,
+          status: true,
+          actions: true,
+        }}
         onColumnChange={setVisibleColumns}
+        columnSettingsTitle={t('tables.manageTable', 'Manage Table')}
       />
 
       {/* ── 5. DATA TABLE SECTION ───────────────────────────────────────────── */}
@@ -453,15 +416,6 @@ const FlashSalesPage: React.FC = () => {
         getSaleStatus={getSaleStatus}
       />
 
-      {/* ── 6. CREATE / EDIT FLASH SALE MODAL ───────────────────────────────── */}
-      <FlashSaleFormModal
-        isOpen={modalOpen}
-        onClose={closeModal}
-        editingSale={editingSale}
-        onSubmit={handleFormSubmit}
-        isSubmitting={createMutation.isPending || updateMutation.isPending}
-      />
-
       {/* ── 7. FLASH SALE DETAIL DRAWER ─────────────────────────────────────── */}
       <FlashSaleDetailDrawer
         sale={detailDrawerSale}
@@ -471,37 +425,7 @@ const FlashSalesPage: React.FC = () => {
         getSaleStatus={getSaleStatus}
       />
 
-      {/* ── 8. ADVANCED FILTER DRAWER ───────────────────────────────────────── */}
-      <FlashSaleFilterDrawer
-        isOpen={filterDrawerOpen}
-        onClose={() => setFilterDrawerOpen(false)}
-        filterStatus={filterStatus}
-        setFilterStatus={setFilterStatus}
-        filterChannel={filterChannel}
-        setFilterChannel={setFilterChannel}
-        filterCategory={filterCategory}
-        setFilterCategory={setFilterCategory}
-        filterBrand={filterBrand}
-        setFilterBrand={setFilterBrand}
-        filterStartDate={filterStartDate}
-        setFilterStartDate={setFilterStartDate}
-        filterEndDate={filterEndDate}
-        setFilterEndDate={setFilterEndDate}
-        filterMinRevenue={filterMinRevenue}
-        setFilterMinRevenue={setFilterMinRevenue}
-        filterMaxRevenue={filterMaxRevenue}
-        setFilterMaxRevenue={setFilterMaxRevenue}
-        onReset={resetAllFilters}
-      />
-
-      {/* ── 9. FLASH SALE LIVE SIMULATOR MODAL ──────────────────────────────── */}
-      <FlashSaleSimulatorModal
-        isOpen={simulatorOpen}
-        onClose={() => setSimulatorOpen(false)}
-        activeSales={salesRaw}
-      />
-
-      {/* ── 10. CSV IMPORT MODAL ────────────────────────────────────────────── */}
+      {/* ── 8. CSV IMPORT MODAL ────────────────────────────────────────────── */}
       <FlashSaleImportModal
         isOpen={importModalOpen}
         onClose={() => {
@@ -520,8 +444,8 @@ const FlashSalesPage: React.FC = () => {
       {/* ── 11. CONFIRM DELETE DIALOG ────────────────────────────────────────── */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title={t('confirm.deleteTitle', { item: 'Flash Sale' })}
-        message={t('confirm.deleteMessage', { item: 'Flash Sale', name: deleteTarget?.name })}
+        title={t('confirm.deleteTitle', { item: t('nav.flashSales', 'Flash Sale') })}
+        message={t('confirm.deleteMessage', { item: t('nav.flashSales', 'Flash Sale'), name: deleteTarget?.name })}
         confirmText={t('confirm.confirmDelete', 'Delete')}
         loading={deleteMutation.isPending}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}

@@ -18,7 +18,6 @@ class Company extends Model
     use HasFactory, SoftDeletes, LogsActivity, SoftDeletesEnterprise, CleansStorageFiles, NormalizesAttributes;
 
     protected $fillable = [
-        'primary_owner_id',
         'name', 'slug', 'email', 'phone', 'website',
         'address', 'city', 'province', 'country', 'postal_code',
         'tax_number', 'logo', 'currency_code', 'timezone', 'language',
@@ -26,7 +25,6 @@ class Company extends Model
     ];
 
     protected $casts = [
-        'primary_owner_id' => 'integer',
         'is_active' => 'boolean',
         'settings'  => 'array',
     ];
@@ -86,66 +84,11 @@ class Company extends Model
         return $this->hasMany(\App\Models\Marketing\Promotion::class);
     }
 
-    public function primaryOwner(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    /**
+     * Business owner check - no plan limits in single-business mode.
+     */
+    public function isUnlimited(): bool
     {
-        return $this->belongsTo(\App\Models\User::class, 'primary_owner_id');
-    }
-
-    public function subscriptions(): HasMany
-    {
-        return $this->hasMany(Subscription::class);
-    }
-
-    public function subscription(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(Subscription::class)->latestOfMany();
-    }
-
-    public function invoices(): HasMany
-    {
-        return $this->hasMany(SubscriptionInvoice::class);
-    }
-
-    public function currentPlan(): ?Plan
-    {
-        return $this->subscription?->plan;
-    }
-
-    public function hasActiveSubscription(): bool
-    {
-        $sub = $this->subscription;
-        return $sub ? $sub->isActive() : false;
-    }
-
-    public function canUseFeature(string $featureKey): bool
-    {
-        $plan = $this->currentPlan();
-        if (!$plan) {
-            return false;
-        }
-        return $plan->hasFeature($featureKey);
-    }
-
-    public function checkLimit(string $limitKey, int $currentCount): bool
-    {
-        $plan = $this->currentPlan();
-        if (!$plan) {
-            return false;
-        }
-
-        $limit = match ($limitKey) {
-            'branches'   => $plan->max_branches,
-            'users'      => $plan->max_users,
-            'warehouses' => $plan->max_warehouses,
-            'products'   => $plan->max_products,
-            'orders'     => $plan->max_orders_per_month,
-            default      => -1,
-        };
-
-        if ($limit === -1) {
-            return true; // Unlimited
-        }
-
-        return $currentCount < $limit;
+        return true; // Single business mode — no SaaS limits
     }
 }

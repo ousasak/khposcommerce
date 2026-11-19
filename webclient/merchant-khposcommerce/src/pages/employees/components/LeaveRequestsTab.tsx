@@ -132,6 +132,16 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
   const [formStartDate, setFormStartDate] = useState(new Date().toISOString().split('T')[0])
   const [formEndDate, setFormEndDate] = useState(new Date().toISOString().split('T')[0])
   const [formReason, setFormReason] = useState('')
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({})
+
+  const handleClearCreateError = (key: string) => {
+    setCreateErrors(prev => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
 
   // ─── Queries ───────────────────────────────────────────────────────────────
   const {
@@ -256,8 +266,18 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
       setFormStartDate(new Date().toISOString().split('T')[0])
       setFormEndDate(new Date().toISOString().split('T')[0])
       setFormReason('')
+      setCreateErrors({})
     },
     onError: (err: any) => {
+      if (err?.response?.status === 422 && err?.response?.data?.errors) {
+        const apiErrors: Record<string, string> = {}
+        Object.entries(err.response.data.errors).forEach(([k, v]) => {
+          apiErrors[k] = Array.isArray(v) ? (v[0] as string) : String(v)
+        })
+        setCreateErrors(apiErrors)
+        focusFirstInvalidField(apiErrors)
+        return
+      }
       toast.error(err?.response?.data?.message || t('employees.error_creating_leave', 'Failed to submit leave request'))
     },
   })
@@ -266,10 +286,29 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    const newErrors: Record<string, string> = {}
     if (!formEmployeeId) {
-      toast.error(t('employees.please_select_employee', 'Please select an employee'))
+      newErrors.employee_id = t('employees.errors.employeeRequired', 'Please select an employee')
+    }
+    if (!formLeaveType) {
+      newErrors.leave_type = t('employees.errors.leaveTypeRequired', 'Please select leave type')
+    }
+    if (!formStartDate) {
+      newErrors.start_date = t('employees.errors.startDateRequired', 'Please select start date')
+    }
+    if (!formEndDate) {
+      newErrors.end_date = t('employees.errors.endDateRequired', 'Please select end date')
+    } else if (formStartDate && formEndDate && formStartDate > formEndDate) {
+      newErrors.end_date = t('employees.errors.endDateAfterStartDate', 'End date cannot be earlier than start date')
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setCreateErrors(newErrors)
+      focusFirstInvalidField(newErrors)
       return
     }
+
     createMutation.mutate({
       employee_id: Number(formEmployeeId),
       leave_type: formLeaveType,
@@ -861,33 +900,45 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
           onClose={() => setIsCreateOpen(false)}
         />
 
-        <form onSubmit={handleCreateSubmit}>
+        <form onSubmit={handleCreateSubmit} noValidate>
           <div className="p-5 space-y-4">
             {/* Employee Selection */}
             <FormField
               label={t('employees.select_employee_label', 'Employee')}
               required
+              error={createErrors.employee_id}
             >
-              <ModernSelect
-                value={formEmployeeId}
-                onChange={setFormEmployeeId}
-                options={employeeSelectOptions}
-                placeholder={t('employees.select_employee', '-- Select Employee --')}
-                searchable
-              />
+              <div id="employee_id">
+                <ModernSelect
+                  value={formEmployeeId}
+                  onChange={(val) => {
+                    setFormEmployeeId(val)
+                    handleClearCreateError('employee_id')
+                  }}
+                  options={employeeSelectOptions}
+                  placeholder={t('employees.select_employee', '-- Select Employee --')}
+                  searchable
+                />
+              </div>
             </FormField>
 
             {/* Leave Type */}
             <FormField
               label={t('employees.leave_type', 'Leave Type')}
               required
+              error={createErrors.leave_type}
             >
-              <ModernSelect
-                value={formLeaveType}
-                onChange={setFormLeaveType}
-                options={leaveTypeSelectOptions}
-                placeholder={t('employees.select_leave_type', 'Select Leave Type')}
-              />
+              <div id="leave_type">
+                <ModernSelect
+                  value={formLeaveType}
+                  onChange={(val) => {
+                    setFormLeaveType(val)
+                    handleClearCreateError('leave_type')
+                  }}
+                  options={leaveTypeSelectOptions}
+                  placeholder={t('employees.select_leave_type', 'Select Leave Type')}
+                />
+              </div>
             </FormField>
 
             {/* Date Range */}
@@ -895,25 +946,37 @@ export const LeaveRequestsTab: React.FC<LeaveRequestsTabProps> = ({
               <FormField
                 label={t('employees.start_date', 'From Date')}
                 required
+                error={createErrors.start_date}
               >
-                <EnterpriseDatePicker
-                  value={formStartDate}
-                  onChange={(val) => setFormStartDate(val || '')}
-                  placeholder="YYYY-MM-DD"
-                  clearable={false}
-                />
+                <div id="start_date">
+                  <EnterpriseDatePicker
+                    value={formStartDate}
+                    onChange={(val) => {
+                      setFormStartDate(val || '')
+                      handleClearCreateError('start_date')
+                    }}
+                    placeholder="YYYY-MM-DD"
+                    clearable={false}
+                  />
+                </div>
               </FormField>
 
               <FormField
                 label={t('employees.end_date', 'To Date')}
                 required
+                error={createErrors.end_date}
               >
-                <EnterpriseDatePicker
-                  value={formEndDate}
-                  onChange={(val) => setFormEndDate(val || '')}
-                  placeholder="YYYY-MM-DD"
-                  clearable={false}
-                />
+                <div id="end_date">
+                  <EnterpriseDatePicker
+                    value={formEndDate}
+                    onChange={(val) => {
+                      setFormEndDate(val || '')
+                      handleClearCreateError('end_date')
+                    }}
+                    placeholder="YYYY-MM-DD"
+                    clearable={false}
+                  />
+                </div>
               </FormField>
             </div>
 

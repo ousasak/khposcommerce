@@ -14,7 +14,7 @@ export const WarehouseStatsCards: React.FC<WarehouseStatsCardsProps> = ({
   total,
   isLoading = false,
 }) => {
-  const { t } = useTranslation(['settings', 'common'])
+  const { t } = useTranslation(['company', 'settings', 'common'])
 
   const stats = useMemo(() => {
     const totalCount = total !== undefined ? total : warehouses.length
@@ -35,18 +35,18 @@ export const WarehouseStatsCards: React.FC<WarehouseStatsCardsProps> = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 print:hidden">
       <StatCard
-        title={t('warehouses.statsTotal', 'Total Warehouses')}
+        title={t('company.statsTotalWarehouses', 'Total Warehouses')}
         value={stats.totalCount}
-        suffix={` ${t('warehouses.warehouseUnit', 'depots')}`}
+        suffix={` ${t('company.unitWarehouses', 'depots')}`}
         useCounter={true}
         icon={Warehouse}
         variant="primary"
         loading={isLoading}
       />
       <StatCard
-        title={t('warehouses.statsActive', 'Active Facilities')}
+        title={t('company.statsActiveWarehouses', 'Active Facilities')}
         value={stats.activeCount}
-        suffix={` ${t('warehouses.activeUnit', 'active')}`}
+        suffix={` ${t('company.unitActive', 'active')}`}
         useCounter={true}
         icon={CheckCircle2}
         variant="emerald"
@@ -54,22 +54,22 @@ export const WarehouseStatsCards: React.FC<WarehouseStatsCardsProps> = ({
         change={{
           value: stats.activeRate,
           trend: 'up',
-          label: t('warehouses.activeRate', 'ratio'),
+          label: t('company.unitRatio', 'ratio'),
         }}
       />
       <StatCard
-        title={t('warehouses.statsMain', 'Main / Central Depots')}
+        title={t('company.statsMainWarehouses', 'Main / Central Depots')}
         value={stats.mainWarehouses}
-        suffix={` ${t('warehouses.mainUnit', 'central')}`}
+        suffix={` ${t('company.unitCentral', 'central')}`}
         useCounter={true}
         icon={Star}
         variant="purple"
         loading={isLoading}
       />
       <StatCard
-        title={t('warehouses.statsCities', 'Covered Regions')}
+        title={t('company.statsCoveredRegions', 'Covered Regions')}
         value={stats.citiesCount}
-        suffix={` ${t('warehouses.regionsUnit', 'regions')}`}
+        suffix={` ${t('company.unitRegions', 'regions')}`}
         useCounter={true}
         icon={MapPin}
         variant="blue"

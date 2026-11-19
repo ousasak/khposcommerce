@@ -13,10 +13,17 @@ export const marketingService = {
       headers: formData instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
     }).then(r => r.data.data || r.data),
 
-  updateBanner: (id: number, formData: FormData | Record<string, any>) =>
-    api.post(`/banners/${id}`, formData, {
-      headers: formData instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
-    }).then(r => r.data.data || r.data),
+  updateBanner: (id: number, payload: FormData | Record<string, any>) => {
+    if (payload instanceof FormData) {
+      if (!payload.has('_method')) {
+        payload.append('_method', 'PUT')
+      }
+      return api.post(`/banners/${id}`, payload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then(r => r.data.data || r.data)
+    }
+    return api.put(`/banners/${id}`, payload).then(r => r.data.data || r.data)
+  },
 
   deleteBanner: (id: number) =>
     api.delete(`/banners/${id}`).then(r => r.data),
@@ -43,12 +50,18 @@ export const marketingService = {
   getPromotionCampaignUsages: (id: number, params: Record<string, any> = {}) =>
     api.get(`/promotion-campaigns/${id}/usages`, { params }).then(r => r.data.data || r.data),
 
+  getPromotionUsages: (params: Record<string, any> = {}) =>
+    api.get('/promotion-usages', { params }).then(r => r.data),
+
   // Central Pricing Engine API
   calculatePricing: (payload: {
     company_id?: number
     branch_id?: number
     channel?: 'pos' | 'web' | 'mobile'
     customer_id?: number
+    customer_group_id?: number
+    simulated_at?: string
+    exchange_rate?: number
     items: Array<{ product_id: number; product_variant_id?: number; quantity: number; unit_price?: number }>
     coupon_code?: string
     tax_rate?: number
@@ -59,6 +72,7 @@ export const marketingService = {
     subtotal: number
     customer_id?: number
     branch_id?: number
+    simulated_at?: string
   }) => api.post('/pricing/validate-coupon', payload).then(r => r.data.data || r.data),
 
   // Promotions (Legacy compatibility)

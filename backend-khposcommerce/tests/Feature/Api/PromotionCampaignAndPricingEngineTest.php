@@ -289,4 +289,29 @@ class PromotionCampaignAndPricingEngineTest extends TestCase
             'discount_amount'       => 50.00,
         ]);
     }
+
+    public function test_pricing_engine_supports_simulation_diagnostics_and_margin(): void
+    {
+        $engine = app(PricingEngineService::class);
+
+        $result = $engine->calculate([
+            'company_id'        => $this->company->id,
+            'branch_id'         => $this->branchPP->id,
+            'channel'           => 'pos',
+            'simulated_at'      => now()->toIso8601String(),
+            'exchange_rate'     => 4100.0,
+            'items'             => [
+                ['product_id' => $this->iphone->id, 'quantity' => 2, 'unit_price' => 1000.00],
+            ],
+            'coupon_code'       => 'NONEXISTENT',
+        ]);
+
+        $this->assertTrue($result['success']);
+        $this->assertArrayHasKey('margin', $result);
+        $this->assertEquals(1600.00, $result['margin']['total_cost']);
+        $this->assertArrayHasKey('currency', $result);
+        $this->assertEquals(4100.0, $result['currency']['exchange_rate']);
+        $this->assertArrayHasKey('skipped_rules', $result);
+        $this->assertNotEmpty($result['skipped_rules']);
+    }
 }

@@ -240,8 +240,8 @@ export const useAuthStore = create<AuthState>()(
       hasPermission: (permission) => {
         const user = get().user
         if (!user) return false
-        // Super admin has full bypass
-        if (user.roles?.includes('super_admin')) return true
+        // Owner and Super admin have full bypass
+        if (user.roles?.includes('owner') || user.roles?.includes('super_admin')) return true
 
         const userPermissions = user.permissions ?? []
         if (Array.isArray(permission)) {
@@ -257,7 +257,7 @@ export const useAuthStore = create<AuthState>()(
       hasAnyPermission: (permissions) => {
         const user = get().user
         if (!user) return false
-        if (user.roles?.includes('super_admin')) return true
+        if (user.roles?.includes('owner') || user.roles?.includes('super_admin')) return true
         if (!Array.isArray(permissions) || permissions.length === 0) return true
 
         const userPermissions = user.permissions ?? []
@@ -270,7 +270,7 @@ export const useAuthStore = create<AuthState>()(
       hasAllPermissions: (permissions) => {
         const user = get().user
         if (!user) return false
-        if (user.roles?.includes('super_admin')) return true
+        if (user.roles?.includes('owner') || user.roles?.includes('super_admin')) return true
         if (!Array.isArray(permissions) || permissions.length === 0) return true
 
         const userPermissions = user.permissions ?? []

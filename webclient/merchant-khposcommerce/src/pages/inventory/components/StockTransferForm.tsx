@@ -20,7 +20,8 @@ import { companyService } from '@/services/companyService'
 import { productService } from '@/services/productService'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/hooks/useToast'
-import { FormLayout, FormContent, FormCard, FormHeader, FormFooter } from '@/components/common'
+import { FormLayout, FormContent, FormCard, FormHeader, FormFooter, FormField, FieldError, getFieldClass } from '@/components/common'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 
 interface StockTransferFormProps {
   transferId?: number | null
@@ -61,6 +62,16 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
     quantity_received?: number
     product?: any
   }>>([])
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    setErrors(prev => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
 
   // Queries
   const { data: detail, isLoading: loadingDetail } = useQuery({
@@ -162,6 +173,15 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
       handleClose()
     },
     onError: (err: any) => {
+      if (err?.response?.status === 422 && err?.response?.data?.errors) {
+        const apiErrors: Record<string, string> = {}
+        Object.entries(err.response.data.errors).forEach(([k, v]) => {
+          apiErrors[k] = Array.isArray(v) ? (v[0] as string) : String(v)
+        })
+        setErrors(apiErrors)
+        focusFirstInvalidField(apiErrors)
+        return
+      }
       toast.error(err?.response?.data?.message || t('common.saveFailed', 'Failed to save transfer'))
     }
   })
@@ -194,6 +214,7 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
 
   // Handlers
   const handleAddProductToItems = (prod: any) => {
+    handleClearError('items')
     const existingIndex = items.findIndex(it => String(it.product_id) === String(prod.id))
     if (existingIndex >= 0) {
       setItems(prev => {
@@ -210,6 +231,7 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
   }
 
   const handleAddItem = () => {
+    handleClearError('items')
     setItems(prev => [...prev, { product_id: '', variant_id: '', quantity: 1 }])
   }
 
@@ -218,6 +240,7 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
   }
 
   const handleItemChange = (index: number, field: string, value: any) => {
+    handleClearError('items')
     setItems(prev => {
       const next = [...prev]
       const current = { ...next[index], [field]: value }
@@ -245,19 +268,24 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
 
-    if (!fromWarehouseId || !toWarehouseId) {
-      toast.error(t('selectBothWarehouses', 'Please select both source and destination warehouses.'))
-      return
+    const newErrors: Record<string, string> = {}
+    if (!fromWarehouseId) {
+      newErrors.from_warehouse_id = t('inventory.errors.fromWarehouseRequired', 'Please select source warehouse')
     }
-
-    if (isSameWarehouse) {
-      toast.error(t('sameWarehouseWarning', 'Source and destination warehouses must be different!'))
-      return
+    if (!toWarehouseId) {
+      newErrors.to_warehouse_id = t('inventory.errors.toWarehouseRequired', 'Please select destination warehouse')
+    } else if (fromWarehouseId && fromWarehouseId === toWarehouseId) {
+      newErrors.to_warehouse_id = t('inventory.errors.sameWarehouse', 'Source and destination warehouses must be different!')
     }
 
     const validItems = items.filter(it => !!it.product_id && (parseFloat(String(it.quantity)) || 0) > 0)
     if (validItems.length === 0) {
-      toast.error(t('addAtLeastOneItemHint', 'Please add at least 1 item to proceed'))
+      newErrors.items = t('inventory.errors.itemsRequired', 'Please add at least 1 item to proceed')
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
       return
     }
 
@@ -421,19 +449,32 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
             ) : (
               <div className="space-y-4">
                 {/* Source Warehouse Select */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-foreground flex items-center justify-between">
-                    <span>{t('from_warehouse', 'Source Warehouse (Ship From)')} <span className="text-rose-500">*</span></span>
-                    {fromWarehouseObj && (
-                      <span className="text-[10px] text-primary font-mono font-semibold">
-                        Code: {fromWarehouseObj.code || `WH-${fromWarehouseObj.id}`}
-                      </span>
-                    )}
-                  </label>
+                <FormField
+                  label={
+                    <div className="flex items-center justify-between w-full">
+                      <span>{t('from_warehouse', 'Source Warehouse (Ship From)')}</span>
+                      {fromWarehouseObj && (
+                        <span className="text-[10px] text-primary font-mono font-semibold">
+                          Code: {fromWarehouseObj.code || `WH-${fromWarehouseObj.id}`}
+                        </span>
+                      )}
+                    </div>
+                  }
+                  required
+                  error={errors.from_warehouse_id}
+                >
                   <select
+                    id="from_warehouse_id"
+                    name="from_warehouse_id"
                     value={fromWarehouseId}
-                    onChange={(e) => setFromWarehouseId(e.target.value)}
-                    className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 font-medium focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer dark:[color-scheme:dark]"
+                    onChange={(e) => {
+                      setFromWarehouseId(e.target.value)
+                      handleClearError('from_warehouse_id')
+                      if (errors.to_warehouse_id && e.target.value !== toWarehouseId) {
+                        handleClearError('to_warehouse_id')
+                      }
+                    }}
+                    className={getFieldClass(errors.from_warehouse_id, "w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 font-medium focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer dark:[color-scheme:dark]")}
                   >
                     <option value="" className="dark:bg-slate-900">{t('selectSourceWarehouse', 'Select source warehouse...')}</option>
                     {(warehouses ?? []).map((w: any) => (
@@ -442,7 +483,7 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
                       </option>
                     ))}
                   </select>
-                </div>
+                </FormField>
 
                 {/* Route Visual Connector */}
                 <div className="flex items-center justify-center gap-2 py-0.5 text-muted-foreground/60">
@@ -454,19 +495,29 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
                 </div>
 
                 {/* Destination Warehouse Select */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-foreground flex items-center justify-between">
-                    <span>{t('to_warehouse', 'Destination Warehouse (Receive At)')} <span className="text-rose-500">*</span></span>
-                    {toWarehouseObj && (
-                      <span className="text-[10px] text-primary font-mono font-semibold">
-                        Code: {toWarehouseObj.code || `WH-${toWarehouseObj.id}`}
-                      </span>
-                    )}
-                  </label>
+                <FormField
+                  label={
+                    <div className="flex items-center justify-between w-full">
+                      <span>{t('to_warehouse', 'Destination Warehouse (Receive At)')}</span>
+                      {toWarehouseObj && (
+                        <span className="text-[10px] text-primary font-mono font-semibold">
+                          Code: {toWarehouseObj.code || `WH-${toWarehouseObj.id}`}
+                        </span>
+                      )}
+                    </div>
+                  }
+                  required
+                  error={errors.to_warehouse_id}
+                >
                   <select
+                    id="to_warehouse_id"
+                    name="to_warehouse_id"
                     value={toWarehouseId}
-                    onChange={(e) => setToWarehouseId(e.target.value)}
-                    className="w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 font-medium focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer dark:[color-scheme:dark]"
+                    onChange={(e) => {
+                      setToWarehouseId(e.target.value)
+                      handleClearError('to_warehouse_id')
+                    }}
+                    className={getFieldClass(errors.to_warehouse_id, "w-full h-10 min-h-[40px] px-3.5 py-2 text-xs sm:text-[13px] rounded-lg border border-border/80 dark:border-slate-700/80 bg-background dark:bg-slate-900/90 text-foreground dark:text-slate-100 font-medium focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer dark:[color-scheme:dark]")}
                   >
                     <option value="" className="dark:bg-slate-900">{t('selectDestinationWarehouse', 'Select destination warehouse...')}</option>
                     {(warehouses ?? []).map((w: any) => (
@@ -475,7 +526,7 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
                       </option>
                     ))}
                   </select>
-                </div>
+                </FormField>
 
                 {isSameWarehouse && (
                   <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2">
@@ -938,6 +989,12 @@ export const StockTransferForm: React.FC<StockTransferFormProps> = ({ transferId
                 </table>
               </div>
             </div>
+
+            {errors.items && (
+              <div id="items">
+                <FieldError error={errors.items} />
+              </div>
+            )}
 
             {/* Bottom Summary Bar */}
             <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs">

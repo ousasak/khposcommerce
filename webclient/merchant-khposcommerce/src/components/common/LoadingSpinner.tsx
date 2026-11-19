@@ -3,10 +3,10 @@ import { useTranslation } from 'react-i18next'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
-type SpinnerVariant = 'dots' | 'ring' | 'pulse'
+export type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+export type SpinnerVariant = 'dots' | 'ring' | 'pulse'
 
-interface LoadingSpinnerProps {
+export interface LoadingSpinnerProps {
   size?: SpinnerSize
   variant?: SpinnerVariant
   label?: string

@@ -219,7 +219,6 @@ const NAV_GROUPS: NavGroup[] = [
           { labelKey: 'nav.cmsFaqs',          path: '/cms/faqs',          permission: 'page.view' },
           { labelKey: 'nav.cmsAnnouncements', path: '/cms/announcements', permission: 'page.view' },
           { labelKey: 'nav.cmsTestimonials',  path: '/cms/testimonials',  permission: 'page.view' },
-          { labelKey: 'nav.cmsMedia',         path: '/cms/media',         permission: 'page.view' },
         ],
       },
     ],
@@ -234,7 +233,6 @@ const NAV_GROUPS: NavGroup[] = [
         permission: 'promotion.view',
         children: [
           { labelKey: 'nav.promotions', path: '/marketing/promotions', permission: 'promotion.view' },
-          { labelKey: 'nav.discountRules', path: '/marketing/discount-rules', permission: 'promotion.view' },
           { labelKey: 'nav.coupons', path: '/marketing/coupons', permission: 'coupon.view' },
           { labelKey: 'nav.usageHistory', path: '/marketing/usage-history', permission: 'promotion.view' },
           { labelKey: 'nav.pricingSimulator', path: '/marketing/pricing-simulator', permission: 'promotion.view' },
@@ -263,13 +261,8 @@ const NAV_GROUPS: NavGroup[] = [
       {
         labelKey: 'nav.companyManagement',
         icon: <Building2 size={17} />,
+        path: '/company',
         permission: ['company.view', 'branch.view', 'store.view', 'warehouse.view'],
-        children: [
-          { labelKey: 'nav.companyInfo', path: '/company', permission: 'company.view' },
-          { labelKey: 'nav.branches',    path: '/company/branches', permission: 'branch.view' },
-          { labelKey: 'nav.stores',      path: '/company/stores', permission: 'store.view' },
-          { labelKey: 'nav.warehouses',  path: '/company/warehouses', permission: 'warehouse.view' },
-        ],
       },
     ],
   },
@@ -547,6 +540,17 @@ export const isRouteActive = (
 
   // Legacy Purchases suppliers alias:
   if (cleanTarget === '/purchases/suppliers' && (cleanCurrent === '/suppliers' || cleanCurrent.startsWith('/suppliers/'))) {
+    return true
+  }
+
+  // Company routes & aliases:
+  if (cleanTarget === '/company' && (
+    cleanCurrent === '/company' ||
+    cleanCurrent.startsWith('/company/') ||
+    cleanCurrent === '/branches' || cleanCurrent.startsWith('/branches/') ||
+    cleanCurrent === '/stores' || cleanCurrent.startsWith('/stores/') ||
+    cleanCurrent === '/warehouses' || cleanCurrent.startsWith('/warehouses/')
+  )) {
     return true
   }
 

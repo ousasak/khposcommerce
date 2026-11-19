@@ -26,6 +26,13 @@ const LANGUAGES: LanguageOption[] = [
 // 5-Language Dictionary for Profile Popup
 const DICT = {
   roles: {
+    owner: {
+      km: 'ម្ចាស់អាជីវកម្ម 👑',
+      en: 'Business Owner 👑',
+      zh: '企业所有者 👑',
+      th: 'เจ้าของธุรกิจ 👑',
+      vi: 'Chủ sở hữu 👑',
+    },
     super_admin: {
       km: 'អ្នកគ្រប់គ្រងជាន់ខ្ពស់',
       en: 'Super Admin',

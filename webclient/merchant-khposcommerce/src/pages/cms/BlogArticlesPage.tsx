@@ -1,26 +1,25 @@
-import React, { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Trash2 } from 'lucide-react'
 import { cmsService } from '@/services/cmsService'
 import { useToast } from '@/hooks/useToast'
 import { usePermission } from '@/hooks/usePermission'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
 import { Breadcrumb } from '@/components/common'
-import { HeaderActionsGroup, AddButton, ExportButton, ImportButton, TableToolbar } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, ImportButton } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
-import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
 
 import {
-  CMSStatsCards,
   CMSFilterDrawer,
   CMSImportModal,
-  BlogArticlesTable,
+  BlogArticlesGrid,
 } from './components'
+
+const PER_PAGE = 9
 
 export const BlogArticlesPage: React.FC = () => {
   const { t } = useTranslation(['cms', 'common', 'nav', 'toast', 'confirm'])
@@ -31,26 +30,34 @@ export const BlogArticlesPage: React.FC = () => {
 
   const canCreate = hasPermission('blog.create')
 
-  // Pagination & Search
+  // Pagination & Search (9 cards per page for clean 3x3 grid)
   const {
     page,
     setPage,
-    perPage,
-    setPerPage,
     search,
     setSearch,
     debouncedSearch,
     reset,
     adjustAfterDelete,
-  } = useServerPagination({ storageKey: 'cms_blogs' })
+  } = useServerPagination({ storageKey: 'cms_blogs_grid_v9', defaultPerPage: PER_PAGE })
 
   // Filters & Sorting
+  const [searchParams] = useSearchParams()
+  const initialCategory = searchParams.get('category_id') || searchParams.get('category') || 'all'
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [filterCategory, setFilterCategory] = useState<string>(initialCategory)
   const [filterAuthor, setFilterAuthor] = useState<string>('all')
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  useEffect(() => {
+    const cat = searchParams.get('category_id') || searchParams.get('category')
+    if (cat && cat !== filterCategory) {
+      setFilterCategory(cat)
+      setPage(1)
+    }
+  }, [searchParams])
 
   // Selections
   const [selectedRows, setSelectedRows] = useState<number[]>([])
@@ -63,25 +70,14 @@ export const BlogArticlesPage: React.FC = () => {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [isImporting, setIsImporting] = useState(false)
 
-  // Column Settings
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
-    title: true,
-    category: true,
-    views: true,
-    slug: true,
-    status: true,
-    created_at: true,
-    actions: true,
-  })
-
-  // Data Fetching
+  // Data Fetching: always fetch 9 items per page
   const { data: listData, isLoading, isFetching } = useQuery({
-    queryKey: ['blogs', page, debouncedSearch, perPage, filterStatus, filterCategory, sortBy, sortOrder],
+    queryKey: ['blogs', page, debouncedSearch, PER_PAGE, filterStatus, filterCategory, sortBy, sortOrder],
     queryFn: () =>
       cmsService.getItemsByTab('blogs', {
         page,
         search: debouncedSearch,
-        per_page: perPage,
+        per_page: PER_PAGE,
         sort: sortBy,
         order: sortOrder,
         ...(filterStatus !== 'all' && { status: filterStatus }),
@@ -95,11 +91,6 @@ export const BlogArticlesPage: React.FC = () => {
     queryFn: () => cmsService.getCategories({ per_page: 100 }),
   })
 
-  const { data: cmsStats } = useQuery({
-    queryKey: ['cms-stats'],
-    queryFn: () => cmsService.getStats(),
-  })
-
   const records = listData?.data ?? []
   const pagination = listData?.pagination ?? { total: records.length, current_page: 1, last_page: 1 }
 
@@ -109,7 +100,6 @@ export const BlogArticlesPage: React.FC = () => {
       setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
     } else {
       setSortBy(column)
-      setSortOrder('desc')
     }
     setPage(1)
   }
@@ -212,62 +202,11 @@ export const BlogArticlesPage: React.FC = () => {
     reset()
   }
 
-  const activeFilterCount = useMemo(() => {
-    return [
-      filterCategory !== 'all' ? filterCategory : null,
-      filterAuthor !== 'all' ? filterAuthor : null,
-    ].filter(Boolean).length
-  }, [filterCategory, filterAuthor])
-
   const categories = categoriesData?.data ?? []
-
-  // Dynamic Workspace Status Tabs with Live Badges
-  const statusCounts = useMemo(() => {
-    const total = cmsStats?.blogs?.total ?? pagination.total ?? records.length
-    const published =
-      cmsStats?.blogs?.published ??
-      records.filter((r: any) => (r.status || 'published').toLowerCase() === 'published').length
-    const draft =
-      cmsStats?.blogs?.draft ??
-      records.filter((r: any) => (r.status || '').toLowerCase() === 'draft').length
-    const archived =
-      cmsStats?.blogs?.archived ??
-      records.filter((r: any) => (r.status || '').toLowerCase() === 'archived').length
-
-    return {
-      all: total,
-      published,
-      draft,
-      archived,
-    }
-  }, [cmsStats, pagination.total, records])
-
-  const statusTabs: WorkspaceTabItem[] = useMemo(() => [
-    {
-      id: 'all',
-      label: t('cms.allStatuses'),
-      count: statusCounts.all,
-    },
-    {
-      id: 'published',
-      label: t('cms.published'),
-      count: statusCounts.published,
-    },
-    {
-      id: 'draft',
-      label: t('cms.drafts'),
-      count: statusCounts.draft,
-    },
-    {
-      id: 'archived',
-      label: t('cms.archived'),
-      count: statusCounts.archived,
-    },
-  ], [statusCounts, t])
 
   return (
     <div className="space-y-5 print:p-0">
-      {/* ── 1. BREADCRUMB (Top, by itself) ── */}
+      {/* ── 1. BREADCRUMB ── */}
       <div className="print:hidden">
         <Breadcrumb
           items={[
@@ -277,7 +216,7 @@ export const BlogArticlesPage: React.FC = () => {
         />
       </div>
 
-      {/* ── 2. FRAMELESS HERO HEADER (Shopify Polaris / Enterprise Standard) ── */}
+      {/* ── 2. HERO HEADER ── */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 py-1 print:hidden">
         <div className="space-y-1 min-w-0 flex-1">
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
@@ -311,100 +250,29 @@ export const BlogArticlesPage: React.FC = () => {
         </HeaderActionsGroup>
       </div>
 
-      {/* ── 3. EXECUTIVE KPI OVERVIEW (GLOBAL ENTERPRISE STATS GRID) ── */}
-      <CMSStatsCards activeTab="blogs" records={records} stats={cmsStats} pagination={pagination} />
-
-      {/* ── 4. WORKSPACE STATUS TABS (Linear / Orders Standard) ── */}
-      <WorkspaceTabs
-        tabs={statusTabs}
-        activeTab={filterStatus}
-        onChange={(tabId) => {
-          setFilterStatus(tabId)
-          setPage(1)
+      {/* ── 3. CARDS GRID (9 Articles Per Page) ── */}
+      <BlogArticlesGrid
+        records={records}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        confirmDelete={(id) => {
+          setDeleteId(id)
+          setConfirmOpen(true)
         }}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
       />
 
-      {/* ── 5. GLOBAL STANDARD TABLE TOOLBAR ── */}
-      <div className="space-y-4">
-        <TableToolbar
-          search={search}
-          onSearchChange={(val) => {
-            setSearch(val)
-            setPage(1)
-          }}
-          searchPlaceholder={t('cms.searchPlaceholder')}
-          onFilterClick={() => setFilterDrawerOpen(true)}
-          filterActiveCount={activeFilterCount}
-          isFilterActive={activeFilterCount > 0 || Boolean(debouncedSearch) || filterStatus !== 'all'}
-          onReset={resetAllFilters}
-          onRefresh={() => {
-            qc.invalidateQueries({ queryKey: ['blogs'] })
-            qc.invalidateQueries({ queryKey: ['cms-stats'] })
-          }}
-          refreshLoading={isFetching}
-          columns={[
-            { key: 'title', label: t('cms.colHeadline') },
-            { key: 'category', label: t('cms.colCategory') },
-            { key: 'views', label: t('cms.cardTotalViews') },
-            { key: 'slug', label: t('cms.colSlug') },
-            { key: 'status', label: t('cms.colStatus') },
-            { key: 'created_at', label: t('common.date') },
-            { key: 'actions', label: t('cms.colActions') },
-          ]}
-          visibleColumns={visibleColumns}
-          onColumnChange={setVisibleColumns}
-          manageTableLabel={t('common.manageTable')}
-          leftActions={
-            selectedRows.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setBulkDeleteConfirmOpen(true)}
-                className="inline-flex items-center gap-1.5 h-10 min-h-[40px] max-h-[40px] px-3.5 text-xs sm:text-[13px] font-semibold bg-rose-500/10 text-rose-600 rounded-lg border border-rose-500/20 hover:bg-rose-500/20 active:scale-[0.98] transition-all cursor-pointer shrink-0 box-border leading-normal"
-              >
-                <Trash2 size={14} />
-                <span>
-                  {t('common.deleteSelected')} ({selectedRows.length})
-                </span>
-              </button>
-            ) : null
-          }
-        />
-
-        {/* Bulk Selection Banner */}
-        <BulkSelectionBanner
-          selectedCount={selectedRows.length}
-          onClear={() => setSelectedRows([])}
-          onDelete={() => setBulkDeleteConfirmOpen(true)}
-        />
-
-        {/* Data Table */}
-        <BlogArticlesTable
-          records={records}
-          isLoading={isLoading}
-          isFetching={isFetching}
-          visibleColumns={visibleColumns}
-          confirmDelete={(id) => {
-            setDeleteId(id)
-            setConfirmOpen(true)
-          }}
-          selectedRows={selectedRows}
-          onToggleSelectAll={toggleSelectAll}
-          onToggleSelectRow={toggleSelectRow}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          onSort={handleSort}
-        />
-
-        {/* Pagination */}
-        <Pagination
-          currentPage={page}
-          lastPage={pagination.last_page || 1}
-          total={pagination.total || 0}
-          perPage={perPage}
-          onPageChange={setPage}
-          onPerPageChange={setPerPage}
-        />
-      </div>
+      {/* ── 4. CENTERED PAGINATION (Matching LMS reference) ── */}
+      <Pagination
+        currentPage={page}
+        lastPage={pagination.last_page || 1}
+        total={pagination.total || 0}
+        perPage={PER_PAGE}
+        onPageChange={setPage}
+        variant="centered"
+      />
 
       {/* Filter Drawer */}
       <CMSFilterDrawer

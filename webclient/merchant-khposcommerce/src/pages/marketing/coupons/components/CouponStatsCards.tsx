@@ -1,10 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Ticket, Percent, Coins, TrendingUp, Users, Clock } from 'lucide-react'
-import { EnterpriseStatsCard, EnterpriseMiniStatsCard, EnterpriseStatsGrid } from '@/components/common'
-import { AnimatedCounter } from '@/components/shared/AnimatedCounter'
-
-export { AnimatedCounter, CircularProgressRing } from '@/components/common'
+import { Ticket, Percent, Coins, TrendingUp } from 'lucide-react'
+import { RibbonStatsCard, RibbonStatsGrid } from '@/components/common'
 
 interface CouponStatsCardsProps {
   analytics?: {
@@ -39,135 +36,101 @@ export const CouponStatsCards: React.FC<CouponStatsCardsProps> = ({ analytics = 
 
   const totalCoupons = analytics?.totalCoupons ?? 0
   const activeCoupons = analytics?.activeCoupons ?? 0
+  const expiredCoupons = analytics?.expiredCoupons ?? 0
   const expiringSoon = analytics?.expiringSoon ?? 0
   const redemptionRate = analytics?.redemptionRate ?? 0
   const totalRedeemed = analytics?.totalRedeemed ?? 0
   const couponsUsedToday = analytics?.couponsUsedToday ?? 0
-  const newCustomersCoupons = analytics?.newCustomersCoupons ?? 0
-  const totalDiscountGiven = analytics?.totalDiscountGiven ?? 0
-  const revenueGenerated = analytics?.revenueGenerated ?? 0
-  const campaignProfit = analytics?.campaignProfit ?? 0
-  const aov = analytics?.aov ?? 0
-  const roi = analytics?.roi ?? 0
-
-  const activeRatio = totalCoupons > 0 ? (activeCoupons / totalCoupons) * 100 : 0
+  const totalDiscountGiven = Number(analytics?.totalDiscountGiven ?? 0)
+  const revenueGenerated = Number(analytics?.revenueGenerated ?? 0)
+  const campaignProfit = Number(analytics?.campaignProfit ?? 0)
+  const roi = Number(analytics?.roi ?? 0)
 
   return (
-    <div className="space-y-4 print:hidden select-none">
-      {/* 4 Main Global Enterprise KPI Cards */}
-      <EnterpriseStatsGrid columns={4}>
-        {/* Card 1: Total Discount Vouchers */}
-        <EnterpriseStatsCard
-          title={t('marketing:totalCoupons', 'Discount Coupons')}
+    <div className="print:hidden select-none">
+      <RibbonStatsGrid columns={4}>
+        {/* Card 1: Total Coupons */}
+        <RibbonStatsCard
+          title={t('marketing.totalCoupons', 'ប័ណ្ណបញ្ចុះតម្លៃ')}
           value={totalCoupons}
-          subtitle={
-            <span className="flex items-center gap-1">
-              <span className="text-emerald-500 font-bold">
-                <AnimatedCounter value={activeCoupons} />
-              </span>{' '}
-              {t('marketing:active', 'active')}
-            </span>
-          }
-          progressRing={{
-            percentage: activeRatio,
-            colorClass: 'text-blue-500',
-          }}
+          useCounter={true}
           icon={Ticket}
           variant="blue"
           delay={0.05}
+          subtitle={
+            <span className="flex items-center gap-1.5 justify-end">
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {activeCoupons} {t('marketing.active', 'សកម្ម')}
+              </span>
+              <span>•</span>
+              <span className="text-rose-500 font-semibold">
+                {expiredCoupons} {t('marketing.statusExpired', 'ផុតកំណត់')}
+              </span>
+            </span>
+          }
         />
 
         {/* Card 2: Redemption Rate */}
-        <EnterpriseStatsCard
-          title={t('marketing:redemptionRate', 'Redemption Rate')}
+        <RibbonStatsCard
+          title={t('marketing.redemptionRate', 'អត្រាប្រើប្រាស់')}
           value={redemptionRate}
           suffix="%"
           decimals={1}
-          subtitle={
-            <span>
-              {t('marketing:totalRedeemed', 'Total Redeemed')}: {totalRedeemed.toLocaleString()}
-            </span>
-          }
-          progressRing={{
-            percentage: redemptionRate,
-            colorClass: 'text-purple-500',
-          }}
+          useCounter={true}
           icon={Percent}
           variant="purple"
           delay={0.1}
+          subtitle={
+            <span>
+              {t('marketing.totalRedeemed', 'បានប្រើប្រាស់')}: {totalRedeemed.toLocaleString()}
+            </span>
+          }
         />
 
         {/* Card 3: Revenue Generated */}
-        <EnterpriseStatsCard
-          title={t('marketing:revenueGenerated', 'Revenue Generated')}
+        <RibbonStatsCard
+          title={t('marketing.revenueGenerated', 'ចំណូលបានមកវិញ')}
           value={revenueGenerated}
           prefix="$"
           decimals={2}
-          subtitle={
-            <span>
-              {t('marketing:customerSavings', 'Savings')}: ${totalDiscountGiven.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
-          }
+          useCounter={true}
+          icon={TrendingUp}
+          variant="emerald"
+          delay={0.15}
           trend={{
             value: `+${roi}% ROI`,
             isPositive: true,
           }}
-          icon={Coins}
-          variant="emerald"
-          delay={0.15}
-        />
-
-        {/* Card 4: Campaign Profit */}
-        <EnterpriseStatsCard
-          title={t('marketing:campaignProfit', 'Campaign Profit')}
-          value={campaignProfit}
-          prefix="$"
-          decimals={2}
           subtitle={
-            <span>
-              AOV: ${aov.toFixed(1)}
+            <span className="font-mono">
+              ${campaignProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           }
-          trend={{
-            value: 'PROFIT',
-            isPositive: campaignProfit >= 0,
-          }}
-          icon={TrendingUp}
+        />
+
+        {/* Card 4: Customer Savings */}
+        <RibbonStatsCard
+          title={t('marketing.customerSavings', 'ការសន្សំរបស់អតិថិជន')}
+          value={totalDiscountGiven}
+          prefix="$"
+          decimals={2}
+          useCounter={true}
+          icon={Coins}
           variant="amber"
           delay={0.2}
+          subtitle={
+            <span className="flex items-center gap-1.5 justify-end">
+              <span className="text-blue-600 font-bold">
+                {couponsUsedToday} {t('marketing.usedToday', 'ប្រើថ្ងៃនេះ')}
+              </span>
+              <span>•</span>
+              <span className={expiringSoon > 0 ? 'text-amber-500 font-bold' : ''}>
+                {expiringSoon} {t('marketing.expiringSoon', 'ជិតផុតកំណត់')}
+              </span>
+            </span>
+          }
         />
-      </EnterpriseStatsGrid>
-
-      {/* Secondary 4 Mini-Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <EnterpriseMiniStatsCard
-          label={t('marketing:usedToday', 'Used Today')}
-          value={couponsUsedToday}
-          icon={Ticket}
-          valueColor="blue"
-        />
-
-        <EnterpriseMiniStatsCard
-          label={t('marketing:customerSavings', 'Customer Savings')}
-          value={`$${totalDiscountGiven.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-          icon={Coins}
-          valueColor="purple"
-        />
-
-        <EnterpriseMiniStatsCard
-          label={t('marketing:newCustomers', 'New Customers')}
-          value={newCustomersCoupons}
-          icon={Users}
-          valueColor="emerald"
-        />
-
-        <EnterpriseMiniStatsCard
-          label={t('marketing:expiringSoon', 'Expiring Soon')}
-          value={expiringSoon}
-          icon={Clock}
-          valueColor={expiringSoon > 0 ? 'amber' : 'emerald'}
-        />
-      </div>
+      </RibbonStatsGrid>
     </div>
   )
 }

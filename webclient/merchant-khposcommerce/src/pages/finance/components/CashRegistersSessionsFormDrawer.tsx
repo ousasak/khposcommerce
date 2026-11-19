@@ -1,6 +1,5 @@
 import React from 'react'
-import { Modal } from '@/components/common'
-import { ModalFooter } from '@/components/common'
+import { Modal, ModalFooter, FormField, getFieldClass } from '@/components/common'
 import { CreditCard } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { RegisterForm } from '../types/finance.types'
@@ -18,6 +17,8 @@ export interface CashRegistersSessionsFormDrawerProps {
   isPending: boolean
   registerForm: RegisterForm
   setRegisterForm: React.Dispatch<React.SetStateAction<RegisterForm>>
+  errors?: Record<string, string>
+  onClearError?: (key: string) => void
 }
 
 export type RegisterFormDrawerProps = CashRegistersSessionsFormDrawerProps
@@ -30,6 +31,8 @@ export const CashRegistersSessionsFormDrawer: React.FC<CashRegistersSessionsForm
   isPending,
   registerForm,
   setRegisterForm,
+  errors = {},
+  onClearError,
 }) => {
   const { t } = useTranslation(['finance', 'common'])
   const isEdit = Boolean(editingItem)
@@ -63,20 +66,28 @@ export const CashRegistersSessionsFormDrawer: React.FC<CashRegistersSessionsForm
           e.preventDefault()
           onSubmit()
         }}
+        noValidate
         className="p-5 sm:p-6 space-y-4"
       >
         <div>
-          <label className={labelCls}>
-            {t('finance.register_title', 'Register Name')} <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
+          <FormField
+            label={t('finance.register_title', 'Register Name')}
             required
-            value={registerForm.title}
-            onChange={(e) => setRegisterForm((p) => ({ ...p, title: e.target.value }))}
-            placeholder={t('finance.register_title_placeholder', 'e.g. Main Counter POS Cash Drawer')}
-            className={inputCls}
-          />
+            error={errors.title}
+          >
+            <input
+              id="register-title"
+              name="title"
+              type="text"
+              value={registerForm.title}
+              onChange={(e) => {
+                setRegisterForm((p) => ({ ...p, title: e.target.value }))
+                onClearError?.('title')
+              }}
+              placeholder={t('finance.register_title_placeholder', 'e.g. Main Counter POS Cash Drawer')}
+              className={getFieldClass(errors.title)}
+            />
+          </FormField>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

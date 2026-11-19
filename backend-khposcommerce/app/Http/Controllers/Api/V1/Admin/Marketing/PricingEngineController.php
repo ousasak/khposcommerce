@@ -32,13 +32,16 @@ class PricingEngineController extends BaseApiController
         }
 
         $payload = [
-            'company_id'  => $companyId,
-            'branch_id'   => $branchId,
-            'channel'     => $request->input('channel', 'pos'),
-            'customer_id' => $request->input('customer_id'),
-            'items'       => $request->input('items', []),
-            'coupon_code' => $request->input('coupon_code'),
-            'tax_rate'    => (float) $request->input('tax_rate', 0.0),
+            'company_id'        => $companyId,
+            'branch_id'         => $branchId,
+            'channel'           => $request->input('channel', 'pos'),
+            'customer_id'       => $request->input('customer_id'),
+            'customer_group_id' => $request->input('customer_group_id'),
+            'simulated_at'      => $request->input('simulated_at'),
+            'exchange_rate'     => $request->input('exchange_rate'),
+            'items'             => $request->input('items', []),
+            'coupon_code'       => $request->input('coupon_code'),
+            'tax_rate'          => (float) $request->input('tax_rate', 0.0),
         ];
 
         $result = $this->pricingEngine->calculate($payload);
@@ -53,10 +56,11 @@ class PricingEngineController extends BaseApiController
     {
         $code       = (string) $request->input('code', '');
         $subtotal   = (float) $request->input('subtotal', 0.0);
-        $customerId = $request->input('customer_id');
-        $branchId   = $request->input('branch_id');
+        $customerId  = $request->input('customer_id');
+        $branchId    = $request->input('branch_id');
+        $simulatedAt = $request->input('simulated_at') ? \Carbon\Carbon::parse($request->input('simulated_at')) : null;
 
-        $res = $this->pricingEngine->validateAndApplyCoupon($code, $subtotal, $customerId, $branchId);
+        $res = $this->pricingEngine->validateAndApplyCoupon($code, $subtotal, $customerId, $branchId, $simulatedAt);
 
         if (!$res['valid']) {
             return $this->errorResponse($res['message'], [

@@ -65,9 +65,11 @@ const PromotionsPage = React.lazy(() => import('@/pages/marketing/promotions/Pro
 const PromotionFormPage = React.lazy(() => import('@/pages/marketing/promotions/PromotionFormPage'))
 const DiscountRulesPage = React.lazy(() => import('@/pages/marketing/discount-rules/DiscountRulesPage'))
 const CouponsPage = React.lazy(() => import('@/pages/marketing/coupons/CouponsPage'))
+const CouponFormPage = React.lazy(() => import('@/pages/marketing/coupons/CouponFormPage'))
 const UsageHistoryPage = React.lazy(() => import('@/pages/marketing/discount-rules/UsageHistoryPage'))
 const PricingSimulatorPage = React.lazy(() => import('@/pages/marketing/discount-rules/PricingSimulatorPage'))
 const FlashSalesPage = React.lazy(() => import('@/pages/marketing/flash-sales/FlashSalesPage'))
+const FlashSaleFormPage = React.lazy(() => import('@/pages/marketing/flash-sales/FlashSaleFormPage'))
 const BannersPage = React.lazy(() => import('@/pages/marketing/banners/BannersPage'))
 const BannerFormPage = React.lazy(() => import('@/pages/marketing/banners/BannerFormPage'))
 
@@ -85,7 +87,7 @@ const MarketingRedirect: React.FC = () => {
   const [searchParams] = useSearchParams()
   const tab = searchParams.get('tab')
   if (tab === 'coupons') return <Navigate to="/marketing/coupons" replace />
-  if (tab === 'discount-rules' || tab === 'rules') return <Navigate to="/marketing/discount-rules" replace />
+  if (tab === 'discount-rules' || tab === 'rules') return <Navigate to="/marketing/promotions" replace />
   if (tab === 'usage-history') return <Navigate to="/marketing/usage-history" replace />
   if (tab === 'pricing-simulator' || tab === 'simulator') return <Navigate to="/marketing/pricing-simulator" replace />
   if (tab === 'flash-sales' || tab === 'flash') return <Navigate to="/marketing/flash-sales" replace />
@@ -101,7 +103,6 @@ const PagesPoliciesPage = React.lazy(() => import('@/pages/cms/PagesPoliciesPage
 const FaqsHelpPage = React.lazy(() => import('@/pages/cms/FaqsHelpPage'))
 const AnnouncementsPage = React.lazy(() => import('@/pages/cms/AnnouncementsPage'))
 const TestimonialsPage = React.lazy(() => import('@/pages/cms/TestimonialsPage'))
-const MediaLibraryPage = React.lazy(() => import('@/pages/cms/MediaLibraryPage'))
 const BlogFormPage = React.lazy(() => import('@/pages/cms/BlogFormPage'))
 
 const CMSRedirect: React.FC = () => {
@@ -114,7 +115,6 @@ const CMSRedirect: React.FC = () => {
   if (tab === 'faqs') return <Navigate to="/cms/faqs" replace />
   if (tab === 'announcements') return <Navigate to="/cms/announcements" replace />
   if (tab === 'testimonials') return <Navigate to="/cms/testimonials" replace />
-  if (tab === 'media') return <Navigate to="/cms/media" replace />
   return <Navigate to="/cms/blogs" replace />
 }
 
@@ -225,7 +225,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="/inventory/opnames/:id/edit" element={<ProtectedRoute permission="stock_opname.update"><StockOpnameForm /></ProtectedRoute>} />
           <Route path="/inventory/opnames/edit/:id" element={<ProtectedRoute permission="stock_opname.update"><StockOpnameForm /></ProtectedRoute>} />
           <Route path="/inventory/dashboard" element={<ProtectedRoute permission="inventory.view"><InventoryPage tab="dashboard" /></ProtectedRoute>} />
-          <Route path="/warehouses" element={<Navigate to="/company/warehouses" replace />} />
+          <Route path="/warehouses" element={<Navigate to="/company?tab=warehouses" replace />} />
 
           {/* 4. Sales, Orders & Returns */}
           <Route path="/sales" element={<ProtectedRoute permission="sale.view"><SalesPage /></ProtectedRoute>} />
@@ -286,12 +286,19 @@ export const AppRoutes: React.FC = () => {
           <Route path="/marketing/promotions/create" element={<ProtectedRoute permission={['promotion.create', 'promotion.view']}><PromotionFormPage /></ProtectedRoute>} />
           <Route path="/marketing/promotions/:id/edit" element={<ProtectedRoute permission={['promotion.update', 'promotion.view']}><PromotionFormPage /></ProtectedRoute>} />
           <Route path="/marketing/promotions/edit/:id" element={<ProtectedRoute permission={['promotion.update', 'promotion.view']}><PromotionFormPage /></ProtectedRoute>} />
-          <Route path="/marketing/discount-rules" element={<ProtectedRoute permission="promotion.view"><DiscountRulesPage /></ProtectedRoute>} />
+          <Route path="/marketing/discount-rules" element={<Navigate to="/marketing/promotions" replace />} />
           <Route path="/marketing/coupons" element={<ProtectedRoute permission="coupon.view"><CouponsPage /></ProtectedRoute>} />
+          <Route path="/marketing/coupons/create" element={<ProtectedRoute permission={['coupon.create', 'coupon.view']}><CouponFormPage /></ProtectedRoute>} />
+          <Route path="/marketing/coupons/:id/edit" element={<ProtectedRoute permission={['coupon.update', 'coupon.view']}><CouponFormPage /></ProtectedRoute>} />
+          <Route path="/marketing/coupons/edit/:id" element={<ProtectedRoute permission={['coupon.update', 'coupon.view']}><CouponFormPage /></ProtectedRoute>} />
           <Route path="/marketing/usage-history" element={<ProtectedRoute permission="promotion.view"><UsageHistoryPage /></ProtectedRoute>} />
           <Route path="/marketing/pricing-simulator" element={<ProtectedRoute permission="promotion.view"><PricingSimulatorPage /></ProtectedRoute>} />
           <Route path="/marketing/flash-sales" element={<ProtectedRoute permission="flash_sale.view"><FlashSalesPage /></ProtectedRoute>} />
+          <Route path="/marketing/flash-sales/create" element={<ProtectedRoute permission={['flash_sale.create', 'flash_sale.view']}><FlashSaleFormPage /></ProtectedRoute>} />
+          <Route path="/marketing/flash-sales/:id/edit" element={<ProtectedRoute permission={['flash_sale.update', 'flash_sale.view']}><FlashSaleFormPage /></ProtectedRoute>} />
+          <Route path="/marketing/flash-sales/edit/:id" element={<ProtectedRoute permission={['flash_sale.update', 'flash_sale.view']}><FlashSaleFormPage /></ProtectedRoute>} />
           <Route path="/marketing/banners" element={<ProtectedRoute permission="banner.view"><BannersPage /></ProtectedRoute>} />
+          <Route path="/marketing/banners/:id" element={<ProtectedRoute permission="banner.view"><BannersPage /></ProtectedRoute>} />
           <Route path="/marketing/banners/create" element={<ProtectedRoute permission="banner.create"><BannerFormPage /></ProtectedRoute>} />
           <Route path="/marketing/banners/:id/edit" element={<ProtectedRoute permission="banner.update"><BannerFormPage /></ProtectedRoute>} />
           <Route path="/marketing/banners/edit/:id" element={<ProtectedRoute permission="banner.update"><BannerFormPage /></ProtectedRoute>} />
@@ -330,9 +337,6 @@ export const AppRoutes: React.FC = () => {
           {/* Submenu 8: Testimonials */}
           <Route path="/cms/testimonials" element={<ProtectedRoute permission="page.view"><TestimonialsPage /></ProtectedRoute>} />
 
-          {/* Submenu 9: Media Library */}
-          <Route path="/cms/media" element={<ProtectedRoute permission="page.view"><MediaLibraryPage /></ProtectedRoute>} />
-
           {/* 10. Finance & Accounts */}
           <Route path="/finance" element={<ProtectedRoute permission={['expense.view', 'transaction.view', 'expense_category.view']}><FinanceRedirect /></ProtectedRoute>} />
           <Route path="/finance/expenses" element={<ProtectedRoute permission="expense.view"><ExpensesSpendingPage /></ProtectedRoute>} />
@@ -359,14 +363,14 @@ export const AppRoutes: React.FC = () => {
           <Route path="/reports/profit-loss" element={<ProtectedRoute permission="report.view"><ReportsPage type="profit-loss" /></ProtectedRoute>} />
 
           {/* 12. Company & Stores */}
-          <Route path="/company" element={<ProtectedRoute permission="company.view"><CompanyPage activeTab="companies" /></ProtectedRoute>} />
-          <Route path="/company/branches" element={<ProtectedRoute permission="branch.view"><BranchesPage /></ProtectedRoute>} />
-          <Route path="/company/stores" element={<ProtectedRoute permission="store.view"><StoresPage /></ProtectedRoute>} />
-          <Route path="/company/warehouses" element={<ProtectedRoute permission="warehouse.view"><WarehousesPage /></ProtectedRoute>} />
+          <Route path="/company" element={<ProtectedRoute permission={['company.view', 'branch.view', 'store.view', 'warehouse.view']}><CompanyPage /></ProtectedRoute>} />
+          <Route path="/company/branches" element={<Navigate to="/company?tab=branches" replace />} />
+          <Route path="/company/stores" element={<Navigate to="/company?tab=stores" replace />} />
+          <Route path="/company/warehouses" element={<Navigate to="/company?tab=warehouses" replace />} />
 
           {/* Legacy Company & Store Aliases */}
-          <Route path="/branches" element={<Navigate to="/company/branches" replace />} />
-          <Route path="/stores" element={<Navigate to="/company/stores" replace />} />
+          <Route path="/branches" element={<Navigate to="/company?tab=branches" replace />} />
+          <Route path="/stores" element={<Navigate to="/company?tab=stores" replace />} />
 
           {/* 13. Notifications & Chatbot */}
           <Route path="/notifications" element={<ProtectedRoute permission="notification.view"><NotificationListPage /></ProtectedRoute>} />

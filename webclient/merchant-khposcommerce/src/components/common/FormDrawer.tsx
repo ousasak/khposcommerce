@@ -6,7 +6,7 @@ import { CancelButton, SaveButton } from './GlobalActionButtons'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface FormDrawerProps {
+export interface FormDrawerProps {
   open: boolean
   title: string
   subtitle?: string

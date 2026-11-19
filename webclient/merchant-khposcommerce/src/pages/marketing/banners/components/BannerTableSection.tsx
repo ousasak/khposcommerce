@@ -67,7 +67,7 @@ export const BannerTableSection: React.FC<BannerTableSectionProps> = ({
       return (
         <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
           <Store size={11} />
-          <span>POS Customer Screen (CFD)</span>
+          <span>{t('marketing.placementPosCfd', 'អេក្រង់អតិថិជន POS (CFD)')}</span>
         </span>
       )
     }
@@ -75,7 +75,7 @@ export const BannerTableSection: React.FC<BannerTableSectionProps> = ({
       return (
         <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 whitespace-nowrap">
           <Smartphone size={11} />
-          <span>Mobile App</span>
+          <span>{t('marketing.placementMobileApp', 'កម្មវិធីទូរស័ព្ទដៃ (App)')}</span>
         </span>
       )
     }
@@ -83,7 +83,7 @@ export const BannerTableSection: React.FC<BannerTableSectionProps> = ({
       return (
         <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 whitespace-nowrap">
           <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-          <span>Promo Modal Popup</span>
+          <span>{t('marketing.placementPopup', 'ផ្ទាំងផុសផ្សព្វផ្សាយ (Popup)')}</span>
         </span>
       )
     }
@@ -91,14 +91,14 @@ export const BannerTableSection: React.FC<BannerTableSectionProps> = ({
       return (
         <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 whitespace-nowrap">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-          <span>Sidebar Spotlight</span>
+          <span>{t('marketing.placementSidebar', 'ចំហៀងទំព័រ (Sidebar)')}</span>
         </span>
       )
     }
     return (
       <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 whitespace-nowrap">
         <Globe size={11} />
-        <span>Storefront Hero Slider</span>
+        <span>{t('marketing.placementHero', 'ស្លាយទំព័រដើម (Hero)')}</span>
       </span>
     )
   }
@@ -118,14 +118,14 @@ export const BannerTableSection: React.FC<BannerTableSectionProps> = ({
                     className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
                   />
                 </th>
-                {visibleColumns.preview && <th className="px-4 py-3">{t('marketing.preview', 'Preview')}</th>}
-                {visibleColumns.title && <th className="px-4 py-3">{t('marketing.bannerTitle', 'Banner Title & Target')}</th>}
-                {visibleColumns.position && <th className="px-4 py-3">{t('marketing.position', 'Target Screen / Channel')}</th>}
-                {visibleColumns.performance && <th className="px-4 py-3">Performance (Views / CTR)</th>}
-                {visibleColumns.sortOrder && <th className="px-4 py-3 text-center">{t('marketing.sortOrder', 'Sort Order')}</th>}
-                {visibleColumns.status && <th className="px-4 py-3 text-center">{t('marketing.activeStatus', 'Status')}</th>}
-                {visibleColumns.activePeriod && <th className="px-4 py-3">{t('marketing.activePeriod', 'Active Period')}</th>}
-                {visibleColumns.actions && <th className="px-4 py-3 text-right pr-5">{t('marketing.actions', 'Actions')}</th>}
+                {visibleColumns.preview && <th className="px-4 py-3">{t('marketing.preview', 'រូបភាព')}</th>}
+                {visibleColumns.title && <th className="px-4 py-3">{t('marketing.bannerTitle', 'ចំណងជើងផ្ទាំងបដា')}</th>}
+                {visibleColumns.position && <th className="px-4 py-3">{t('marketing.position', 'ទីតាំងបង្ហាញ')}</th>}
+                {visibleColumns.performance && <th className="px-4 py-3">{t('marketing.colPerformance', 'ទិន្នន័យមើល & ចុច (Views / CTR)')}</th>}
+                {visibleColumns.sortOrder && <th className="px-4 py-3 text-center">{t('marketing.sortOrder', 'លំដាប់លំដោយ')}</th>}
+                {visibleColumns.status && <th className="px-4 py-3 text-center">{t('marketing.activeStatus', 'ស្ថានភាព')}</th>}
+                {visibleColumns.activePeriod && <th className="px-4 py-3">{t('marketing.activePeriod', 'រយៈពេលសកម្ម')}</th>}
+                {visibleColumns.actions && <th className="px-4 py-3 text-right pr-5">{t('marketing.actions', 'សកម្មភាព')}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -170,27 +170,30 @@ export const BannerTableSection: React.FC<BannerTableSectionProps> = ({
                         </td>
                       )}
 
-                      {/* Title & Subtitle */}
+                      {/* Title & Subtitle with Ellipsis */}
                       {visibleColumns.title && (
                         <td className="px-4 py-3 align-middle">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-foreground group-hover:text-primary transition-colors text-sm">
+                          <div className="space-y-1 max-w-[240px] sm:max-w-[320px] md:max-w-[380px] min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span
+                                className="font-bold text-foreground group-hover:text-primary transition-colors text-sm truncate block flex-1 min-w-0"
+                                title={banner.title}
+                              >
                                 {banner.title}
                               </span>
                               {banner.badge && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-primary/10 text-primary border border-primary/20">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-primary/10 text-primary border border-primary/20 shrink-0">
                                   {banner.badge}
                                 </span>
                               )}
                               {banner.discount_tag && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
                                   {banner.discount_tag}
                                 </span>
                               )}
                             </div>
                             {banner.subtitle && (
-                              <p className="text-xs text-muted-foreground line-clamp-1">
+                              <p className="text-xs text-muted-foreground truncate block" title={banner.subtitle}>
                                 {banner.subtitle}
                               </p>
                             )}
@@ -210,13 +213,15 @@ export const BannerTableSection: React.FC<BannerTableSectionProps> = ({
                         <td className="px-4 py-3 align-middle">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 text-xs">
-                              <span className="font-bold text-foreground">{views.toLocaleString()} views</span>
-                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                              <span className="font-bold text-foreground font-mono">
+                                {views.toLocaleString()} {t('marketing.viewsUnit', 'views')}
+                              </span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono">
                                 {ctr}% CTR
                               </span>
                             </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {clicks.toLocaleString()} user clicks
+                            <div className="text-[10px] text-muted-foreground font-mono">
+                              {clicks.toLocaleString()} {t('marketing.userClicksUnit', 'user clicks')}
                             </div>
                           </div>
                         </td>
@@ -245,9 +250,9 @@ export const BannerTableSection: React.FC<BannerTableSectionProps> = ({
                         <td className="px-4 py-3 align-middle text-xs text-muted-foreground font-mono">
                           {banner.starts_at || banner.ends_at ? (
                             <span>
-                              {banner.starts_at ? new Date(banner.starts_at).toLocaleDateString() : 'Start'}
+                              {banner.starts_at ? new Date(banner.starts_at).toLocaleDateString() : t('marketing.periodStart', 'Start')}
                               {' → '}
-                              {banner.ends_at ? new Date(banner.ends_at).toLocaleDateString() : 'End'}
+                              {banner.ends_at ? new Date(banner.ends_at).toLocaleDateString() : t('marketing.periodEnd', 'End')}
                             </span>
                           ) : (
                             <span className="text-emerald-600 dark:text-emerald-400 font-medium font-sans inline-flex items-center gap-1.5">
@@ -264,18 +269,23 @@ export const BannerTableSection: React.FC<BannerTableSectionProps> = ({
                           <TableActionMenu
                             variant="hybrid"
                             maxInline={2}
+                            viewLabel={t('common.viewDetails', 'មើលលម្អិត')}
+                            editLabel={t('common.edit', 'កែប្រែ')}
+                            deleteLabel={t('common.delete', 'លុប')}
                             onView={() => onOpenDetailDrawer(banner)}
                             onEdit={() => onEdit(banner)}
                             onDelete={() => onDelete(banner)}
                             items={[
                               {
-                                label: t('duplicate', 'Duplicate Banner'),
+                                label: t('marketing.duplicateBanner', 'ចម្លងទិន្នន័យ'),
                                 icon: Copy,
                                 onClick: () => onDuplicate(banner),
                                 variant: 'default',
                               },
                               {
-                                label: banner.is_active ? t('disable', 'Disable Banner') : t('enable', 'Enable Banner'),
+                                label: banner.is_active
+                                  ? t('marketing.disableBanner', 'ផ្អាកដំណើរការ')
+                                  : t('marketing.enableBanner', 'បើកដំណើរការ'),
                                 icon: banner.is_active ? Lock : Unlock,
                                 onClick: () => onToggleStatus(banner),
                                 variant: 'default',

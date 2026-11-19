@@ -33,7 +33,7 @@ import { POSCameraScannerModal } from './components/POSCameraScannerModal'
 import { POSVoiceSearchPopover } from './components/POSVoiceSearchPopover'
 import { useVoiceSearch, type VoiceLanguageCode } from './hooks/useVoiceSearch'
 import { matchProductsWithAI, analyzeVoiceSpeech } from './utils/aiProductMatcher'
-import { ModernSelect } from './components/ModernSelect'
+import { ModernSelect } from '@/components/shared/ModernSelect'
 import { sound } from '@/utils/sound'
 import { resolveProductPhoto, DEFAULT_PRODUCT_IMAGE } from '@/utils/image'
 

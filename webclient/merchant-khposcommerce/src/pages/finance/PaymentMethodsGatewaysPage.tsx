@@ -10,6 +10,7 @@ import {
   Breadcrumb,
   ConfirmModal,
 } from '@/components/common'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 import { Button } from '@/components/ui/button'
 import Pagination from '@/components/shared/Pagination'
 import type { PaymentMethodForm } from './types/finance.types'
@@ -61,6 +62,17 @@ export const PaymentMethodsGatewaysPage: React.FC = () => {
     is_active: true,
     description: '',
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   // Delete Confirm State
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -132,6 +144,16 @@ export const PaymentMethodsGatewaysPage: React.FC = () => {
       setEditingItem(null)
     },
     onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
       toast.error(
         err?.response?.data?.message ?? t('finance.save_error', 'Failed to save payment method.')
       )
@@ -186,6 +208,7 @@ export const PaymentMethodsGatewaysPage: React.FC = () => {
       is_active: true,
       description: '',
     })
+    setErrors({})
     setDrawerOpen(true)
   }
 
@@ -202,7 +225,24 @@ export const PaymentMethodsGatewaysPage: React.FC = () => {
       is_active: Boolean(item.is_active ?? true),
       description: item.description || '',
     })
+    setErrors({})
     setDrawerOpen(true)
+  }
+
+  const handleSavePaymentMethod = () => {
+    const newErrors: Record<string, string> = {}
+    if (!paymentMethodForm.name.trim()) {
+      newErrors.name = t('finance.method_name_required', 'សូមបញ្ចូលឈ្មោះវិធីសាស្ត្រទូទាត់')
+    }
+    if (!paymentMethodForm.code.trim()) {
+      newErrors.code = t('finance.method_code_required', 'សូមបញ្ចូលលេខកូដវិធីសាស្ត្រទូទាត់')
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+    saveMutation.mutate(paymentMethodForm)
   }
 
   return (
@@ -316,12 +356,15 @@ export const PaymentMethodsGatewaysPage: React.FC = () => {
         onClose={() => {
           setDrawerOpen(false)
           setEditingItem(null)
+          setErrors({})
         }}
         editingItem={editingItem}
-        onSubmit={() => saveMutation.mutate(paymentMethodForm)}
+        onSubmit={handleSavePaymentMethod}
         isPending={saveMutation.isPending}
         paymentMethodForm={paymentMethodForm}
         setPaymentMethodForm={setPaymentMethodForm}
+        errors={errors}
+        onClearError={handleClearError}
       />
 
       {/* Delete Confirmation Modal */}

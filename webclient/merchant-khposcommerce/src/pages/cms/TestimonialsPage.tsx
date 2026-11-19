@@ -8,16 +8,17 @@ import { usePermission } from '@/hooks/usePermission'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
 import { Breadcrumb } from '@/components/common'
-import { HeaderActionsGroup, AddButton, ExportButton, TableToolbar, InlineFilterSelect } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
-import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 
 import {
   CMSStatsCards,
   CMSFormModal,
   TestimonialsTable,
+  TestimonialsSearchBar,
 } from './components'
 
 export const TestimonialsPage: React.FC = () => {
@@ -63,6 +64,17 @@ export const TestimonialsPage: React.FC = () => {
   const [comment, setComment] = useState('')
   const [isFeatured, setIsFeatured] = useState(false)
   const [isActive, setIsActive] = useState(true)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   // Column Settings
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -100,8 +112,23 @@ export const TestimonialsPage: React.FC = () => {
     queryFn: () => cmsService.getStats(),
   })
 
-  const records = listData?.data ?? []
-  const pagination = listData?.pagination ?? { total: records.length, current_page: 1, last_page: 1 }
+  const records = useMemo(() => {
+    if (!listData) return []
+    const d = listData?.data
+    if (Array.isArray(d)) return d
+    if (Array.isArray(d?.data)) return d.data
+    if (Array.isArray(listData)) return listData
+    return []
+  }, [listData])
+
+  const pagination = useMemo(() => {
+    if (listData?.pagination) return listData.pagination
+    return {
+      total: listData?.total ?? records.length,
+      current_page: listData?.current_page ?? page,
+      last_page: listData?.last_page ?? 1,
+    }
+  }, [listData, records.length, page])
 
   // Sorting Handler
   const handleSort = (column: string) => {
@@ -114,39 +141,6 @@ export const TestimonialsPage: React.FC = () => {
     setPage(1)
   }
 
-  // Workspace Status Tabs with live counts
-  const statusCounts = useMemo(() => {
-    const total = pagination.total ?? records.length
-    const featured = records.filter((r: any) => Boolean(r.is_featured)).length
-    const active = records.filter((r: any) => r.is_active !== false).length
-    const inactive = records.filter((r: any) => r.is_active === false).length
-
-    return { all: total, featured, active, inactive }
-  }, [pagination.total, records])
-
-  const statusTabs: WorkspaceTabItem[] = useMemo(() => [
-    {
-      id: 'all',
-      label: t('cms.allReviews', 'All Reviews'),
-      count: statusCounts.all,
-    },
-    {
-      id: 'featured',
-      label: t('cms.featured', 'Featured'),
-      count: statusCounts.featured,
-    },
-    {
-      id: 'active',
-      label: t('cms.active', 'Active'),
-      count: statusCounts.active,
-    },
-    {
-      id: 'inactive',
-      label: t('cms.inactive', 'Inactive'),
-      count: statusCounts.inactive,
-    },
-  ], [statusCounts, t])
-
   // Mutations
   const createMutation = useMutation({
     mutationFn: (payload: any) => cmsService.createItemByTab('testimonials', payload),
@@ -154,9 +148,21 @@ export const TestimonialsPage: React.FC = () => {
       qc.invalidateQueries({ queryKey: ['testimonials'] })
       qc.invalidateQueries({ queryKey: ['cms-stats'] })
       closeModal()
-      toast.success(t('cms.createdSuccess', 'Review added successfully!'))
+      toast.success(t('cms.createdSuccess', 'បានបន្ថែមមតិកែលម្អដោយជោគជ័យ!'))
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? t('cms.createFailed', 'Failed to create review')),
+    onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
+      toast.error(err?.response?.data?.message ?? t('cms.createFailed', 'បរាជ័យក្នុងការបន្ថែមមតិកែលម្អ'))
+    },
   })
 
   const updateMutation = useMutation({
@@ -165,9 +171,21 @@ export const TestimonialsPage: React.FC = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['testimonials'] })
       closeModal()
-      toast.success(t('cms.updatedSuccess', 'Review updated successfully!'))
+      toast.success(t('cms.updatedSuccess', 'បានកែសម្រួលមតិកែលម្អដោយជោគជ័យ!'))
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? t('cms.updateFailed', 'Failed to update review')),
+    onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
+      toast.error(err?.response?.data?.message ?? t('cms.updateFailed', 'បរាជ័យក្នុងការកែសម្រួលមតិកែលម្អ'))
+    },
   })
 
   const deleteMutation = useMutation({
@@ -176,12 +194,12 @@ export const TestimonialsPage: React.FC = () => {
       qc.invalidateQueries({ queryKey: ['testimonials'] })
       qc.invalidateQueries({ queryKey: ['cms-stats'] })
       setConfirmOpen(false)
-      toast.success(t('cms.deletedSuccess', 'Review deleted successfully!'))
+      toast.success(t('cms.deletedSuccess', 'បានលុបមតិកែលម្អដោយជោគជ័យ!'))
       adjustAfterDelete(records.length)
       setSelectedRows((prev) => (deleteId ? prev.filter((id) => id !== deleteId) : prev))
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('cms.deleteFailed', 'Failed to delete review'))
+      toast.error(err?.response?.data?.message ?? t('cms.deleteFailed', 'បរាជ័យក្នុងការលុបមតិកែលម្អ'))
       setConfirmOpen(false)
     },
   })
@@ -195,14 +213,14 @@ export const TestimonialsPage: React.FC = () => {
       toast.success(
         t('cms.bulkDeleteSuccess', {
           count: selectedRows.length,
-          defaultValue: `Successfully deleted ${selectedRows.length} reviews`,
+          defaultValue: `បានលុប ${selectedRows.length} មតិកែលម្អដោយជោគជ័យ!`,
         })
       )
       adjustAfterDelete(records.length - selectedRows.length)
       setSelectedRows([])
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message ?? t('cms.deleteFailed', 'Failed to delete reviews'))
+      toast.error(err?.response?.data?.message ?? t('cms.deleteFailed', 'បរាជ័យក្នុងការលុបមតិកែលម្អ'))
       setBulkDeleteConfirmOpen(false)
     },
   })
@@ -217,6 +235,7 @@ export const TestimonialsPage: React.FC = () => {
     setComment('')
     setIsFeatured(false)
     setIsActive(true)
+    setErrors({})
     setModalOpen(true)
   }
 
@@ -229,23 +248,38 @@ export const TestimonialsPage: React.FC = () => {
     setComment(item.comment || item.content || '')
     setIsFeatured(item.is_featured ?? false)
     setIsActive(item.is_active ?? true)
+    setErrors({})
     setModalOpen(true)
   }
 
   const closeModal = () => {
     setModalOpen(false)
     setEditingItem(null)
+    setErrors({})
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const newErrors: Record<string, string> = {}
+    if (!authorName.trim()) {
+      newErrors.authorName = t('cms.authorNameRequired', 'សូមបញ្ចូលឈ្មោះអតិថិជន')
+    }
+    if (!comment.trim()) {
+      newErrors.comment = t('cms.commentRequired', 'សូមបញ្ចូលមតិយោបល់អតិថិជន')
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+
     const payload = {
       company_id: 1,
-      author_name: authorName,
-      role,
-      company,
+      author_name: authorName.trim(),
+      role: role.trim(),
+      company: company.trim(),
       rating,
-      comment,
+      comment: comment.trim(),
       is_featured: isFeatured,
       is_active: isActive,
     }
@@ -276,7 +310,7 @@ export const TestimonialsPage: React.FC = () => {
       : records
 
     if (!dataToExport.length) {
-      toast.error(t('common.noDataToExport', 'No data to export'))
+      toast.error(t('common.noDataToExport', 'គ្មានទិន្នន័យសម្រាប់នាំចេញទេ'))
       return
     }
     const headers = ['ID', 'Author', 'Role', 'Company', 'Rating', 'Comment', 'Featured', 'Status']
@@ -291,7 +325,7 @@ export const TestimonialsPage: React.FC = () => {
       tm.is_active ? 'Active' : 'Inactive',
     ])
     downloadCsv('cms-testimonials.csv', [headers.join(','), ...rows.map((r: any[]) => r.join(','))].join('\n'))
-    toast.success(t('common.exportSuccess', 'Export completed successfully'))
+    toast.success(t('common.exportSuccess', 'បាននាំចេញឯកសារ CSV ដោយជោគជ័យ'))
   }
 
   return (
@@ -308,10 +342,10 @@ export const TestimonialsPage: React.FC = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            {t('cms.testimonialsTitle', 'Customer Feedback & Testimonials')}
+            {t('cms.testimonialsTitle', 'មតិកែលម្អអតិថិជន')}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {t('cms.testimonialsSubtitle', 'Manage client reviews, enterprise customer quotes, ratings, and social proof.')}
+            {t('cms.testimonialsSubtitle', 'បង្ហាញការវាយតម្លៃ ការផ្ដល់យោបល់ និងសក្ខីកម្មពីអតិថិជននៅលើគេហទំព័រ')}
           </p>
         </div>
         <HeaderActionsGroup>
@@ -320,13 +354,13 @@ export const TestimonialsPage: React.FC = () => {
             disabled={!records.length}
             label={
               selectedRows.length > 0
-                ? `${t('common.export', 'Export')} (${selectedRows.length})`
-                : t('common.exportCsv', 'Export CSV')
+                ? `${t('common.export', 'នាំចេញ')} (${selectedRows.length})`
+                : t('common.exportCsv', 'នាំចេញ CSV')
             }
           />
           {canCreate && (
             <AddButton
-              label={t('cms.addTestimonial', 'New Testimonial')}
+              label={t('cms.addTestimonial', 'បន្ថែមមតិកែលម្អ')}
               onClick={openCreateModal}
             />
           )}
@@ -334,72 +368,48 @@ export const TestimonialsPage: React.FC = () => {
       </div>
 
       {/* Executive KPI Overview */}
-      <CMSStatsCards activeTab="testimonials" stats={cmsStats} isLoading={isStatsLoading} />
-
-      {/* Workspace Status Tabs */}
-      <WorkspaceTabs
-        tabs={statusTabs}
-        activeTab={filterTab}
-        onChange={(tabId) => {
-          setFilterTab(tabId)
-          setPage(1)
-        }}
+      <CMSStatsCards
+        activeTab="testimonials"
+        records={records}
+        pagination={pagination}
+        stats={cmsStats}
       />
 
-      {/* Table Toolbar & Content Container */}
+      {/* ── SMARTHR-STYLE PRODUCT-MATCHING SEARCH & FILTER BAR ── */}
       <div className="space-y-4">
-        <TableToolbar
+        <TestimonialsSearchBar
           search={search}
-          onSearchChange={setSearch}
-          searchPlaceholder={t('cms.searchTestimonialPlaceholder', 'Search by client name, company, or feedback...')}
-          columns={[
-            { key: 'author', label: t('cms.colAuthor', 'Client / Author') },
-            { key: 'feedback', label: t('cms.colFeedback', 'Review / Feedback') },
-            { key: 'rating', label: t('cms.colRating', 'Rating') },
-            { key: 'featured', label: t('cms.colFeatured', 'Featured') },
-            { key: 'status', label: t('cms.colStatus', 'Status') },
-            { key: 'actions', label: t('cms.colActions', 'Actions') },
-          ]}
-          visibleColumns={visibleColumns}
-          onColumnChange={(col, visible) =>
-            setVisibleColumns((prev) => ({ ...prev, [col]: visible }))
-          }
-          manageTableLabel={t('common.manageTable', 'Manage Columns')}
-          leftActions={
-            selectedRows.length > 0 ? (
-              <button
-                onClick={() => setBulkDeleteConfirmOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400 transition-colors"
-              >
-                <Trash2 size={14} />
-                <span>
-                  {t('common.deleteSelected', 'Delete Selected')} ({selectedRows.length})
-                </span>
-              </button>
-            ) : undefined
-          }
-          filters={
-            <InlineFilterSelect
-              value={filterRating}
-              onChange={(val) => {
-                setFilterRating(val)
-                setPage(1)
-              }}
-              options={[
-                { value: 'all', label: t('cms.allRatings', 'All Ratings') },
-                { value: '5', label: '★★★★★ (5 Stars)' },
-                { value: '4', label: '★★★★☆ (4 Stars)' },
-                { value: '3', label: '★★★☆☆ (3 Stars)' },
-              ]}
-            />
-          }
+          onSearchChange={(val) => {
+            setSearch(val)
+            setPage(1)
+          }}
+          ratingFilter={filterRating}
+          onRatingChange={(val) => {
+            setFilterRating(val)
+            setPage(1)
+          }}
+          statusFilter={filterTab}
+          onStatusChange={(val) => {
+            setFilterTab(val)
+            setPage(1)
+          }}
           onReset={() => {
             setFilterTab('all')
             setFilterRating('all')
             reset()
           }}
-          onRefresh={() => qc.invalidateQueries({ queryKey: ['testimonials'] })}
-          isFiltered={Boolean(search || filterTab !== 'all' || filterRating !== 'all')}
+          columns={[
+            { key: 'author', label: t('cms.colAuthor', 'Customer') },
+            { key: 'feedback', label: t('cms.colFeedback', 'Feedback') },
+            { key: 'rating', label: t('cms.colRating', 'Rating') },
+            { key: 'featured', label: t('cms.colFeatured', 'Homepage') },
+            { key: 'status', label: t('cms.colStatus', 'Status') },
+            { key: 'actions', label: t('cms.colActions', 'Actions') },
+          ]}
+          visibleColumns={visibleColumns}
+          onColumnChange={setVisibleColumns}
+          selectedCount={selectedRows.length}
+          onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
         />
 
         {/* Bulk Selection Banner */}
@@ -447,16 +457,18 @@ export const TestimonialsPage: React.FC = () => {
         editingItem={editingItem}
         onSubmit={handleSubmit}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
+        errors={errors}
+        onClearError={handleClearError}
         activeTab="testimonials"
         getAddButtonLabel={() => t('cms.addTestimonial', 'Add Testimonial')}
-        title=""
-        setTitle={() => {}}
-        name=""
-        setName={() => {}}
+        title={authorName}
+        setTitle={setAuthorName}
+        name={authorName}
+        setName={setAuthorName}
         slug=""
         setSlug={() => {}}
-        content=""
-        setContent={() => {}}
+        content={comment}
+        setContent={setComment}
         excerpt=""
         setExcerpt={() => {}}
         status="published"
@@ -499,8 +511,8 @@ export const TestimonialsPage: React.FC = () => {
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={confirmOpen}
-        title={t('confirm.deleteTitle', 'Confirm Deletion')}
-        message={t('confirm.deleteMessage', 'Are you sure you want to delete this customer review? This action cannot be undone.')}
+        title={t('confirm.deleteTitle', 'Confirm Delete')}
+        message={t('confirm.deleteMessage', 'Are you sure you want to delete this testimonial? This action cannot be undone.')}
         confirmLabel={t('common.delete', 'Delete')}
         cancelLabel={t('common.cancel', 'Cancel')}
         isDanger
@@ -514,10 +526,10 @@ export const TestimonialsPage: React.FC = () => {
       {/* Bulk Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={bulkDeleteConfirmOpen}
-        title={t('confirm.bulkDeleteTitle', 'Confirm Bulk Deletion')}
+        title={t('confirm.bulkDeleteTitle', 'Confirm Bulk Delete')}
         message={t('confirm.bulkDeleteMessage', {
           count: selectedRows.length,
-          defaultValue: `Are you sure you want to delete ${selectedRows.length} selected reviews?`,
+          defaultValue: `Are you sure you want to delete ${selectedRows.length} selected testimonials?`,
         })}
         confirmLabel={t('common.delete', 'Delete')}
         cancelLabel={t('common.cancel', 'Cancel')}

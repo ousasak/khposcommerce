@@ -71,9 +71,9 @@ export const DashboardTransitionOverlay: React.FC<DashboardTransitionOverlayProp
         {/* Central Circular Brand Icon Badge */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="size-[52px] rounded-full bg-blue-600 dark:bg-blue-500 text-white flex items-center justify-center shadow-xs">
-            {branding?.logo_url ? (
+            {(branding?.logo || (branding as any)?.logo_url) ? (
               <img
-                src={branding.logo_url}
+                src={branding?.logo || (branding as any)?.logo_url}
                 alt="Brand Emblem"
                 className="size-7 object-contain rounded-full"
               />

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Search, X, Check, ChevronDown } from 'lucide-react'
+import { Search, X, Check, ChevronDown, LayoutGrid, List } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ColumnSettingsPopover, type ColumnOption } from '@/components/shared/ColumnSettingsPopover'
 import { sound } from '@/utils/sound'
+import { cn } from '@/lib/utils'
 
 export interface BranchSearchBarProps {
   search: string
@@ -23,6 +24,8 @@ export interface BranchSearchBarProps {
   onColumnChange?: (updated: Record<string, boolean>) => void
   columnSettingsTitle?: string
   rightAction?: React.ReactNode
+  viewMode?: 'grid' | 'table'
+  onViewModeChange?: (mode: 'grid' | 'table') => void
 }
 
 /**
@@ -50,8 +53,10 @@ export const BranchSearchBar: React.FC<BranchSearchBarProps> = ({
   onColumnChange,
   columnSettingsTitle,
   rightAction,
+  viewMode,
+  onViewModeChange,
 }) => {
-  const { t } = useTranslation(['common', 'buttons', 'tables'])
+  const { t } = useTranslation(['common', 'buttons', 'tables', 'company'])
 
   const [searchDraft, setSearchDraft] = useState(search)
   const [statusDraft, setStatusDraft] = useState(statusFilter)
@@ -100,7 +105,7 @@ export const BranchSearchBar: React.FC<BranchSearchBarProps> = ({
   return (
     <div className="w-full rounded-xl border border-slate-200/90 dark:border-slate-800 bg-card p-2.5 sm:p-3 shadow-2xs transition-all print:hidden">
       <form onSubmit={handleApply} className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-        ─── 1. Search input ───
+        {/* ─── 1. Search input ─── */}
         <div className={`relative w-full sm:w-72 md:w-80 lg:w-96 max-w-sm shrink-0 ${controlHeightCls}`}>
           <Search
             size={15}
@@ -199,46 +204,85 @@ export const BranchSearchBar: React.FC<BranchSearchBarProps> = ({
           </div>
         )}
 
-        {/* ─── 5. Apply Button (Dark Teal/Forest Green #0f766e matching SmartHR) ─── */}
+        {/* ─── 5. Apply Button ─── */}
         <button
           type="submit"
           className={`${controlHeightCls} px-3.5 sm:px-4 rounded-lg bg-[#0f766e] hover:bg-[#115e59] active:scale-[0.98] text-white text-sm font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0`}
-          title={t('buttons.applyFilters', 'Apply Filters')}
+          title={t('buttons.apply', 'អនុវត្ត')}
         >
           <Check size={15} className="stroke-[2.5]" />
-          <span>{t('buttons.apply', 'Apply')}</span>
+          <span>{t('buttons.apply', 'អនុវត្ត')}</span>
         </button>
 
-        {/* ─── 6. Reset Button (Clean SmartHR neutral outline) ─── */}
+        {/* ─── 6. Reset Button ─── */}
         <button
           type="button"
           onClick={handleReset}
           className={`${controlHeightCls} px-3.5 rounded-lg border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-card hover:bg-muted/80 text-foreground dark:text-slate-200 text-sm font-semibold flex items-center justify-center transition-all shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer shrink-0`}
-          title={t('buttons.resetAllFilters', 'Reset all filters')}
+          title={t('buttons.reset', 'កំណត់ឡើងវិញ')}
         >
-          <span>{t('buttons.reset', 'Reset')}</span>
+          <span>{t('buttons.reset', 'កំណត់ឡើងវិញ')}</span>
         </button>
 
-        {/* ─── 7. Right Action if passed (e.g. Add button on tab) ─── */}
+        {/* ─── 7. Right Action if passed (Optional) ─── */}
         {rightAction && (
           <div className="shrink-0">{rightAction}</div>
         )}
 
-        {/* ─── 8. Manage Column Table (Aligned right) ─── */}
-        {columns.length > 0 && onColumnChange && (
-          <div className="ml-auto shrink-0">
+        {/* ─── 8. Right Toolbar Area: View Switcher & Column Settings ─── */}
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          {onViewModeChange && (
+            <div className="flex items-center rounded-lg border border-slate-300 dark:border-slate-700 p-0.5 bg-muted/40 shrink-0 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick()
+                  onViewModeChange('grid')
+                }}
+                className={cn(
+                  'h-8 px-2.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer',
+                  viewMode === 'grid'
+                    ? 'bg-card text-teal-700 dark:text-teal-400 shadow-2xs font-bold border border-border/40'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title={t('company.viewGrid', 'ទិដ្ឋភាពកាត (Grid)')}
+              >
+                <LayoutGrid size={14} />
+                <span className="hidden sm:inline">{t('company.viewGridShort', 'កាត')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick()
+                  onViewModeChange('table')
+                }}
+                className={cn(
+                  'h-8 px-2.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer',
+                  viewMode === 'table'
+                    ? 'bg-card text-teal-700 dark:text-teal-400 shadow-2xs font-bold border border-border/40'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                title={t('company.viewTable', 'ទិដ្ឋភាពតារាង (Table)')}
+              >
+                <List size={14} />
+                <span className="hidden sm:inline">{t('company.viewTableShort', 'តារាង')}</span>
+              </button>
+            </div>
+          )}
+
+          {columns.length > 0 && onColumnChange && viewMode !== 'grid' && (
             <ColumnSettingsPopover
               columns={columns}
               visibleColumns={visibleColumns}
               defaultVisibleColumns={defaultVisibleColumns}
               onChange={onColumnChange}
               size="md"
-              label={t('tables.manageTable', 'Manage Table')}
+              label={t('tables.manageTable', 'គ្រប់គ្រងតារាង')}
               buttonClassName="border-slate-300 dark:border-slate-700 shadow-2xs"
               title={columnSettingsTitle}
             />
-          </div>
-        )}
+          )}
+        </div>
       </form>
     </div>
   )

@@ -1,12 +1,83 @@
-import React from 'react'
+import React, { useState } from 'react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
 import TableActionMenu from '@/components/shared/TableActionMenu'
 import { StatusBadge, EmptyState } from '@/components/common'
-import { AppImage } from '@/components/common'
 import { Star, Building2, Sparkles, Quote, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { TestimonialItem } from '../types/cms.types'
+
+const getInitials = (fullName: string): string => {
+  if (!fullName) return 'U'
+  const trimmed = fullName.trim()
+  const words = trimmed.split(/\s+/)
+  if (words.length >= 2) {
+    const firstChar = words[0].charAt(0)
+    const secondChar = words[1].charAt(0)
+    if (/^[A-Za-z]/.test(firstChar)) {
+      return (firstChar + secondChar).toUpperCase()
+    }
+    return firstChar
+  }
+  return trimmed.charAt(0)
+}
+
+const getAvatarGradient = (name: string): string => {
+  const gradients = [
+    'from-emerald-500 to-teal-700 text-white shadow-emerald-500/20',
+    'from-blue-600 to-indigo-700 text-white shadow-blue-500/20',
+    'from-violet-600 to-purple-700 text-white shadow-purple-500/20',
+    'from-amber-500 to-orange-600 text-white shadow-amber-500/20',
+    'from-rose-500 to-pink-600 text-white shadow-rose-500/20',
+    'from-teal-500 to-cyan-700 text-white shadow-teal-500/20',
+    'from-indigo-500 to-blue-700 text-white shadow-indigo-500/20',
+  ]
+  let hash = 0
+  for (let i = 0; i < (name || '').length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return gradients[Math.abs(hash) % gradients.length]
+}
+
+const truncateComment = (comment: string, maxLength = 80): string => {
+  if (!comment) return ''
+  const trimmed = comment.trim()
+  if (trimmed.length <= maxLength) return trimmed
+  return `${trimmed.slice(0, maxLength).trim()}...`
+}
+
+const AuthorAvatar: React.FC<{ name: string; avatarUrl?: string | null }> = ({ name, avatarUrl }) => {
+  const [hasImgError, setHasImgError] = useState(false)
+  const initial = getInitials(name)
+  const gradientCls = getAvatarGradient(name)
+
+  const isDummyPath = avatarUrl && (avatarUrl.includes('/images/users/user-') || avatarUrl.includes('avatar_'))
+  const showImage = Boolean(avatarUrl) && !hasImgError && !isDummyPath
+
+  if (showImage) {
+    return (
+      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border shadow-xs shrink-0 bg-muted/60 relative">
+        <img
+          src={avatarUrl!}
+          alt={name}
+          onError={() => setHasImgError(true)}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={`w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center font-bold text-sm select-none border-2 border-white/30 dark:border-slate-800 shadow-xs shrink-0 ${gradientCls}`}
+      title={name}
+      aria-label={name}
+    >
+      <span className="leading-none drop-shadow-xs">{initial}</span>
+    </div>
+  )
+}
 
 export interface TestimonialsTableProps {
   records: TestimonialItem[]
@@ -97,13 +168,13 @@ export const TestimonialsTable: React.FC<TestimonialsTableProps> = ({
                     className={`text-left font-bold text-xs ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center gap-1.5">
-                      <span>{t('cms.colAuthor', 'Client / Author')}</span>
+                      <span>{t('cms.colAuthor', 'Customer')}</span>
                       {renderSortIcon('author_name')}
                     </div>
                   </th>
                 )}
                 {visibleColumns.feedback && (
-                  <th className="text-left font-bold text-xs">{t('cms.colFeedback', 'Review / Feedback')}</th>
+                  <th className="text-left font-bold text-xs">{t('cms.colFeedback', 'Feedback')}</th>
                 )}
                 {visibleColumns.rating && (
                   <th
@@ -122,7 +193,7 @@ export const TestimonialsTable: React.FC<TestimonialsTableProps> = ({
                     className={`text-center font-bold text-xs w-28 ${onSort ? 'cursor-pointer hover:bg-muted/60 transition-colors group' : ''}`}
                   >
                     <div className="flex items-center justify-center gap-1.5">
-                      <span>{t('cms.colFeatured', 'Featured')}</span>
+                      <span>{t('cms.colFeatured', 'Homepage')}</span>
                       {renderSortIcon('is_featured')}
                     </div>
                   </th>
@@ -147,11 +218,10 @@ export const TestimonialsTable: React.FC<TestimonialsTableProps> = ({
               {isLoading ? (
                 <LoadingSkeleton cols={colsCount} />
               ) : records.length === 0 ? (
-                <EmptyState cols={colsCount} message={t('cms.noTestimonials', 'No client reviews or testimonials found')} />
+                <EmptyState cols={colsCount} message={t('cms.noTestimonials', 'No testimonials found')} />
               ) : (
                 records.map((r) => {
                   const isSelected = selectedRows.includes(r.id)
-                  const avatarSrc = r.avatar || '/images/users/user-01.jpg'
                   const isActive = r.is_active !== false
 
                   return (
@@ -173,15 +243,7 @@ export const TestimonialsTable: React.FC<TestimonialsTableProps> = ({
                       {visibleColumns.author && (
                         <td>
                           <div className="flex items-center gap-3 py-1">
-                            <div className="w-10 h-10 rounded-full overflow-hidden border border-border shrink-0 bg-muted/60">
-                              <AppImage
-                                src={avatarSrc}
-                                alt={r.author_name}
-                                fallbackType="general"
-                                fallbackSrc="/images/users/user-01.jpg"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
+                            <AuthorAvatar name={r.author_name} avatarUrl={r.avatar} />
                             <div className="min-w-0">
                               <p
                                 onClick={() => openEditModal(r)}
@@ -200,11 +262,14 @@ export const TestimonialsTable: React.FC<TestimonialsTableProps> = ({
                         </td>
                       )}
                       {visibleColumns.feedback && (
-                        <td>
-                          <div className="flex items-start gap-2 max-w-lg py-1">
+                        <td className="max-w-md xl:max-w-xl">
+                          <div
+                            className="flex items-start gap-2 py-1 cursor-help group/comment"
+                            title={r.comment}
+                          >
                             <Quote size={13} className="text-primary shrink-0 mt-0.5 opacity-60" />
-                            <p className="text-xs text-foreground/90 line-clamp-2 italic">
-                              "{r.comment}"
+                            <p className="text-xs text-foreground/90 italic line-clamp-1 break-words">
+                              "{truncateComment(r.comment, 80)}"
                             </p>
                           </div>
                         </td>
@@ -219,7 +284,7 @@ export const TestimonialsTable: React.FC<TestimonialsTableProps> = ({
                           {r.is_featured ? (
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                               <Sparkles size={11} />
-                              <span>{t('cms.featured', 'Featured')}</span>
+                              <span>{t('cms.featuredOnHome', 'Featured on Home')}</span>
                             </span>
                           ) : (
                             <span className="text-xs text-muted-foreground">-</span>

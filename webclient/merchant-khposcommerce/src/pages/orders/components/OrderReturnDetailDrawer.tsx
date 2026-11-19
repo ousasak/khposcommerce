@@ -206,41 +206,58 @@ export const OrderReturnDetailDrawer: React.FC<OrderReturnDetailDrawerProps> = (
         onClose={onClose}
       />
 
-      {/* ── 2. DRAWER TABS ── */}
+      {/* ── 2. HERO OVERVIEW CARD (MATCHING EMPLOYEE PROFILE BANNER) ── */}
+      <div className="px-6 py-4 bg-muted/30 border-b border-border/80">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg shrink-0 shadow-xs">
+            <RotateCcw size={26} />
+          </div>
+          <div className="space-y-1 min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground truncate">
+                #{orderReturn.return_number}
+              </h2>
+              {getStatusBadge(orderReturn.status)}
+              {getFaultBadge(orderReturn.fault)}
+            </div>
+            <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+              <span className="uppercase font-mono text-[11px] font-semibold text-foreground/80">
+                {orderReturn.channel ? `Channel: ${orderReturn.channel}` : 'Omnichannel'}
+              </span>
+              <span>•</span>
+              <span className="font-semibold text-foreground/80">{orderReturn.customer?.name || 'Customer'}</span>
+              <span>•</span>
+              <span>{orderReturn.type === 'exchange' ? `🔄 ${t('exchanges', 'Exchange')}` : `↩️ ${t('returns', 'Return')}`}</span>
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted text-muted-foreground border border-border">
+                {orderReturn.items?.length || 0} {t('drawer.itemsCount', 'Items')}
+              </span>
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+                {GlobalFormat.currency(totalRefund)}
+              </span>
+              {orderReturn.order_number && (
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted text-muted-foreground border border-border font-mono">
+                  Order: #{orderReturn.order_number}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. DRAWER TABS ── */}
       <DetailDrawerTabNav
         tabs={tabs}
         activeTab={activeTab}
         onChange={(key) => setActiveTab(key as any)}
       />
 
-      {/* ── 3. DRAWER BODY ── */}
+      {/* ── 4. DRAWER BODY ── */}
       <DetailDrawerBody className="space-y-4 p-5 sm:p-6">
         {/* ─── TAB 1: OVERVIEW & ITEMS ─── */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
-            {/* Quick KPI Summary Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-xl bg-card border border-border/80 space-y-1">
-                <span className="text-[11px] text-muted-foreground block">{t('drawer.returnType', 'Request Type')}</span>
-                <span className="text-xs font-bold text-foreground capitalize">
-                  {orderReturn.type === 'exchange' ? t('exchanges', 'Exchange') : t('returns', 'Return')}
-                </span>
-              </div>
-              <div className="p-3.5 rounded-xl bg-card border border-border/80 space-y-1">
-                <span className="text-[11px] text-muted-foreground block">{t('drawer.faultResponsibility', 'Fault Responsibility')}</span>
-                <div>{getFaultBadge(orderReturn.fault)}</div>
-              </div>
-              <div className="p-3.5 rounded-xl bg-card border border-border/80 space-y-1">
-                <span className="text-[11px] text-muted-foreground block">{t('drawer.channel', 'Channel')}</span>
-                <span className="text-xs font-bold text-foreground uppercase font-mono">{orderReturn.channel}</span>
-              </div>
-              <div className="p-3.5 rounded-xl bg-card border border-border/80 space-y-1">
-                <span className="text-[11px] text-muted-foreground block">{t('refundAmount', 'Net Refund')}</span>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                  {GlobalFormat.currency(totalRefund)}
-                </span>
-              </div>
-            </div>
 
             {/* General Info & Customer / Order Source */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

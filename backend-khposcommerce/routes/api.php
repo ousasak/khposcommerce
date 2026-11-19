@@ -13,7 +13,6 @@ use App\Http\Controllers\Api\HealthController;
 | layers, while API presentation layers are cleanly isolated:
 |
 |   • routes/api/v1/auth.php       -> Authentication & Profile security
-|   • routes/api/v1/control.php    -> SaaS Platform / Master Multi-tenant control
 |   • routes/api/v1/merchant.php   -> Merchant Back-Office ERP & Web POS
 |   • routes/api/v1/storefront.php -> Customer E-Commerce Storefront
 |   • routes/api/v1/mobile.php     -> Flutter Mobile POS & Staff App
@@ -62,17 +61,6 @@ Route::prefix('v1')->group(function () {
     // Backward-compatibility alias for Merchant: /api/v1/admin/*
     Route::prefix('admin')->group(function () {
         require __DIR__ . '/api/v1/merchant.php';
-    });
-
-    // ─── Consumer Namespace: Control (Platform SaaS Management) ───────────
-    // Primary route for control-khposcommerce: /api/v1/control/*
-    Route::prefix('control')->group(function () {
-        require __DIR__ . '/api/v1/control.php';
-    });
-
-    // Backward-compatibility alias for Control: /api/v1/platform/*
-    Route::prefix('platform')->group(function () {
-        require __DIR__ . '/api/v1/control.php';
     });
 
     // ─── Telegram Bot Webhook & Integration Endpoints ─────────────────────

@@ -4,8 +4,6 @@ import { CloseButton, ResetButton, ActionButton } from '@/components/common'
 import { ListFilter } from 'lucide-react'
 import {
   Sheet,
-  SheetPortal,
-  SheetOverlay,
   SheetContent,
 } from '@/components/ui/sheet'
 
@@ -87,13 +85,11 @@ export const FilterDrawerShell: React.FC<FilterDrawerShellProps> = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetPortal>
-        <SheetOverlay className="cursor-pointer" />
-        <SheetContent
-          side="right"
-          showClose={false}
-          className="p-0 w-full max-w-sm sm:max-w-sm md:max-w-sm bg-card border-l border-border/80 shadow-2xl flex flex-col h-full overflow-hidden"
-        >
+      <SheetContent
+        side="right"
+        showClose={false}
+        className="p-0 w-full max-w-sm sm:max-w-sm md:max-w-sm bg-card border-l border-border/80 shadow-2xl flex flex-col h-full overflow-hidden"
+      >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-[14px] border-b border-border/60 shrink-0 bg-background/60">
             <div className="min-w-0 flex-1 pr-3 flex items-center gap-3">
@@ -143,7 +139,6 @@ export const FilterDrawerShell: React.FC<FilterDrawerShellProps> = ({
             </ActionButton>
           </div>
         </SheetContent>
-      </SheetPortal>
     </Sheet>
   )
 }

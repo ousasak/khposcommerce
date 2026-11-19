@@ -550,6 +550,32 @@ class HomeController extends BaseApiController
     private function getTestimonials(int $limit): array
     {
         try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('testimonials')) {
+                $cmsTestimonials = \App\Models\CMS\Testimonial::where('is_active', true)
+                    ->where('is_featured', true)
+                    ->orderBy('sort_order')
+                    ->orderByDesc('id')
+                    ->limit($limit)
+                    ->get();
+
+                if ($cmsTestimonials->isNotEmpty()) {
+                    return $cmsTestimonials->map(fn($t) => [
+                        'id'            => $t->id,
+                        'name'          => $t->author_name,
+                        'customer_name' => $t->author_name,
+                        'role'          => $t->role,
+                        'company'       => $t->company,
+                        'avatar'        => $t->avatar,
+                        'rating'        => (int) $t->rating,
+                        'title'         => $t->role ? ($t->role . ($t->company ? ' • ' . $t->company : '')) : 'Customer Feedback',
+                        'body'          => $t->comment,
+                        'comment'       => $t->comment,
+                        'is_verified'   => true,
+                        'created_at'    => $t->created_at?->toISOString(),
+                    ])->toArray();
+                }
+            }
+
             return ProductReview::where('status', 'approved')
                 ->where('rating', '>=', 4)
                 ->with(['product:id,name,slug', 'customer:id,name,photo'])
@@ -559,10 +585,12 @@ class HomeController extends BaseApiController
                 ->map(fn($r) => [
                     'id'           => $r->id,
                     'name'         => $r->name ?: ($r->customer?->name ?? 'Satisfied Customer'),
+                    'customer_name'=> $r->name ?: ($r->customer?->name ?? 'Satisfied Customer'),
                     'avatar'       => $r->customer?->photo,
                     'rating'       => (int) $r->rating,
                     'title'        => $r->title ?: 'Exceptional Experience',
                     'body'         => $r->body,
+                    'comment'      => $r->body,
                     'is_verified'  => (bool) $r->is_verified_purchase,
                     'product_name' => $r->product?->name,
                     'product_slug' => $r->product?->slug,

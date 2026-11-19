@@ -67,12 +67,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Super Admin bypass for general permission checks; record-level model policies still execute to enforce company/branch boundaries
+        // Owner bypass for general permission checks; record-level model policies still execute to enforce branch boundaries
         \Illuminate\Support\Facades\Gate::before(function ($user, $ability, array $arguments = []) {
             if (!empty($arguments)) {
                 return null;
             }
-            return $user->hasRole('super_admin') ? true : null;
+            return ($user->hasRole('owner') || $user->hasRole('super_admin')) ? true : null;
         });
 
         // Explicit Policy Registrations for Multi-Branch and Data Isolation

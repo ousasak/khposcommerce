@@ -5,7 +5,6 @@ import { AnimatePresence } from 'framer-motion'
 import ToastContainer from '@/components/ui/ToastContainer'
 import ThemeSynchronizer from '@/components/shared/ThemeSynchronizer'
 import FaviconSynchronizer from '@/components/shared/FaviconSynchronizer'
-import TenantBranchCacheSynchronizer from '@/components/shared/TenantBranchCacheSynchronizer'
 import NetworkStatusListener from '@/components/shared/NetworkStatusListener'
 import MuiAppProvider from '@/components/shared/MuiAppProvider'
 import DashboardTransitionOverlay from '@/components/shared/DashboardTransitionOverlay'
@@ -37,7 +36,6 @@ const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeSynchronizer />
       <FaviconSynchronizer />
-      <TenantBranchCacheSynchronizer />
       <MuiAppProvider>
         <BrowserRouter>
           <div className="h-full">

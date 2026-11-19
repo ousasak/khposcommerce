@@ -620,6 +620,43 @@ const InventoryPage: React.FC<{ tab?: string }> = ({ tab }) => {
     else if (type === 'opname') navigate(`/inventory/opnames/${id}/edit`)
   }
 
+  // Metadata for each dedicated submenu page
+  const activeMeta = useMemo(() => {
+    switch (activeTab) {
+      case 'movements':
+        return {
+          title: t('submenu_movements_title', 'Stock Movements'),
+          subtitle: t('submenu_movements_subtitle', 'Comprehensive audit trail of stock in/out, sales, adjustments, and transfers.'),
+        }
+      case 'transfers':
+        return {
+          title: t('submenu_transfers_title', 'Stock Transfers'),
+          subtitle: t('submenu_transfers_subtitle', 'Manage and track inter-warehouse and inter-branch stock transfers.'),
+        }
+      case 'adjustments':
+        return {
+          title: t('submenu_adjustments_title', 'Stock Adjustments'),
+          subtitle: t('submenu_adjustments_subtitle', 'Record and approve stock adjustments for damages, shrinkage, or discrepancies.'),
+        }
+      case 'opnames':
+        return {
+          title: t('submenu_opnames_title', 'Stock Opnames (Audit)'),
+          subtitle: t('submenu_opnames_subtitle', 'Physical inventory audits, cycle counts, and stock variance reconciliations.'),
+        }
+      case 'dashboard':
+        return {
+          title: t('submenu_dashboard_title', 'Inventory Analytics & Dashboard'),
+          subtitle: t('submenu_dashboard_subtitle', 'Holistic metrics, warehouse capacity utilization, and inventory valuations.'),
+        }
+      case 'levels':
+      default:
+        return {
+          title: t('submenu_levels_title', 'Stock Levels & Alerts'),
+          subtitle: t('submenu_levels_subtitle', 'Monitor stock levels across warehouses, track low-stock items, and trigger automated alerts.'),
+        }
+    }
+  }, [activeTab, t])
+
   // If creating/editing a transfer, adjustment, or opname, render dedicated full form page view
   if (activeFormType === 'transfer') {
     return (
@@ -662,43 +699,6 @@ const InventoryPage: React.FC<{ tab?: string }> = ({ tab }) => {
       />
     )
   }
-
-  // Metadata for each dedicated submenu page
-  const activeMeta = useMemo(() => {
-    switch (activeTab) {
-      case 'movements':
-        return {
-          title: t('submenu_movements_title', 'Stock Movements'),
-          subtitle: t('submenu_movements_subtitle', 'Comprehensive audit trail of stock in/out, sales, adjustments, and transfers.'),
-        }
-      case 'transfers':
-        return {
-          title: t('submenu_transfers_title', 'Stock Transfers'),
-          subtitle: t('submenu_transfers_subtitle', 'Manage and track inter-warehouse and inter-branch stock transfers.'),
-        }
-      case 'adjustments':
-        return {
-          title: t('submenu_adjustments_title', 'Stock Adjustments'),
-          subtitle: t('submenu_adjustments_subtitle', 'Record and approve stock adjustments for damages, shrinkage, or discrepancies.'),
-        }
-      case 'opnames':
-        return {
-          title: t('submenu_opnames_title', 'Stock Opnames (Audit)'),
-          subtitle: t('submenu_opnames_subtitle', 'Physical inventory audits, cycle counts, and stock variance reconciliations.'),
-        }
-      case 'dashboard':
-        return {
-          title: t('submenu_dashboard_title', 'Inventory Analytics & Dashboard'),
-          subtitle: t('submenu_dashboard_subtitle', 'Holistic metrics, warehouse capacity utilization, and inventory valuations.'),
-        }
-      case 'levels':
-      default:
-        return {
-          title: t('submenu_levels_title', 'Stock Levels & Alerts'),
-          subtitle: t('submenu_levels_subtitle', 'Monitor stock levels across warehouses, track low-stock items, and trigger automated alerts.'),
-        }
-    }
-  }, [activeTab, t])
 
   return (
     <div className="space-y-6">

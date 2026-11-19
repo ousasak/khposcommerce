@@ -40,6 +40,7 @@ import { EmployeeImportModal } from './components/EmployeeImportModal'
 import { EmployeeTableSection } from './components/EmployeeTableSection'
 import { INITIAL_VISIBLE_COLUMNS_MAP, type Tab, type ImportResult } from './types/employee.types'
 import { useAuthStore } from '@/stores/authStore'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 
 const EmployeesPage: React.FC = () => {
   const { t } = useTranslation(['employees', 'common', 'nav'])
@@ -229,6 +230,16 @@ const EmployeesPage: React.FC = () => {
   const [payStatus, setPayStatus] = useState('draft')
   const [payPaidAt, setPayPaidAt] = useState('')
   const [payNotes, setPayNotes] = useState('')
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  const handleClearFormError = (key: string) => {
+    setFormErrors(prev => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
 
   // Queries for Dropdowns
   const { data: companiesList = [] } = useQuery({
@@ -349,6 +360,15 @@ const EmployeesPage: React.FC = () => {
       closeModal()
     },
     onError: (err: any) => {
+      if (err?.response?.status === 422 && err?.response?.data?.errors) {
+        const apiErrors: Record<string, string> = {}
+        Object.entries(err.response.data.errors).forEach(([k, v]) => {
+          apiErrors[k] = Array.isArray(v) ? (v[0] as string) : String(v)
+        })
+        setFormErrors(apiErrors)
+        focusFirstInvalidField(apiErrors)
+        return
+      }
       toast.error(err?.response?.data?.message || t('common.createFailed', 'Failed to create record.'))
     },
   })
@@ -374,6 +394,15 @@ const EmployeesPage: React.FC = () => {
       closeModal()
     },
     onError: (err: any) => {
+      if (err?.response?.status === 422 && err?.response?.data?.errors) {
+        const apiErrors: Record<string, string> = {}
+        Object.entries(err.response.data.errors).forEach(([k, v]) => {
+          apiErrors[k] = Array.isArray(v) ? (v[0] as string) : String(v)
+        })
+        setFormErrors(apiErrors)
+        focusFirstInvalidField(apiErrors)
+        return
+      }
       toast.error(err?.response?.data?.message || t('common.updateFailed', 'Failed to update record.'))
     },
   })
@@ -695,6 +724,7 @@ const EmployeesPage: React.FC = () => {
     setPayStatus('draft')
     setPayPaidAt('')
     setPayNotes('')
+    setFormErrors({})
     setModalOpen(true)
   }
 
@@ -704,6 +734,7 @@ const EmployeesPage: React.FC = () => {
       return
     }
     setSelectedItem(item)
+    setFormErrors({})
     if (activeTab === 'departments') {
       setFormName(item.name)
       setFormEmployeeNumber(item.code ?? '')
@@ -749,6 +780,7 @@ const EmployeesPage: React.FC = () => {
   const closeModal = () => {
     setModalOpen(false)
     setSelectedItem(null)
+    setFormErrors({})
   }
 
   const closeImportModal = () => {
@@ -787,6 +819,36 @@ const EmployeesPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    const newErrors: Record<string, string> = {}
+    if (activeTab === 'departments') {
+      if (!formCompanyId) {
+        newErrors.company_id = t('employees.errors.companyRequired', 'Please select company')
+      }
+      if (!formBranchId) {
+        newErrors.branch_id = t('employees.errors.branchRequired', 'Please select branch')
+      }
+      if (!formName.trim()) {
+        newErrors.name = t('employees.errors.departmentNameRequired', 'Please enter department name')
+      }
+    } else if (activeTab === 'positions') {
+      if (!formCompanyId) {
+        newErrors.company_id = t('employees.errors.companyRequired', 'Please select company')
+      }
+      if (!formDeptId) {
+        newErrors.department_id = t('employees.errors.departmentRequired', 'Please select department')
+      }
+      if (!formName.trim()) {
+        newErrors.name = t('employees.errors.positionNameRequired', 'Please enter position name')
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setFormErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+
     let payload: any = {}
     if (activeTab === 'departments') {
       payload = {
@@ -1360,6 +1422,8 @@ const EmployeesPage: React.FC = () => {
         selectedItem={selectedItem}
         onSubmit={handleSubmit}
         isPending={createMutation.isPending || updateMutation.isPending}
+        errors={formErrors}
+        onClearError={handleClearFormError}
         companiesList={companiesList}
         branchesList={branchesList}
         deptList={deptList}

@@ -1,6 +1,5 @@
 import React from 'react'
-import { Modal } from '@/components/common'
-import { ModalFooter } from '@/components/common'
+import { Modal, ModalFooter, FormField, getFieldClass } from '@/components/common'
 import { FolderOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { CategoryForm } from '../types/finance.types'
@@ -18,6 +17,8 @@ export interface ExpenseCategoriesFormDrawerProps {
   isPending: boolean
   categoryForm: CategoryForm
   setCategoryForm: React.Dispatch<React.SetStateAction<CategoryForm>>
+  errors?: Record<string, string>
+  onClearError?: (key: string) => void
 }
 
 export type CategoryFormDrawerProps = ExpenseCategoriesFormDrawerProps
@@ -30,6 +31,8 @@ export const ExpenseCategoriesFormDrawer: React.FC<ExpenseCategoriesFormDrawerPr
   isPending,
   categoryForm,
   setCategoryForm,
+  errors = {},
+  onClearError,
 }) => {
   const { t } = useTranslation(['finance', 'common'])
   const isEdit = Boolean(editingItem)
@@ -63,26 +66,32 @@ export const ExpenseCategoriesFormDrawer: React.FC<ExpenseCategoriesFormDrawerPr
           e.preventDefault()
           onSubmit()
         }}
+        noValidate
         className="p-5 sm:p-6 space-y-4"
       >
         <div>
-          <label className={labelCls}>
-            {t('finance.category_name', 'Category Name')} <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
+          <FormField
+            label={t('finance.category_name', 'Category Name')}
             required
-            value={categoryForm.name}
-            onChange={(e) => {
-              setCategoryForm((p) => ({
-                ...p,
-                name: e.target.value,
-                code: p.code || (e.target.value ? `EXP-${e.target.value.substring(0, 3).toUpperCase()}` : '')
-              }))
-            }}
-            placeholder={t('finance.placeholder_category_name', 'e.g. Travel & Transport')}
-            className={inputCls}
-          />
+            error={errors.name}
+          >
+            <input
+              id="category-name"
+              name="name"
+              type="text"
+              value={categoryForm.name}
+              onChange={(e) => {
+                setCategoryForm((p) => ({
+                  ...p,
+                  name: e.target.value,
+                  code: p.code || (e.target.value ? `EXP-${e.target.value.substring(0, 3).toUpperCase()}` : '')
+                }))
+                onClearError?.('name')
+              }}
+              placeholder={t('finance.placeholder_category_name', 'e.g. Travel & Transport')}
+              className={getFieldClass(errors.name)}
+            />
+          </FormField>
         </div>
 
         <div>

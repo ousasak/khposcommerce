@@ -1,137 +1,108 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Zap, TrendingUp, DollarSign, Package, Clock, ShoppingBag, AlertTriangle } from 'lucide-react'
-import { EnterpriseStatsCard, EnterpriseMiniStatsCard, EnterpriseStatsGrid } from '@/components/common'
-import { AnimatedCounter } from '@/components/shared/AnimatedCounter'
+import { Zap, ShoppingBag, DollarSign, TrendingUp } from 'lucide-react'
+import { RibbonStatsCard, RibbonStatsGrid } from '@/components/common'
 import type { FlashSaleAnalytics } from '../types'
-
-export { AnimatedCounter, CircularProgressRing } from '@/components/common'
 
 interface FlashSaleStatsCardsProps {
   analytics: FlashSaleAnalytics
 }
 
+/**
+ * FlashSaleStatsCards Component
+ * Uses the global RibbonStatsCard & RibbonStatsGrid design standard from @/components/common,
+ * matching CouponStatsCards, UsageHistoryStatsCards, and modern enterprise modules.
+ */
 export const FlashSaleStatsCards: React.FC<FlashSaleStatsCardsProps> = ({ analytics }) => {
   const { t } = useTranslation(['marketing', 'common'])
 
-  const activeRatio = analytics.totalSales > 0
-    ? (analytics.activeSales / analytics.totalSales) * 100
-    : 0
-
   return (
-    <div className="space-y-4 print:hidden select-none">
-      {/* 4 Main Global Enterprise KPI Cards */}
-      <EnterpriseStatsGrid columns={4}>
+    <div className="print:hidden select-none">
+      <RibbonStatsGrid columns={4}>
         {/* Card 1: Flash Sale Campaigns */}
-        <EnterpriseStatsCard
-          title={t('marketing:totalFlashSales', 'Flash Sale Events')}
+        <RibbonStatsCard
+          title={t('marketing.totalFlashSales', 'Flash Sale Campaigns')}
           value={analytics.totalSales}
-          subtitle={
-            <span className="flex items-center gap-1">
-              <span className="text-emerald-500 font-bold">
-                <AnimatedCounter value={analytics.activeSales} />
-              </span>{' '}
-              {t('marketing:active', 'active now')}
-            </span>
-          }
-          progressRing={{
-            percentage: activeRatio,
-            colorClass: 'text-blue-500',
-          }}
+          useCounter={true}
           icon={Zap}
           variant="blue"
           delay={0.05}
-        />
-
-        {/* Card 2: Orders & Velocity */}
-        <EnterpriseStatsCard
-          title={t('marketing:orders', 'Flash Orders')}
-          value={analytics.totalOrders}
           subtitle={
-            <span>
-              {analytics.totalProductsSold.toLocaleString()} {t('marketing:itemsSold', 'units sold')}
+            <span className="flex items-center gap-1.5 justify-end">
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {analytics.activeSales} {t('marketing.activeNow', 'active now')}
+              </span>
+              <span>•</span>
+              <span className="text-rose-500 font-semibold">
+                {analytics.expiredSales} {t('marketing.statusExpired', 'expired')}
+              </span>
             </span>
           }
-          progressRing={{
-            percentage: analytics.conversionRate,
-            colorClass: 'text-purple-500',
-          }}
-          icon={TrendingUp}
+        />
+
+        {/* Card 2: Orders & Units Sold */}
+        <RibbonStatsCard
+          title={t('marketing.flashOrders', 'Flash Orders')}
+          value={analytics.totalOrders}
+          useCounter={true}
+          icon={ShoppingBag}
           variant="purple"
           delay={0.1}
+          trend={{
+            value: `${analytics.conversionRate}% Conv.`,
+            isPositive: analytics.conversionRate >= 10,
+          }}
+          subtitle={
+            <span>
+              {analytics.totalProductsSold.toLocaleString()} {t('marketing.unitsSold', 'units sold')}
+            </span>
+          }
         />
 
         {/* Card 3: Flash Sale Revenue */}
-        <EnterpriseStatsCard
-          title={t('marketing:totalRevenue', 'Flash Sale Revenue')}
+        <RibbonStatsCard
+          title={t('marketing.flashRevenue', 'Flash Sale Revenue')}
           value={analytics.totalRevenue}
           prefix="$"
           decimals={2}
-          subtitle={
-            <span>
-              Discounts: ${analytics.totalDiscountAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
-          }
+          useCounter={true}
+          icon={DollarSign}
+          variant="emerald"
+          delay={0.15}
           trend={{
             value: `+$${analytics.profitGenerated.toFixed(0)}`,
             isPositive: true,
           }}
-          icon={DollarSign}
-          variant="emerald"
-          delay={0.15}
+          subtitle={
+            <span>
+              {t('marketing.discountsGiven', 'Discounts:')} ${analytics.totalDiscountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          }
         />
 
-        {/* Card 4: Average Order Value & Performance */}
-        <EnterpriseStatsCard
-          title="Flash Performance"
+        {/* Card 4: Average Order Value & Velocity */}
+        <RibbonStatsCard
+          title={t('marketing.flashPerformance', 'Flash Performance (AOV)')}
           value={analytics.aov}
           prefix="$"
           decimals={2}
-          subtitle={
-            <span>
-              Conv. Rate: {analytics.conversionRate}%
-            </span>
-          }
-          trend={{
-            value: `${analytics.conversionRate}%`,
-            isPositive: analytics.conversionRate >= 10,
-          }}
-          icon={Package}
+          useCounter={true}
+          icon={TrendingUp}
           variant="amber"
           delay={0.2}
+          subtitle={
+            <span className="flex items-center gap-1.5 justify-end">
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                ${analytics.revenueTodayVal.toFixed(2)} {t('marketing.todayLabel', 'today')}
+              </span>
+              <span>•</span>
+              <span className={analytics.endingSoonCount > 0 ? 'text-amber-500 font-bold' : ''}>
+                {analytics.endingSoonCount} {t('marketing.endingSoon', 'ending soon')}
+              </span>
+            </span>
+          }
         />
-      </EnterpriseStatsGrid>
-
-      {/* Secondary 4 Mini-Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <EnterpriseMiniStatsCard
-          label="Today's Flash Revenue"
-          value={`$${analytics.revenueTodayVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
-          icon={DollarSign}
-          valueColor="emerald"
-        />
-
-        <EnterpriseMiniStatsCard
-          label="Orders Today"
-          value={analytics.salesTodayCount}
-          icon={ShoppingBag}
-          valueColor="blue"
-        />
-
-        <EnterpriseMiniStatsCard
-          label="Ending Soon"
-          value={analytics.endingSoonCount}
-          icon={Clock}
-          valueColor={analytics.endingSoonCount > 0 ? 'amber' : 'emerald'}
-        />
-
-        <EnterpriseMiniStatsCard
-          label="Low Stock Alerts"
-          value={analytics.lowStockAlerts}
-          icon={AlertTriangle}
-          valueColor={analytics.lowStockAlerts > 0 ? 'rose' : 'emerald'}
-        />
-      </div>
+      </RibbonStatsGrid>
     </div>
   )
 }

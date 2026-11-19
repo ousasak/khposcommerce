@@ -98,6 +98,7 @@ use App\Http\Controllers\Api\V1\Admin\CMS\BlogController;
 use App\Http\Controllers\Api\V1\Admin\CMS\PageController;
 use App\Http\Controllers\Api\V1\Admin\CMS\FaqController;
 use App\Http\Controllers\Api\V1\Admin\CMS\AnnouncementController;
+use App\Http\Controllers\Api\V1\Admin\CMS\TestimonialController;
 
 use App\Http\Controllers\Api\V1\Admin\Expense\ExpenseCategoryController;
 use App\Http\Controllers\Api\V1\Admin\Expense\ExpenseController;
@@ -594,7 +595,7 @@ Route::middleware(['auth.jwt', 'tenant.scope'])->group(function () {
     Route::get('banners',                   [BannerController::class, 'index'])->middleware('permission:banner.view');
     Route::get('banners/{id}',              [BannerController::class, 'show'])->middleware('permission:banner.view');
     Route::post('banners',                  [BannerController::class, 'store'])->middleware('permission:banner.create');
-    Route::match(['put', 'patch'], 'banners/{id}', [BannerController::class, 'update'])->middleware('permission:banner.update');
+    Route::match(['put', 'patch', 'post'], 'banners/{id}', [BannerController::class, 'update'])->middleware('permission:banner.update');
     Route::delete('banners/{id}',           [BannerController::class, 'destroy'])->middleware('permission:banner.delete');
 
     Route::get('coupons/generate-code',     [CouponController::class, 'generateCode'])->middleware('permission:coupon.create');
@@ -619,6 +620,7 @@ Route::middleware(['auth.jwt', 'tenant.scope'])->group(function () {
 
     // Promotion Campaigns & Discount Rules Engine
     Route::get('promotion-campaigns',               [PromotionCampaignController::class, 'index'])->middleware('permission:promotion.view');
+    Route::get('promotion-usages',                  [PromotionCampaignController::class, 'allUsages'])->middleware('permission:promotion.view');
     Route::get('promotion-campaigns/{id}',          [PromotionCampaignController::class, 'show'])->middleware('permission:promotion.view');
     Route::get('promotion-campaigns/{id}/usages',   [PromotionCampaignController::class, 'usages'])->middleware('permission:promotion.view');
     Route::post('promotion-campaigns',              [PromotionCampaignController::class, 'store'])->middleware('permission:promotion.create');
@@ -753,6 +755,10 @@ Route::middleware(['auth.jwt', 'tenant.scope'])->group(function () {
     Route::post('announcements/bulk-delete', [AnnouncementController::class, 'bulkDelete']);
     Route::post('announcements/{id}/toggle-active', [AnnouncementController::class, 'toggleActive']);
     Route::apiResource('announcements',      AnnouncementController::class);
+    Route::post('testimonials/bulk-delete',          [TestimonialController::class, 'bulkDelete']);
+    Route::post('testimonials/{id}/toggle-active',   [TestimonialController::class, 'toggleActive']);
+    Route::post('testimonials/{id}/toggle-featured', [TestimonialController::class, 'toggleFeatured']);
+    Route::apiResource('testimonials',               TestimonialController::class);
 
     // ─── Expenses & Finance Analytics ────────────────────────────────────────
     Route::get('finance/analytics',          [FinanceAnalyticsController::class, 'analytics'])->middleware('permission:expense.view');

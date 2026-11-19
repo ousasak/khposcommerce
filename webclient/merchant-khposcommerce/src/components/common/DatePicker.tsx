@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 import { DatePicker as MuiDatePickerRoot } from '@mui/x-date-pickers/DatePicker'
 import { TimePicker as MuiTimePickerRoot } from '@mui/x-date-pickers/TimePicker'
 import { DateTimePicker as MuiDateTimePickerRoot } from '@mui/x-date-pickers/DateTimePicker'
-import dayjs, { Dayjs } from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 
 dayjs.extend(customParseFormat)
@@ -24,6 +24,7 @@ export interface DatePickerProps {
   maxDate?: string
   format?: string // defaults to 'YYYY-MM-DD'
   views?: readonly ('year' | 'month' | 'day')[]
+  size?: 'small' | 'medium'
   error?: boolean
   helperText?: string
 }
@@ -81,7 +82,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           textField: {
             size,
             fullWidth: true,
-            placeholder,
+            inputProps: { placeholder },
             required,
             error,
             helperText,
@@ -193,7 +194,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           textField: {
             size,
             fullWidth: true,
-            placeholder,
+            inputProps: { placeholder },
             required,
             error,
             helperText,
@@ -306,7 +307,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
           textField: {
             size,
             fullWidth: true,
-            placeholder,
+            inputProps: { placeholder },
             required,
             error,
             helperText,

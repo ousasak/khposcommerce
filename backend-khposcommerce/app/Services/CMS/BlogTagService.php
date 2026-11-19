@@ -15,17 +15,47 @@ class BlogTagService
 
     public function getAll(array $relations = []): Collection
     {
-        return $this->repository->all(relations: $relations);
+        return $this->repository->getModel()->newQuery()
+            ->with($relations)
+            ->withCount('posts')
+            ->orderBy('name', 'asc')
+            ->get();
     }
 
-    public function getPaginated(int $perPage = 15, array $relations = []): LengthAwarePaginator
+    public function getPaginated(int $perPage = 15, array $filters = [], array $relations = []): LengthAwarePaginator
     {
-        return $this->repository->paginate($perPage, relations: $relations);
+        $query = $this->repository->getModel()->newQuery()
+            ->with($relations)
+            ->withCount('posts');
+
+        if (!empty($filters['search'])) {
+            $search = trim($filters['search']);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+            });
+        }
+
+        $sort = $filters['sort'] ?? 'id';
+        $order = strtolower($filters['order'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if ($sort === 'posts_count') {
+            $query->orderBy('posts_count', $order);
+        } elseif (in_array($sort, ['id', 'name', 'slug', 'created_at', 'updated_at'])) {
+            $query->orderBy($sort, $order);
+        } else {
+            $query->orderBy('id', 'desc');
+        }
+
+        return $query->paginate($perPage);
     }
 
     public function getById(int|string $id, array $relations = []): BlogTag
     {
-        return $this->repository->findById($id, relations: $relations);
+        return $this->repository->getModel()->newQuery()
+            ->with($relations)
+            ->withCount('posts')
+            ->findOrFail($id);
     }
 
     public function create(array $data): BlogTag

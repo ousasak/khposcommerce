@@ -1,6 +1,5 @@
 import React from 'react'
-import { Modal } from '@/components/common'
-import { ModalFooter } from '@/components/common'
+import { Modal, ModalFooter, FormField, getFieldClass } from '@/components/common'
 import { Percent } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { TaxForm } from '../types/finance.types'
@@ -18,6 +17,8 @@ export interface TaxRulesRatesFormDrawerProps {
   isPending: boolean
   taxForm: TaxForm
   setTaxForm: React.Dispatch<React.SetStateAction<TaxForm>>
+  errors?: Record<string, string>
+  onClearError?: (key: string) => void
 }
 
 export type TaxFormDrawerProps = TaxRulesRatesFormDrawerProps
@@ -30,6 +31,8 @@ export const TaxRulesRatesFormDrawer: React.FC<TaxRulesRatesFormDrawerProps> = (
   isPending,
   taxForm,
   setTaxForm,
+  errors = {},
+  onClearError,
 }) => {
   const { t } = useTranslation(['finance', 'common'])
   const isEdit = Boolean(editingItem)
@@ -63,36 +66,51 @@ export const TaxRulesRatesFormDrawer: React.FC<TaxRulesRatesFormDrawerProps> = (
           e.preventDefault()
           onSubmit()
         }}
+        noValidate
         className="p-5 sm:p-6 space-y-4"
       >
         <div>
-          <label className={labelCls}>
-            {t('finance.tax_rule_name', 'Tax Rule Name')} <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
+          <FormField
+            label={t('finance.tax_rule_name', 'Tax Rule Name')}
             required
-            value={taxForm.name}
-            onChange={(e) => setTaxForm((p) => ({ ...p, name: e.target.value }))}
-            placeholder={t('finance.tax_name_placeholder', 'e.g. VAT 10%')}
-            className={inputCls}
-          />
+            error={errors.name}
+          >
+            <input
+              id="tax-name"
+              name="name"
+              type="text"
+              value={taxForm.name}
+              onChange={(e) => {
+                setTaxForm((p) => ({ ...p, name: e.target.value }))
+                onClearError?.('name')
+              }}
+              placeholder={t('finance.tax_name_placeholder', 'e.g. VAT 10%')}
+              className={getFieldClass(errors.name)}
+            />
+          </FormField>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className={labelCls}>
-              {t('finance.tax_rate', 'Tax Rate')} <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
+            <FormField
+              label={t('finance.tax_rate', 'Tax Rate')}
               required
-              value={taxForm.rate}
-              onChange={(e) => setTaxForm((p) => ({ ...p, rate: e.target.value }))}
-              placeholder="10.00"
-              className={`${inputCls} font-mono`}
-            />
+              error={errors.rate}
+            >
+              <input
+                id="tax-rate"
+                name="rate"
+                type="number"
+                step="0.01"
+                value={taxForm.rate}
+                onChange={(e) => {
+                  setTaxForm((p) => ({ ...p, rate: e.target.value }))
+                  onClearError?.('rate')
+                }}
+                placeholder="10.00"
+                className={`${getFieldClass(errors.rate)} font-mono`}
+              />
+            </FormField>
           </div>
           <div>
             <label className={labelCls}>{t('finance.type_col', 'Tax Type')}</label>

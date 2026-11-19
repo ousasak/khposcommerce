@@ -52,12 +52,6 @@ class RolesPermissionsSeeder extends Seeder
             'setting.manage',
             'audit_log.export',
 
-            // SaaS Subscription, Plan & Platform Special Actions
-            'platform.view', 'platform.manage',
-            'subscription.view', 'subscription.manage',
-            'billing.view', 'billing.manage',
-            'plan.view', 'plan.manage',
-
             // Catalog & Master Data Export / Import
             'category.export', 'category.import',
             'brand.export', 'brand.import',
@@ -91,7 +85,6 @@ class RolesPermissionsSeeder extends Seeder
             'stock_adjustments', 'stock_adjustment_items', 'stock_opnames', 'stock_opname_items', 'stock_transfers', 
             'stock_transfer_items', 'stores', 'suppliers', 'supplier_contacts', 'taxes', 'transactions', 'units', 
             'users', 'warehouses', 'wishlists', 'shifts', 'leave_requests', 'notification_templates', 'notifications',
-            'plans', 'subscriptions', 'subscription_invoices'
         ];
 
         $permissions = $specialPermissions;
@@ -112,16 +105,9 @@ class RolesPermissionsSeeder extends Seeder
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'api']);
         }
 
-        // ─── Super Admin (Full Access to All API Permissions) ─────────────────
-        $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'api'], [
-            'display_name'    => 'Super Administrator',
-            'display_name_km' => 'អភិបាលជាន់ខ្ពស់',
-            'description'     => 'Full access to every area, including billing and settings.',
-            'description_km'  => 'មានសិទ្ធិចូលដំណើរការគ្រប់ផ្នែកទាំងអស់ រួមទាំងការទូទាត់ប្រាក់ និងការកំណត់ប្រព័ន្ធ។',
-            'is_system'       => true,
-        ]);
-        $allApiPermissions = Permission::where('guard_name', 'api')->get();
-        $superAdmin->syncPermissions($allApiPermissions);
+        // ─── Owner (Business Owner - Full Access to All Branches) ─────────────
+        // Note: super_admin role is REMOVED. 'owner' is the top-level role for the business owner.
+        // If old 'super_admin' exists in DB, it will be left as-is until manually renamed.
 
         // ─── Owner (Company Owner - Full Access across their Company & All Branches) ─
         $owner = Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'api'], [
@@ -136,8 +122,6 @@ class RolesPermissionsSeeder extends Seeder
             'currency.create', 'currency.delete',
             'language.create', 'language.delete',
             'country.create', 'country.delete',
-            'platform.view', 'platform.manage',
-            'plan.create', 'plan.update', 'plan.delete', 'plan.manage',
         ];
         $ownerPermissions = Permission::where('guard_name', 'api')
             ->get()
@@ -165,9 +149,6 @@ class RolesPermissionsSeeder extends Seeder
             'warehouse.create', 'warehouse.delete',
             'user.delete',
             'setting.create', 'setting.delete', 'setting.manage',
-            'subscription.manage', 'subscription.delete',
-            'billing.manage', 'billing.delete',
-            'plan.create', 'plan.update', 'plan.delete', 'plan.manage',
             'currency.create', 'currency.update', 'currency.delete', 'currency.export',
             'language.create', 'language.update', 'language.delete',
             'country.create', 'country.update', 'country.delete',

@@ -215,69 +215,72 @@ export const CMSStatsCards: React.FC<CMSStatsCardsProps> = ({
     if (activeTab === 'announcements') {
       const activeRecord = records.find((r) => r.is_active) || (records.length > 0 ? records[0] : null)
       const isEnabled = activeRecord ? activeRecord.is_active !== false : false
-      const coupon = activeRecord?.coupon_code || activeRecord?.code || 'OPTAPOS2026'
+      const coupon = activeRecord?.coupon_code || activeRecord?.code || ''
+      const badge = activeRecord?.badge_text || 'SPECIAL PROMO'
       const totalCampaigns = pagination?.total ?? records.length
+      const activeCount = records.filter((r) => r.is_active).length
+      const standbyCount = Math.max(0, totalCampaigns - activeCount)
 
       return [
         {
-          key: 'announcement-status',
-          title: t('cms.cardAnnouncementBar'),
-          value: isEnabled ? 1 : 0,
-          subtext: (
-            <>
-              <span className={isEnabled ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold'}>
-                {isEnabled ? t('common.active') : t('common.disabled')}
-              </span>
-              <span>•</span>
-              <span className="text-muted-foreground truncate max-w-[140px] inline-block align-bottom">
-                {activeRecord?.title || t('cms.visibleToUsers')}
-              </span>
-            </>
-          ),
-          icon: Megaphone,
-          colorClass: isEnabled ? 'bg-amber-500/10 text-amber-500' : 'bg-muted text-muted-foreground',
-        },
-        {
           key: 'total-campaigns',
-          title: t('cms.databaseCampaigns'),
+          title: t('cms.cardTotalAnnouncements', 'Total Campaigns'),
           value: totalCampaigns,
           subtext: (
             <>
-              <span className="text-emerald-500 font-bold">1 {t('cms.active')}</span>
+              <span className="text-emerald-500 font-bold">{activeCount} {t('cms.active', 'Active')}</span>
               <span>•</span>
-              <span className="text-muted-foreground">{totalCampaigns > 1 ? `${totalCampaigns - 1} ${t('cms.standby')}` : t('cms.inDatabase')}</span>
+              <span className="text-muted-foreground">{standbyCount} {t('cms.standby', 'Standby')}</span>
             </>
           ),
           icon: Layers,
           colorClass: 'bg-indigo-500/10 text-indigo-500',
         },
         {
-          key: 'announcement-coupon',
-          title: t('cms.cardPromoCoupon'),
-          value: coupon ? 1 : 0,
+          key: 'announcement-status',
+          title: t('cms.cardAnnouncementBar', 'Storefront Status'),
+          value: isEnabled ? t('common.active', 'Active') : t('common.disabled', 'Disabled'),
           subtext: (
             <>
-              <span className="text-purple-500 font-bold font-mono">{coupon}</span>
+              <span className={isEnabled ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold'}>
+                {isEnabled ? '🟢 កំពុងផ្សាយ' : '⚪ បានបិទ'}
+              </span>
               <span>•</span>
-              <span className="text-muted-foreground">{t('cms.oneClickApply')}</span>
+              <span className="text-muted-foreground truncate max-w-[130px] inline-block align-bottom" title={activeRecord?.title}>
+                {activeRecord?.title || t('cms.visibleToUsers', 'Active Banner')}
+              </span>
             </>
           ),
-          icon: Sparkles,
+          icon: Megaphone,
+          colorClass: isEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground',
+        },
+        {
+          key: 'announcement-coupon',
+          title: t('cms.cardPromoCoupon', 'Active Promo Coupon'),
+          value: coupon || t('cms.none', 'None'),
+          subtext: (
+            <>
+              <span className="text-purple-500 font-bold font-mono">{coupon ? '🎟️ Active' : 'No Promo'}</span>
+              <span>•</span>
+              <span className="text-muted-foreground">{coupon ? t('cms.attachedToBanner', 'Attached to Banner') : t('cms.noCoupon', 'No Promo Code')}</span>
+            </>
+          ),
+          icon: Tag,
           colorClass: 'bg-purple-500/10 text-purple-500',
         },
         {
-          key: 'language-support',
-          title: t('cms.cardLanguages'),
-          value: 2,
+          key: 'announcement-badge',
+          title: t('cms.cardActiveBadge', 'Active Badge'),
+          value: badge,
           subtext: (
             <>
-              <span className="text-blue-500 font-bold">🇰🇭 Khmer + 🇺🇸 English</span>
+              <span className="text-amber-500 font-bold">✨ Storefront Strip</span>
               <span>•</span>
-              <span className="text-emerald-500 font-bold">{t('cms.bilingual')}</span>
+              <span className="text-muted-foreground">{isEnabled ? '100% Live' : '0% Live'}</span>
             </>
           ),
-          icon: BookOpen,
-          colorClass: 'bg-blue-500/10 text-blue-500',
+          icon: Sparkles,
+          colorClass: 'bg-amber-500/10 text-amber-500',
         },
       ]
     }
@@ -316,9 +319,9 @@ export const CMSStatsCards: React.FC<CMSStatsCardsProps> = ({
         },
         {
           key: 'featured-homepage',
-          title: t('cms.cardFeaturedHome'),
+          title: t('cms.cardFeaturedHome', 'Featured on Home'),
           value: featured,
-          subtext: <span className="text-indigo-500 font-bold">{t('cms.visibleOnHome')}</span>,
+          subtext: <span className="text-indigo-500 font-bold">{t('cms.visibleOnHome', 'Visible on Home')}</span>,
           icon: Sparkles,
           colorClass: 'bg-indigo-500/10 text-indigo-500',
         },
@@ -330,46 +333,6 @@ export const CMSStatsCards: React.FC<CMSStatsCardsProps> = ({
           subtext: <span className="text-teal-500 font-bold">{t('cms.highBuyerTrust')}</span>,
           icon: ShieldCheck,
           colorClass: 'bg-teal-500/10 text-teal-500',
-        },
-      ]
-    }
-
-    if (activeTab === 'media') {
-      const total = totalFromPagination
-      return [
-        {
-          key: 'total-media',
-          title: t('cms.cardTotalMedia'),
-          value: total,
-          subtext: <span className="text-indigo-500 font-bold">{t('cms.digitalAssetsDesc')}</span>,
-          icon: ImageIcon,
-          colorClass: 'bg-blue-500/10 text-blue-500',
-        },
-        {
-          key: 'storage-health',
-          title: t('cms.cardStorageHealth'),
-          value: 100,
-          suffix: '%',
-          subtext: <span className="text-emerald-500 font-bold">{t('cms.webpOptimizedCdn')}</span>,
-          icon: CheckCircle2,
-          colorClass: 'bg-emerald-500/10 text-emerald-500',
-        },
-        {
-          key: 'media-types',
-          title: t('cms.cardMediaTypes'),
-          value: 4,
-          subtext: <span className="text-teal-500 font-bold">{t('cms.assetCategoriesDesc')}</span>,
-          icon: FolderOpen,
-          colorClass: 'bg-teal-500/10 text-teal-500',
-        },
-        {
-          key: 'asset-availability',
-          title: t('cms.cardAssetAvailability'),
-          value: 100,
-          suffix: '%',
-          subtext: <span className="text-purple-500 font-bold">{t('cms.instantCopyUrl')}</span>,
-          icon: UploadCloud,
-          colorClass: 'bg-purple-500/10 text-purple-500',
         },
       ]
     }

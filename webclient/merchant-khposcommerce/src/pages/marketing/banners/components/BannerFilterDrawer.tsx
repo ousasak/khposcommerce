@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Globe, Store, Smartphone } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { CloseButton, ResetButton, ActionButton } from '@/components/common'
 
 interface BannerFilterDrawerProps {
@@ -26,6 +26,7 @@ export const BannerFilterDrawer: React.FC<BannerFilterDrawerProps> = ({
   setChannelFilter,
   onReset,
 }) => {
+  const { t } = useTranslation(['marketing', 'common', 'buttons'])
   if (!isOpen) return null
 
   return (
@@ -47,7 +48,9 @@ export const BannerFilterDrawer: React.FC<BannerFilterDrawerProps> = ({
         >
           {/* Drawer Header */}
           <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/30">
-            <h2 className="text-base font-bold text-foreground">Filter Banners</h2>
+            <h2 className="text-base font-bold text-foreground">
+              {t('marketing.filterBanners', 'ចម្រោះផ្ទាំងបដា')}
+            </h2>
             <CloseButton onClose={onClose} size="md" color="rose" />
           </div>
 
@@ -56,13 +59,13 @@ export const BannerFilterDrawer: React.FC<BannerFilterDrawerProps> = ({
             {/* Status Filter */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Active Status
+                {t('marketing.activeStatus', 'ស្ថានភាពសកម្ម')}
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'all', label: 'All Status' },
-                  { id: 'active', label: 'Active' },
-                  { id: 'inactive', label: 'Inactive' },
+                  { id: 'all', label: t('marketing.allStatus', 'គ្រប់ស្ថានភាព') },
+                  { id: 'active', label: t('marketing.active', 'សកម្ម') },
+                  { id: 'inactive', label: t('marketing.inactive', 'អសកម្ម') },
                 ].map((st) => (
                   <button
                     key={st.id}
@@ -83,30 +86,29 @@ export const BannerFilterDrawer: React.FC<BannerFilterDrawerProps> = ({
             {/* Placement / Target Screen Filter */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Display Placement & Screen
+                {t('marketing.displayPlacementScreen', 'ទីតាំងបង្ហាញ & អេក្រង់គោលដៅ')}
               </label>
               <select
                 value={positionFilter}
                 onChange={(e) => setPositionFilter(e.target.value)}
                 className="form-input w-full p-2.5 rounded-xl border border-border bg-card text-foreground text-xs"
               >
-                <option value="all">All Placements</option>
-                <option value="hero">Storefront Hero Carousel</option>
-                <option value="pos_cfd">POS Customer Display (CFD)</option>
-                <option value="app_splash">Mobile App Splash & Home</option>
-                <option value="sidebar">Sidebar Spotlight</option>
-                <option value="popup">Promo Modal Popup</option>
-                <option value="footer">Footer Banner</option>
+                <option value="all">{t('marketing.allPositions', 'គ្រប់ទីតាំងទាំងអស់')}</option>
+                <option value="hero">{t('marketing.placementHero', 'ស្លាយទំព័រដើម (Hero)')}</option>
+                <option value="pos_cfd">{t('marketing.placementPosCfd', 'អេក្រង់អតិថិជន POS (CFD)')}</option>
+                <option value="app_splash">{t('marketing.placementMobileApp', 'កម្មវិធីទូរស័ព្ទដៃ (App)')}</option>
+                <option value="sidebar">{t('marketing.placementSidebar', 'ចំហៀងទំព័រ (Sidebar)')}</option>
+                <option value="popup">{t('marketing.placementPopup', 'ផ្ទាំងផុសផ្សព្វផ្សាយ (Popup)')}</option>
               </select>
             </div>
           </div>
 
           {/* Drawer Footer */}
           <div className="p-4 border-t border-border bg-muted/20 flex items-center justify-between gap-3 shrink-0">
-            <ResetButton onClick={onReset} label="Reset Filters" className="flex-1" />
+            <ResetButton onClick={onReset} label={t('marketing.resetFilters', 'កំណត់ឡើងវិញ')} className="flex-1" />
             <ActionButton
               variant="primary"
-              label="Apply Filters"
+              label={t('marketing.applyFilters', 'អនុវត្ត')}
               className="flex-1"
               onClick={onClose}
             />

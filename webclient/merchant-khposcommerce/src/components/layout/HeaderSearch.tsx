@@ -37,7 +37,6 @@ const STATIC_PAGES = [
   { id: 'cms_faqs', category: 'pages' as const, title: 'FAQs & Help', subtitle: 'Frequently asked questions', path: '/cms/faqs' },
   { id: 'cms_ann', category: 'pages' as const, title: 'Announcements', subtitle: 'Top notification ticker bar announcements', path: '/cms/announcements' },
   { id: 'cms_test', category: 'pages' as const, title: 'Testimonials', subtitle: 'Customer reviews and ratings', path: '/cms/testimonials' },
-  { id: 'cms_med', category: 'pages' as const, title: 'Media Library', subtitle: 'Image and asset storage', path: '/cms/media' },
   { id: 'rep', category: 'pages' as const, title: 'Reports & Auditing', subtitle: 'Business performance charts', path: '/reports' },
   { id: 'sett', category: 'pages' as const, title: 'Settings', subtitle: 'Global configurations', path: '/settings' },
 ]

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Globe, ShieldCheck, Info } from 'lucide-react'
-import { Modal, ModalFooter } from '@/components/common'
+import { Modal, ModalFooter, FormField, getFieldClass } from '@/components/common'
+import { cn } from '@/lib/utils'
 import type { CurrencyForm } from '../types/currency.types'
 
 const labelCls = 'block text-xs font-semibold text-foreground/90 dark:text-slate-200 mb-1.5'
@@ -17,6 +18,8 @@ export interface CurrenciesRatesFormDrawerProps {
   currencyForm: CurrencyForm
   setCurrencyForm: React.Dispatch<React.SetStateAction<CurrencyForm>>
   existingCodes?: string[]
+  errors?: Record<string, string>
+  onClearError?: (key: string) => void
 }
 
 export const CurrenciesRatesFormDrawer: React.FC<CurrenciesRatesFormDrawerProps> = ({
@@ -28,6 +31,8 @@ export const CurrenciesRatesFormDrawer: React.FC<CurrenciesRatesFormDrawerProps>
   currencyForm,
   setCurrencyForm,
   existingCodes = [],
+  errors = {},
+  onClearError,
 }) => {
   const { t, i18n } = useTranslation(['finance', 'common'])
   const isKhmer = i18n.language === 'km'
@@ -116,87 +121,111 @@ export const CurrenciesRatesFormDrawer: React.FC<CurrenciesRatesFormDrawerProps>
 
         {/* Currency Name */}
         <div>
-          <label className={labelCls}>
-            {isKhmer ? 'ឈ្មោះរូបិយប័ណ្ណ' : t('finance.currency_name', 'Currency Name')}{' '}
-            <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
+          <FormField
+            label={isKhmer ? 'ឈ្មោះរូបិយប័ណ្ណ' : t('finance.currency_name', 'Currency Name')}
             required
-            value={currencyForm.name}
-            onChange={(e) => setCurrencyForm((p) => ({ ...p, name: e.target.value }))}
-            placeholder={
-              isKhmer
-                ? 'ឧ. ដុល្លារអាមេរិក ឬ Thai Baht'
-                : t('finance.currency_name_placeholder', 'e.g. US Dollar, Thai Baht')
-            }
-            className={inputCls}
-          />
+            error={errors.name}
+          >
+            <input
+              id="currency-name"
+              name="name"
+              type="text"
+              value={currencyForm.name}
+              onChange={(e) => {
+                setCurrencyForm((p) => ({ ...p, name: e.target.value }))
+                onClearError?.('name')
+              }}
+              placeholder={
+                isKhmer
+                  ? 'ឧ. ដុល្លារអាមេរិក ឬ Thai Baht'
+                  : t('finance.currency_name_placeholder', 'e.g. US Dollar, Thai Baht')
+              }
+              className={getFieldClass(errors.name)}
+            />
+          </FormField>
         </div>
 
         {/* Code, Symbol & Exchange Rate Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* ISO Code */}
           <div>
-            <label className={labelCls}>
-              {isKhmer ? 'លេខកូដ ISO' : t('finance.iso_code', 'ISO Code')}{' '}
-              <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
+            <FormField
+              label={isKhmer ? 'លេខកូដ ISO' : t('finance.iso_code', 'ISO Code')}
               required
-              disabled={isBaseCurrency}
-              maxLength={5}
-              value={currencyForm.code}
-              onChange={handleCodeChange}
-              placeholder="USD"
-              className={`${inputCls} font-mono uppercase ${
-                isBaseCurrency ? 'opacity-60 cursor-not-allowed bg-muted' : ''
-              } ${codeError ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20' : ''}`}
-            />
-            {codeError && (
-              <span className="text-[11px] font-medium text-rose-500 mt-1 block">
-                {codeError}
-              </span>
-            )}
+              error={codeError || errors.code}
+            >
+              <input
+                id="currency-code"
+                name="code"
+                type="text"
+                disabled={isBaseCurrency}
+                maxLength={5}
+                value={currencyForm.code}
+                onChange={(e) => {
+                  handleCodeChange(e)
+                  onClearError?.('code')
+                }}
+                placeholder="USD"
+                className={cn(
+                  getFieldClass(codeError || errors.code),
+                  'font-mono uppercase',
+                  isBaseCurrency && 'opacity-60 cursor-not-allowed bg-muted'
+                )}
+              />
+            </FormField>
           </div>
 
           {/* Symbol */}
           <div>
-            <label className={labelCls}>
-              {isKhmer ? 'និមិត្តសញ្ញា' : t('finance.symbol_col', 'Symbol')}{' '}
-              <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
+            <FormField
+              label={isKhmer ? 'និមិត្តសញ្ញា' : t('finance.symbol_col', 'Symbol')}
               required
-              value={currencyForm.symbol}
-              onChange={(e) => setCurrencyForm((p) => ({ ...p, symbol: e.target.value }))}
-              placeholder="$"
-              className={`${inputCls} font-bold text-center font-mono`}
-            />
+              error={errors.symbol}
+            >
+              <input
+                id="currency-symbol"
+                name="symbol"
+                type="text"
+                value={currencyForm.symbol}
+                onChange={(e) => {
+                  setCurrencyForm((p) => ({ ...p, symbol: e.target.value }))
+                  onClearError?.('symbol')
+                }}
+                placeholder="$"
+                className={cn(
+                  getFieldClass(errors.symbol),
+                  'font-bold text-center font-mono'
+                )}
+              />
+            </FormField>
           </div>
 
           {/* Exchange Rate */}
           <div>
-            <label className={labelCls}>
-              {isKhmer ? 'អត្រាប្តូរប្រាក់' : t('finance.exchange_rate', 'Exchange Rate')}{' '}
-              <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.0001"
+            <FormField
+              label={isKhmer ? 'អត្រាប្តូរប្រាក់' : t('finance.exchange_rate', 'Exchange Rate')}
               required
-              disabled={isBaseCurrency}
-              value={currencyForm.exchange_rate}
-              onChange={(e) =>
-                setCurrencyForm((p) => ({ ...p, exchange_rate: e.target.value }))
-              }
-              placeholder="1.0000"
-              className={`${inputCls} font-mono ${
-                isBaseCurrency ? 'opacity-60 cursor-not-allowed bg-muted' : ''
-              }`}
-            />
+              error={errors.exchange_rate}
+            >
+              <input
+                id="currency-rate"
+                name="exchange_rate"
+                type="number"
+                step="0.0001"
+                disabled={isBaseCurrency}
+                value={currencyForm.exchange_rate}
+                onChange={(e) => {
+                  setCurrencyForm((p) => ({ ...p, exchange_rate: e.target.value }))
+                  onClearError?.('exchange_rate')
+                }}
+                placeholder="1.0000"
+                className={cn(
+                  getFieldClass(errors.exchange_rate),
+                  'font-mono',
+                  isBaseCurrency && 'opacity-60 cursor-not-allowed bg-muted'
+                )}
+              />
+            </FormField>
           </div>
         </div>
 

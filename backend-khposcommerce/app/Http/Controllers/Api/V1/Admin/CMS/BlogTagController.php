@@ -18,7 +18,10 @@ class BlogTagController extends BaseApiController
 
     public function index(Request $request): JsonResponse
     {
-        $records = $this->service->getPaginated($request->get('per_page', 15));
+        $records = $this->service->getPaginated(
+            $request->integer('per_page', 15),
+            $request->only(['search', 'sort', 'order'])
+        );
         return $this->successResponse(
             BlogTagResource::collection($records),
             'BlogTag list retrieved successfully'

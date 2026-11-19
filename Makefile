@@ -1,4 +1,4 @@
-.PHONY: help dev dev-all dev-api dev-admin dev-superadmin dev-platform dev-storefront dev-mobile api admin superadmin platform storefront mobile setup install db-migrate db-seed docker-up docker-down docker-logs
+.PHONY: help dev dev-all dev-api dev-admin dev-storefront dev-mobile api admin storefront mobile setup install db-migrate db-seed docker-up docker-down docker-logs
 
 help:
 	@echo "Available shortcut commands:"
@@ -6,8 +6,6 @@ help:
 	@echo "  make dev-all         - Run API, SuperAdmin, Admin, & Storefront"
 	@echo "  make dev-api         - Run Laravel API (port 8001)"
 	@echo "  make dev-admin       - Run Admin Web / POS"
-	@echo "  make dev-superadmin  - Run SuperAdmin Web Client (port 3002)"
-	@echo "  make dev-platform    - Alias for dev-superadmin"
 	@echo "  make dev-storefront  - Run Customer Storefront Web"
 	@echo "  make dev-mobile      - Run Flutter Mobile POS"
 	@echo "  make setup           - Setup dependencies & API environment"
@@ -33,18 +31,6 @@ dev-admin:
 
 admin:
 	npm run dev:admin
-
-dev-superadmin:
-	npm run dev:superadmin
-
-superadmin:
-	npm run dev:superadmin
-
-dev-platform:
-	npm run dev:superadmin
-
-platform:
-	npm run dev:superadmin
 
 dev-storefront:
 	npm run dev:storefront

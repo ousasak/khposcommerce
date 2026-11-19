@@ -17,7 +17,7 @@ export const TopProgressBar: React.FC<TopProgressBarProps> = ({
   const [progress, setProgress] = useState(0)
   const [visible, setVisible] = useState(false)
   const isFirstRender = useRef(true)
-  const timeoutsRef = useRef<NodeJS.Timeout[]>([])
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const clearAllTimeouts = () => {
     timeoutsRef.current.forEach((t) => clearTimeout(t))

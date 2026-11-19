@@ -6,14 +6,16 @@ import { useToast } from '@/hooks/useToast'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { Breadcrumb } from '@/components/common'
 import { PageHeader } from '@/components/common'
-import { HeaderActionsGroup, AddButton, ExportButton, ImportButton, TableToolbar, InlineFilterSelect } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton, ImportButton } from '@/components/common'
 import { downloadCsv } from '@/utils/export'
 import { useTranslation } from 'react-i18next'
 
+import { PromotionSearchBar } from './components/PromotionSearchBar'
 import { PromotionDetailDrawer } from './components/PromotionDetailDrawer'
 import { PromotionImportModal } from './components/PromotionImportModal'
 import { PromotionTableSection } from './components/PromotionTableSection'
 import { PromotionSimulatorModal } from './components/PromotionSimulatorModal'
+import { DiscountRulesStatsCards } from '../discount-rules/components/DiscountRulesStatsCards'
 import { type Promotion } from './types'
 
 const PromotionsPage: React.FC = () => {
@@ -32,13 +34,16 @@ const PromotionsPage: React.FC = () => {
   const [statusTab, setStatusTab] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [channelFilter, setChannelFilter] = useState<string>('all')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
   const [page, setPage] = useState<number>(1)
   const [perPage, setPerPage] = useState<number>(15)
 
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
     name: true,
-    type: true,
+    reward: true,
+    scope: true,
+    conditions: true,
     priority: true,
     dates: true,
     performance: true,
@@ -138,7 +143,13 @@ const PromotionsPage: React.FC = () => {
         const matchName = c.name?.toLowerCase().includes(query)
         const matchCode = c.code?.toLowerCase().includes(query)
         const matchDesc = c.description?.toLowerCase().includes(query)
-        if (!matchName && !matchCode && !matchDesc) {
+        const matchRules = (c.rules || []).some((r: any) =>
+          r.name?.toLowerCase().includes(query) ||
+          r.products?.some((p: any) => p.name?.toLowerCase().includes(query)) ||
+          r.brands?.some((b: any) => b.name?.toLowerCase().includes(query)) ||
+          r.categories?.some((cat: any) => cat.name?.toLowerCase().includes(query))
+        )
+        if (!matchName && !matchCode && !matchDesc && !matchRules) {
           return false
         }
       }
@@ -154,9 +165,25 @@ const PromotionsPage: React.FC = () => {
         }
       }
 
+      // Type Filter
+      if (typeFilter !== 'all') {
+        const hasType =
+          (c.rules || []).some(
+            (r: any) =>
+              r.discount_type === typeFilter ||
+              r.rule_type === typeFilter ||
+              r.type === typeFilter
+          ) ||
+          (c as any).type === typeFilter ||
+          (c as any).discount_type === typeFilter
+        if (!hasType && (c.rules || []).length > 0) {
+          return false
+        }
+      }
+
       return true
     })
-  }, [campaigns, statusTab, searchQuery, channelFilter])
+  }, [campaigns, statusTab, searchQuery, channelFilter, typeFilter])
 
   // Paginated Campaigns for Table and Cards
   const total = filteredCampaigns.length
@@ -166,30 +193,11 @@ const PromotionsPage: React.FC = () => {
     return filteredCampaigns.slice(start, start + perPage)
   }, [filteredCampaigns, page, perPage])
 
-  // Status Filter Options for Dropdown
-  const statusOptions = useMemo(() => [
-    { label: t('common.allStatus', 'All Status'), value: 'all' },
-    { label: t('marketing.statusActive', 'Active'), value: 'running' },
-    { label: t('marketing.statusScheduled', 'Scheduled'), value: 'scheduled' },
-    { label: t('marketing.statusPaused', 'Paused'), value: 'paused' },
-    { label: t('marketing.statusExpired', 'Expired'), value: 'expired' },
-  ], [t])
-
-  const channelOptions = useMemo(() => [
-    { label: t('marketing.allChannels', 'All Channels'), value: 'all' },
-    { label: t('marketing.channelPos', 'POS'), value: 'pos' },
-    { label: t('marketing.channelWeb', 'Web Storefront'), value: 'web' },
-    { label: t('marketing.channelMobile', 'Mobile App'), value: 'mobile' },
-  ], [t])
-
-  const isFilterActive = Boolean(
-    searchQuery.trim() || channelFilter !== 'all' || statusTab !== 'all'
-  )
-
   const handleResetFilters = () => {
     setSearchQuery('')
     setChannelFilter('all')
     setStatusTab('all')
+    setTypeFilter('all')
     setPage(1)
   }
 
@@ -292,7 +300,7 @@ const PromotionsPage: React.FC = () => {
       <Breadcrumb
         items={[
           { label: t('nav.marketingManagement', t('nav.marketing', 'Marketing')), path: '/marketing/promotions' },
-          { label: t('marketing.promotions', 'Campaigns') },
+          { label: t('marketing.promotionsTitle', 'Promotions & Discounts') },
         ]}
       />
 
@@ -300,12 +308,12 @@ const PromotionsPage: React.FC = () => {
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 py-1 print:hidden">
         <div className="space-y-1 min-w-0 flex-1">
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
-            {t('marketing.promotions', 'Campaigns')}
+            {t('marketing.promotionsTitle', 'Promotions & Discounts')}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
             {t(
-              'marketing.campaignsSubtitle',
-              'Manage marketing campaigns, schedules, channels, and branch scopes.'
+              'marketing.promotionsSubtitle',
+              'Manage campaigns, discount rules, schedules, channels, and redemption limits.'
             )}
           </p>
         </div>
@@ -320,27 +328,42 @@ const PromotionsPage: React.FC = () => {
           />
           <AddButton
             onClick={openCreateModal}
-            label={t('marketing.addPromotion', 'Add Campaign')}
+            label={t('marketing.addPromotion', 'Add Promotion')}
           />
         </HeaderActionsGroup>
       </div>
 
-      {/* Global Toolbar: Search, Status Dropdown, Channel Filter, Columns & Refresh */}
-      <TableToolbar
+      {/* KPI Stats Cards */}
+      <DiscountRulesStatsCards campaigns={campaigns} isLoading={isLoading} />
+
+      {/* ─── SmartHR-Style Promotion Search & Filter Bar (Matching ProductSearchBar) ─── */}
+      <PromotionSearchBar
         search={searchQuery}
         onSearchChange={(val) => {
           setSearchQuery(val)
           setPage(1)
         }}
-        searchPlaceholder={t('marketing.searchCampaignPlaceholder', 'Search campaigns by name, code...')}
-        isFilterActive={isFilterActive}
+        statusFilter={statusTab}
+        onStatusChange={(val) => {
+          setStatusTab(val)
+          setPage(1)
+        }}
+        channelFilter={channelFilter}
+        onChannelChange={(val) => {
+          setChannelFilter(val)
+          setPage(1)
+        }}
+        typeFilter={typeFilter}
+        onTypeChange={(val) => {
+          setTypeFilter(val)
+          setPage(1)
+        }}
         onReset={handleResetFilters}
-        hideFilterButton={true}
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['promotions'] })}
-        refreshLoading={isFetching}
         columns={[
           { key: 'name', label: t('marketing.campaign', 'Campaign') },
-          { key: 'type', label: t('marketing.rulesAndScope', 'Rules & Scope') },
+          { key: 'reward', label: t('marketing.discountReward', 'Reward / Discount') },
+          { key: 'scope', label: t('marketing.scopeAndChannels', 'Scope & Channels') },
+          { key: 'conditions', label: t('marketing.minPurchaseConditions', 'Min. Purchase') },
           { key: 'priority', label: t('marketing.priority', 'Priority') },
           { key: 'dates', label: t('marketing.scheduleDates', 'Schedule') },
           { key: 'performance', label: t('marketing.usageLimitRedemptions', 'Usage Limit & Redemptions') },
@@ -348,30 +371,7 @@ const PromotionsPage: React.FC = () => {
         ]}
         visibleColumns={visibleColumns}
         onColumnChange={setVisibleColumns}
-        filters={
-          <>
-            <InlineFilterSelect
-              label={t('common.status', 'Status')}
-              value={statusTab === 'all' ? '' : statusTab}
-              onChange={(val) => {
-                setStatusTab(val || 'all')
-                setPage(1)
-              }}
-              options={statusOptions}
-              allLabel={t('common.allStatus', 'All Status')}
-            />
-            <InlineFilterSelect
-              label={t('marketing.channel', 'Channel')}
-              value={channelFilter === 'all' ? '' : channelFilter}
-              onChange={(val) => {
-                setChannelFilter(val || 'all')
-                setPage(1)
-              }}
-              options={channelOptions}
-              allLabel={t('marketing.allChannels', 'All Channels')}
-            />
-          </>
-        }
+        columnSettingsTitle={t('tables.manageTable', 'Manage Table')}
       />
 
       {/* Clean Enterprise Table */}

@@ -42,4 +42,15 @@ class ShippingMethodService
     {
         return $this->repository->delete($id);
     }
+
+    public function getActiveMethods(): Collection
+    {
+        return $this->repository->getModel()->where('is_active', true)->get();
+    }
+
+    public function toggleActive(int|string $id): ShippingMethod
+    {
+        $method = $this->getById($id);
+        return $this->update($id, ['is_active' => !$method->is_active]);
+    }
 }

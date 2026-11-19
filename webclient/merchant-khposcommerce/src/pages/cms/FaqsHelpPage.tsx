@@ -8,16 +8,17 @@ import { usePermission } from '@/hooks/usePermission'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { downloadCsv } from '@/utils/export'
 import { Breadcrumb } from '@/components/common'
-import { HeaderActionsGroup, AddButton, ExportButton, TableToolbar, InlineFilterSelect } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import Pagination from '@/components/shared/Pagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
-import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
+import { focusFirstInvalidField } from '@/utils/formValidation'
 
 import {
   CMSStatsCards,
   CMSFormModal,
   FaqsHelpTable,
+  FaqsHelpSearchBar,
 } from './components'
 
 export const FaqsHelpPage: React.FC = () => {
@@ -61,6 +62,17 @@ export const FaqsHelpPage: React.FC = () => {
   const [faqCategory, setFaqCategory] = useState('')
   const [sortOrderValue, setSortOrderValue] = useState('0')
   const [isActive, setIsActive] = useState(true)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleClearError = (key: string) => {
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
+  }
 
   // Column Settings
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
@@ -106,37 +118,6 @@ export const FaqsHelpPage: React.FC = () => {
     setPage(1)
   }
 
-  // Workspace Status Tabs with live counts
-  const statusCounts = useMemo(() => {
-    const total = cmsStats?.faqs?.total ?? pagination.total ?? records.length
-    const active =
-      cmsStats?.faqs?.active ??
-      records.filter((r: any) => Boolean(r.is_active)).length
-    const inactive =
-      cmsStats?.faqs?.inactive ??
-      records.filter((r: any) => !r.is_active).length
-
-    return { all: total, active, inactive }
-  }, [cmsStats, pagination.total, records])
-
-  const statusTabs: WorkspaceTabItem[] = useMemo(() => [
-    {
-      id: 'all',
-      label: t('cms.allStatuses', 'All FAQs'),
-      count: statusCounts.all,
-    },
-    {
-      id: 'active',
-      label: t('cms.active', 'Active'),
-      count: statusCounts.active,
-    },
-    {
-      id: 'inactive',
-      label: t('cms.inactive', 'Inactive'),
-      count: statusCounts.inactive,
-    },
-  ], [statusCounts, t])
-
   // Extract unique categories for inline filtering
   const availableCategories = useMemo(() => {
     const set = new Set<string>()
@@ -157,7 +138,19 @@ export const FaqsHelpPage: React.FC = () => {
       closeModal()
       toast.success(t('cms.createdSuccess', 'FAQ item created successfully!'))
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? t('cms.createFailed', 'Failed to create FAQ')),
+    onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
+      toast.error(err?.response?.data?.message ?? t('cms.createFailed', 'Failed to create FAQ'))
+    },
   })
 
   const updateMutation = useMutation({
@@ -168,7 +161,19 @@ export const FaqsHelpPage: React.FC = () => {
       closeModal()
       toast.success(t('cms.updatedSuccess', 'FAQ item updated successfully!'))
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? t('cms.updateFailed', 'Failed to update FAQ')),
+    onError: (err: any) => {
+      const apiErrors = err?.response?.data?.errors
+      if (apiErrors && typeof apiErrors === 'object') {
+        const fieldErrors: Record<string, string> = {}
+        Object.keys(apiErrors).forEach((key) => {
+          fieldErrors[key] = Array.isArray(apiErrors[key]) ? apiErrors[key][0] : apiErrors[key]
+        })
+        setErrors(fieldErrors)
+        focusFirstInvalidField(fieldErrors)
+        return
+      }
+      toast.error(err?.response?.data?.message ?? t('cms.updateFailed', 'Failed to update FAQ'))
+    },
   })
 
   const deleteMutation = useMutation({
@@ -216,6 +221,7 @@ export const FaqsHelpPage: React.FC = () => {
     setFaqCategory('')
     setSortOrderValue('0')
     setIsActive(true)
+    setErrors({})
     setModalOpen(true)
   }
 
@@ -226,21 +232,36 @@ export const FaqsHelpPage: React.FC = () => {
     setFaqCategory(item.category || '')
     setSortOrderValue(String(item.sort_order ?? 0))
     setIsActive(item.is_active ?? true)
+    setErrors({})
     setModalOpen(true)
   }
 
   const closeModal = () => {
     setModalOpen(false)
     setEditingItem(null)
+    setErrors({})
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const newErrors: Record<string, string> = {}
+    if (!question.trim()) {
+      newErrors.question = t('cms.questionRequired', 'សូមបញ្ចូលសំណួរ')
+    }
+    if (!answer.trim()) {
+      newErrors.answer = t('cms.answerRequired', 'សូមបញ្ចូលចម្លើយ')
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      focusFirstInvalidField(newErrors)
+      return
+    }
+
     const payload = {
       company_id: 1,
-      question,
-      answer,
-      category: faqCategory,
+      question: question.trim(),
+      answer: answer.trim(),
+      category: faqCategory.trim(),
       sort_order: parseInt(sortOrderValue) || 0,
       is_active: isActive,
     }
@@ -329,22 +350,30 @@ export const FaqsHelpPage: React.FC = () => {
       {/* Executive KPI Overview */}
       <CMSStatsCards activeTab="faqs" stats={cmsStats} isLoading={isStatsLoading} />
 
-      {/* Workspace Status Tabs */}
-      <WorkspaceTabs
-        tabs={statusTabs}
-        activeTab={filterStatus}
-        onChange={(tabId) => {
-          setFilterStatus(tabId)
-          setPage(1)
-        }}
-      />
-
-      {/* Table Toolbar & Content Container */}
+      {/* ── SMARTHR-STYLE PRODUCT-MATCHING SEARCH & FILTER BAR ── */}
       <div className="space-y-4">
-        <TableToolbar
+        <FaqsHelpSearchBar
           search={search}
-          onSearchChange={setSearch}
-          searchPlaceholder={t('cms.searchFaqPlaceholder', 'Search questions, answers, or category...')}
+          onSearchChange={(val) => {
+            setSearch(val)
+            setPage(1)
+          }}
+          categoryFilter={filterCategory}
+          onCategoryChange={(val) => {
+            setFilterCategory(val)
+            setPage(1)
+          }}
+          categories={availableCategories}
+          statusFilter={filterStatus}
+          onStatusChange={(val) => {
+            setFilterStatus(val)
+            setPage(1)
+          }}
+          onReset={() => {
+            setFilterStatus('all')
+            setFilterCategory('all')
+            reset()
+          }}
           columns={[
             { key: 'title', label: t('cms.colQuestionAnswer', 'Question & Answer') },
             { key: 'category', label: t('cms.colCategory', 'Category') },
@@ -353,45 +382,9 @@ export const FaqsHelpPage: React.FC = () => {
             { key: 'actions', label: t('cms.colActions', 'Actions') },
           ]}
           visibleColumns={visibleColumns}
-          onColumnChange={(col, visible) =>
-            setVisibleColumns((prev) => ({ ...prev, [col]: visible }))
-          }
-          manageTableLabel={t('common.manageTable', 'Manage Columns')}
-          leftActions={
-            selectedRows.length > 0 ? (
-              <button
-                onClick={() => setBulkDeleteConfirmOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 dark:bg-rose-500/20 dark:text-rose-400 transition-colors"
-              >
-                <Trash2 size={14} />
-                <span>
-                  {t('common.deleteSelected', 'Delete Selected')} ({selectedRows.length})
-                </span>
-              </button>
-            ) : undefined
-          }
-          filters={
-            availableCategories.length > 0 ? (
-              <InlineFilterSelect
-                value={filterCategory}
-                onChange={(val) => {
-                  setFilterCategory(val)
-                  setPage(1)
-                }}
-                options={[
-                  { value: 'all', label: t('cms.allCategories', 'All Categories') },
-                  ...availableCategories.map((cat) => ({ value: cat, label: cat })),
-                ]}
-              />
-            ) : undefined
-          }
-          onReset={() => {
-            setFilterStatus('all')
-            setFilterCategory('all')
-            reset()
-          }}
-          onRefresh={() => qc.invalidateQueries({ queryKey: ['faqs'] })}
-          isFiltered={Boolean(search || filterStatus !== 'all' || filterCategory !== 'all')}
+          onColumnChange={setVisibleColumns}
+          selectedCount={selectedRows.length}
+          onBulkDelete={() => setBulkDeleteConfirmOpen(true)}
         />
 
         {/* Bulk Selection Banner */}
@@ -439,6 +432,8 @@ export const FaqsHelpPage: React.FC = () => {
         editingItem={editingItem}
         onSubmit={handleSubmit}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
+        errors={errors}
+        onClearError={handleClearError}
         activeTab="faqs"
         getAddButtonLabel={() => t('cms.addFaq', 'Add FAQ')}
         title=""

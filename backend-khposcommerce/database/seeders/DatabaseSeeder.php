@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             PurchaseSeeder::class,
             SaleSeeder::class,
             CMSSeeder::class,
+            TestimonialSeeder::class,
             PromotionSeeder::class,
             LogSeeder::class,
             NotificationSeeder::class,

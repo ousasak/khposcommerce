@@ -16,18 +16,6 @@ class UsersSeeder extends Seeder
         $company = Company::first();
 
         $users = [
-            // ─── Super Admin (Cross-Branch System Owner) ─────────────────────
-            [
-                'email'     => 'superadmin@enterprise-pos.com',
-                'username'  => 'superadmin',
-                'name'      => 'Super Admin (System Owner)',
-                'password'  => Hash::make('password'),
-                'phone'     => '+855 71 888 0001',
-                'role'      => 'super_admin',
-                'branch_id' => 1,
-                'branches'  => [1, 2, 3],
-            ],
-
             // ─── Company Primary Owner 👑 ──────────────────────────────────────
             [
                 'email'     => 'owner@enterprise-pos.com',

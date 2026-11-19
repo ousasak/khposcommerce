@@ -1,10 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { Truck, Globe, Users, Clock, DollarSign, TrendingUp, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { EnterpriseStatsCard, EnterpriseMiniStatsCard, EnterpriseStatsGrid } from '@/components/common'
-import { AnimatedCounter } from '@/components/shared/AnimatedCounter'
-
-export { AnimatedCounter, CircularProgressRing } from '@/components/common'
+import { Truck, Clock, TrendingUp, DollarSign } from 'lucide-react'
+import { FlattenStatCard, FlattenStatsGrid } from '@/components/common'
 
 interface ShippingStatsCardsProps {
   analytics: {
@@ -32,122 +29,94 @@ interface ShippingStatsCardsProps {
 export const ShippingStatsCards: React.FC<ShippingStatsCardsProps> = ({ analytics }) => {
   const { t } = useTranslation(['shipping', 'common'])
 
-  const deliveryPercentage = analytics.totalShipments > 0
-    ? (analytics.deliveredCount / analytics.totalShipments) * 100
-    : 0
-
   return (
-    <div className="space-y-4 print:hidden select-none">
-      {/* 4 Main Global Enterprise KPI Cards */}
-      <EnterpriseStatsGrid columns={4}>
+    <div className="print:hidden select-none">
+      <FlattenStatsGrid columns={4}>
         {/* Card 1: Logistics Shipments Volume */}
-        <EnterpriseStatsCard
-          title={t('shipping:logisticsShipments', 'Logistics Shipments')}
+        <FlattenStatCard
+          title={t('shipping.totalShipments', 'ប័ណ្ណដឹកជញ្ជូនសរុប')}
           value={analytics.totalShipments}
-          subtitle={
-            <span className="flex items-center gap-1">
-              <span className="text-emerald-500 font-bold">
-                <AnimatedCounter value={analytics.deliveredCount} />
-              </span>{' '}
-              {t('shipping:delivered', 'delivered')}
-            </span>
-          }
-          progressRing={{
-            percentage: deliveryPercentage,
-            colorClass: 'text-blue-500',
-          }}
+          useCounter={true}
+          color="teal"
           icon={Truck}
-          variant="blue"
-          delay={0.05}
-        />
-
-        {/* Card 2: Active Courier Fleet */}
-        <EnterpriseStatsCard
-          title={t('shipping:activeCouriers', 'Active Couriers')}
-          value={analytics.activeCouriersCount}
           subtitle={
-            <span>
-              {analytics.todaysShipments} {t('shipping:totalOrdersShipped', 'orders today')}
+            <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                {analytics.deliveredCount} {t('shipping.delivered', 'បានដឹកជញ្ជូន')}
+              </span>
+              <span>•</span>
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                {analytics.pendingCount} {t('shipping.inTransit', 'កំពុងធ្វើដំណើរ')}
+              </span>
+              <span>•</span>
+              <span>
+                +{analytics.todaysShipments} {t('shipping.today', 'ថ្ងៃនេះ')}
+              </span>
             </span>
           }
-          trend={{
-            value: t('shipping:active', 'Active'),
-            isPositive: true,
-          }}
-          icon={Users}
-          variant="emerald"
-          delay={0.1}
         />
 
-        {/* Card 3: In Transit & Pending Pickup */}
-        <EnterpriseStatsCard
-          title={t('shipping:inTransit', 'In Transit')}
+        {/* Card 2: In Transit & Active Couriers */}
+        <FlattenStatCard
+          title={t('shipping.inTransit', 'កំពុងធ្វើដំណើរ')}
           value={analytics.pendingCount}
+          useCounter={true}
+          color="blue"
+          icon={Clock}
           subtitle={
-            <span>
-              {t('shipping:pendingPickup', 'Pending Pickup')}: {analytics.pendingPickupCount}
+            <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+              <span className="text-blue-600 dark:text-blue-400 font-bold">
+                {analytics.activeCouriersCount} {t('shipping.activeCouriers', 'អ្នកដឹកជញ្ជូនសកម្ម')}
+              </span>
+              <span>•</span>
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                {t('shipping.pendingPickup', 'រង់ចាំទទួល')}: {analytics.pendingPickupCount}
+              </span>
             </span>
           }
-          trend={{
-            value: `${analytics.returnedCount} ${t('shipping:returned', 'returned')}`,
-            isPositive: analytics.returnedCount === 0,
-          }}
-          icon={Clock}
-          variant="amber"
-          delay={0.15}
         />
 
-        {/* Card 4: On-Time SLA Delivery Rate */}
-        <EnterpriseStatsCard
-          title={t('shipping:onTimeDelivery', 'On-Time Delivery SLA')}
+        {/* Card 3: On-Time SLA Delivery Rate */}
+        <FlattenStatCard
+          title={t('shipping.onTimeDelivery', 'អត្រាដឹកទាន់ពេល SLA')}
           value={analytics.onTimeRate}
           suffix="%"
           decimals={1}
+          useCounter={true}
+          color="purple"
+          icon={TrendingUp}
           subtitle={
-            <span>
-              {t('shipping:avgSla', 'Avg SLA')}: {analytics.avgDeliveryTimeDays} {t('shipping:days', 'Days')}
+            <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+              <span>
+                {t('shipping.avgSla', 'រយៈពេលមធ្យម')}: {analytics.avgDeliveryTimeDays} {t('shipping.days', 'ថ្ងៃ')}
+              </span>
+              <span>•</span>
+              <span className={analytics.customerComplaints > 0 ? 'text-rose-500 font-semibold' : 'text-emerald-500'}>
+                {analytics.customerComplaints} {t('shipping.issues', 'យឺតយ៉ាវ/បញ្ហា')}
+              </span>
             </span>
           }
-          progressRing={{
-            percentage: analytics.onTimeRate,
-            colorClass: 'text-purple-500',
-          }}
-          icon={Globe}
-          variant="purple"
-          delay={0.2}
         />
-      </EnterpriseStatsGrid>
 
-      {/* Secondary 4 Mini-Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <EnterpriseMiniStatsCard
-          label={t('shipping:shippingRevenue', 'Shipping Revenue')}
-          value={`$${analytics.totalShippingRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        {/* Card 4: Total Revenue & Margin */}
+        <FlattenStatCard
+          title={t('shipping.shippingRevenue', 'ចំណូលថ្លៃដឹកជញ្ជូន')}
+          value={analytics.totalShippingRevenue}
+          prefix="$"
+          decimals={2}
+          useCounter={true}
+          color="emerald"
           icon={DollarSign}
-          valueColor="purple"
+          subtitle={
+            <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                +${analytics.shippingProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (+{analytics.profitMargin}%)
+              </span>
+              <span>{t('shipping.netProfit', 'ចំណេញសុទ្ធ')}</span>
+            </span>
+          }
         />
-
-        <EnterpriseMiniStatsCard
-          label={t('shipping:shippingProfit', 'Net Freight Margin')}
-          value={`$${analytics.shippingProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (+${analytics.profitMargin}%)`}
-          icon={TrendingUp}
-          valueColor="emerald"
-        />
-
-        <EnterpriseMiniStatsCard
-          label={t('shipping:delivered', 'Delivered Today')}
-          value={analytics.todaysDelivered}
-          icon={CheckCircle2}
-          valueColor="blue"
-        />
-
-        <EnterpriseMiniStatsCard
-          label={t('shipping:failed', 'Customer Issues')}
-          value={analytics.customerComplaints}
-          icon={AlertTriangle}
-          valueColor={analytics.customerComplaints > 0 ? 'rose' : 'emerald'}
-        />
-      </div>
+      </FlattenStatsGrid>
     </div>
   )
 }

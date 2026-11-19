@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Image as ImageIcon, Plus, Search, Filter, RefreshCw, Download, Upload, Settings, Eye, Trash2, Sparkles, Store, Globe, Smartphone
@@ -9,21 +9,34 @@ import { useToast } from '@/hooks/useToast'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import BulkSelectionBanner from '@/components/shared/BulkSelectionBanner'
-import { Breadcrumb } from '@/components/common'
-import { TableToolbar, HeaderActionsGroup, AddButton, ExportButton, ImportButton, InlineFilterSelect } from '@/components/common'
+import { Breadcrumb, PageHeader, HeaderActionsGroup, AddButton, ExportButton, ImportButton } from '@/components/common'
 import { downloadCsv } from '@/utils/export'
 import { useTranslation } from 'react-i18next'
+import type { ColumnOption } from '@/components/shared/ColumnSettingsPopover'
 
 import { BannerStatsCards } from './components/BannerStatsCards'
+import { BannerSearchBar } from './components/BannerSearchBar'
 import { BannerTableSection } from './components/BannerTableSection'
 import { BannerDetailDrawer } from './components/BannerDetailDrawer'
 import { BannerFilterDrawer } from './components/BannerFilterDrawer'
 import { BannerImportModal } from './components/BannerImportModal'
 import type { Banner, BannerAnalytics } from './types'
 
+const DEFAULT_VISIBLE_COLUMNS: Record<string, boolean> = {
+  preview: true,
+  title: true,
+  position: true,
+  performance: true,
+  sortOrder: true,
+  status: true,
+  activePeriod: true,
+  actions: true,
+}
+
 const BannersPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, triggerAdd }) => {
   const { t } = useTranslation(['marketing', 'common', 'toast', 'confirm'])
   const navigate = useNavigate()
+  const { id: paramBannerId } = useParams<{ id?: string }>()
   const toast = useToast()
   const qc = useQueryClient()
 
@@ -59,20 +72,25 @@ const BannersPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab
   const [isImporting, setIsImporting] = useState(false)
 
   // Column Visibility
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
-    preview: true,
-    title: true,
-    position: true,
-    performance: true,
-    sortOrder: true,
-    status: true,
-    activePeriod: true,
-    actions: true,
-  })
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(DEFAULT_VISIBLE_COLUMNS)
+
+  // Column Options for settings popover
+  const columnOptions: ColumnOption[] = useMemo(
+    () => [
+      { key: 'preview', label: t('marketing.preview', 'រូបភាព') },
+      { key: 'title', label: t('marketing.bannerTitle', 'ចំណងជើងផ្ទាំងបដា') },
+      { key: 'position', label: t('marketing.position', 'ទីតាំងបង្ហាញ') },
+      { key: 'performance', label: t('marketing.colPerformance', 'ទិន្នន័យមើល & ចុច (Views / CTR)') },
+      { key: 'sortOrder', label: t('marketing.sortOrder', 'លំដាប់លំដោយ') },
+      { key: 'status', label: t('marketing.activeStatus', 'ស្ថានភាព') },
+      { key: 'activePeriod', label: t('marketing.activePeriod', 'រយៈពេលសកម្ម') },
+    ],
+    [t]
+  )
 
   // Handle Tab Add triggers
-  const prevTriggerRef = React.useRef(triggerAdd)
-  React.useEffect(() => {
+  const prevTriggerRef = useRef(triggerAdd)
+  useEffect(() => {
     if (triggerAdd && triggerAdd > 0 && triggerAdd !== prevTriggerRef.current) {
       navigate('/marketing/banners/create')
     }
@@ -160,6 +178,39 @@ const BannersPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab
     }
   }, [banners, pagination.total])
 
+  // Single banner query for direct URL access (/marketing/banners/:id)
+  const { data: singleBannerRes } = useQuery({
+    queryKey: ['banner', paramBannerId],
+    queryFn: () => marketingService.getBanner(Number(paramBannerId)),
+    enabled: Boolean(paramBannerId),
+  })
+
+  // Sync URL route :id with detail drawer
+  useEffect(() => {
+    if (paramBannerId) {
+      if (banners.length > 0) {
+        const target = banners.find((b) => String(b.id) === String(paramBannerId))
+        if (target) {
+          setDetailDrawerBanner(target)
+          return
+        }
+      }
+      if (singleBannerRes) {
+        const raw = (singleBannerRes as any)?.data?.data || (singleBannerRes as any)?.data || singleBannerRes
+        if (raw && (raw.id || raw.title)) {
+          setDetailDrawerBanner(raw)
+        }
+      }
+    }
+  }, [paramBannerId, banners, singleBannerRes])
+
+  const handleCloseDetail = () => {
+    setDetailDrawerBanner(null)
+    if (paramBannerId) {
+      navigate('/marketing/banners', { replace: true })
+    }
+  }
+
   // Bulk Selection Handlers
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -214,10 +265,10 @@ const BannersPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab
       marketingService.updateBanner(id, { is_active }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['banners'] })
-      toast.success('Banner status updated.')
+      toast.success(t('marketing.bannerStatusUpdated', 'ស្ថានភាពផ្ទាំងបដាត្រូវបានកែប្រែជោគជ័យ។'))
     },
-    onError: () => {
-      toast.error('Failed to update banner status.')
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message ?? t('marketing.bannerStatusUpdateFailed', 'មិនអាចកែប្រែស្ថានភាពផ្ទាំងបដាបានទេ។'))
     },
   })
 
@@ -226,7 +277,7 @@ const BannersPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab
     navigate('/marketing/banners/create', {
       state: { duplicateFrom: banner },
     })
-    toast.info('Duplicating banner campaign.')
+    toast.info(t('marketing.duplicatingBanner', 'កំពុងចម្លងទិន្នន័យផ្ទាំងបដា...'))
   }
 
   // Reset Filters
@@ -278,12 +329,12 @@ const BannersPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab
     try {
       await new Promise((res) => setTimeout(res, 800))
       qc.invalidateQueries({ queryKey: ['banners'] })
-      toast.success('Successfully imported banners records!')
+      toast.success(t('marketing.importBannersSuccess', 'បានបញ្ចូលទិន្នន័យផ្ទាំងបដាដោយជោគជ័យ!'))
       setImportModalOpen(false)
       setImportFile(null)
       setImportPreviewData(null)
     } catch {
-      toast.error('Failed to import banners records.')
+      toast.error(t('marketing.importBannersFailed', 'មិនអាចបញ្ចូលទិន្នន័យផ្ទាំងបដាបានទេ។'))
     } finally {
       setIsImporting(false)
     }
@@ -294,94 +345,81 @@ const BannersPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab
       {!isTab && (
         <Breadcrumb
           items={[
-            { label: t('nav.marketingManagement', t('nav.marketing', 'Marketing')), path: '/marketing/promotions' },
-            { label: t('marketing.banners', 'Banners') },
+            { label: t('nav.marketing', 'ទីផ្សារ & ប្រូម៉ូសិន'), path: '/marketing/promotions' },
+            { label: t('marketing.banners', 'ផ្ទាំងផ្សព្វផ្សាយ') },
           ]}
         />
       )}
 
       {/* Hero Header */}
       {!isTab && (
-        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 py-1 print:hidden">
-          <div className="space-y-1 min-w-0 flex-1 z-10">
-            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground break-words">
-              {t('marketing.banners', 'Banners Management')}
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-              Manage omnichannel advertising banners across E-Commerce Storefront hero carousels, POS Customer-Facing Displays (CFD), Mobile App splash screens, and promotional popups.
-            </p>
-          </div>
-
-          <HeaderActionsGroup>
-            <ImportButton onClick={() => setImportModalOpen(true)} />
-            <ExportButton onClick={handleExportCSV} />
-            <AddButton
-              label={t('marketing.addBanner', 'Add New Banner')}
-              onClick={() => navigate('/marketing/banners/create')}
-            />
-          </HeaderActionsGroup>
-        </div>
+        <PageHeader
+          title={t('marketing.banners', 'ផ្ទាំងផ្សព្វផ្សាយ')}
+          subtitle={t(
+            'marketing.bannerSubtitle',
+            'គ្រប់គ្រងផ្ទាំងផ្សព្វផ្សាយពាណិជ្ជកម្ម និងប្រូម៉ូសិនលើគេហទំព័រ E-Commerce, អេក្រង់អតិថិជន POS (CFD), កម្មវិធីទូរស័ព្ទដៃ និងផ្ទាំង Popup។'
+          )}
+          action={
+            <HeaderActionsGroup>
+              <ImportButton
+                onClick={() => setImportModalOpen(true)}
+                label={t('common.importCsv', 'នាំចូល CSV')}
+              />
+              <ExportButton
+                onClick={handleExportCSV}
+                label={t('common.exportCsv', 'នាំចេញ CSV')}
+              />
+              <AddButton
+                label={t('marketing.addBanner', 'បន្ថែមផ្ទាំងបដាថ្មី')}
+                onClick={() => navigate('/marketing/banners/create')}
+              />
+            </HeaderActionsGroup>
+          }
+        />
       )}
 
       {/* ── 3. KPI STATS CARDS ─────────────────────────────────────────────── */}
-      <BannerStatsCards analytics={analytics} />
+      <BannerStatsCards
+        analytics={analytics}
+        currentPositionFilter={positionFilter}
+        onSelectPosition={(pos) => {
+          setPositionFilter(pos)
+          setPage(1)
+        }}
+      />
 
-      {/* ── 4. BULK SELECTION BANNER ───────────────────────────────────────── */}
+      {/* ── 4. SEARCH & FILTER TOOLBAR ─────────────────────────────────────── */}
+      <BannerSearchBar
+        search={search}
+        onSearchChange={(val) => {
+          setSearch(val)
+          setPage(1)
+        }}
+        positionFilter={positionFilter}
+        onPositionChange={(val) => {
+          setPositionFilter(val)
+          setPage(1)
+        }}
+        statusFilter={statusFilter}
+        onStatusChange={(val) => {
+          setStatusFilter(val)
+          setPage(1)
+        }}
+        onReset={resetAllFilters}
+        columns={columnOptions}
+        visibleColumns={visibleColumns}
+        defaultVisibleColumns={DEFAULT_VISIBLE_COLUMNS}
+        onColumnChange={setVisibleColumns}
+        columnSettingsTitle={t('tables.manageTable', 'Manage Table')}
+      />
+
+      {/* ── 5. BULK SELECTION BANNER ───────────────────────────────────────── */}
       <BulkSelectionBanner
         selectedCount={selectedRows.length}
         onDelete={() => setBulkDeleteConfirmOpen(true)}
         onClear={() => setSelectedRows([])}
         deleteLabel={t('common.deleteSelected', 'Delete Selected')}
         deleteLoading={bulkDeleteMutation.isPending}
-      />
-
-      {/* ── 5. TABLE TOOLBAR (Shadcn Inline Quick Filters) ─────────────────── */}
-      <TableToolbar
-        search={search}
-        onSearchChange={(val) => { setSearch(val); setPage(1); }}
-        searchPlaceholder={t('marketing.searchPlaceholder', 'Search banner title, link, position...')}
-        hideFilterButton={true}
-        isFilterActive={positionFilter !== 'all' || statusFilter !== 'all'}
-        onReset={resetAllFilters}
-        onRefresh={() => qc.invalidateQueries({ queryKey: ['banners'] })}
-        refreshLoading={isFetching}
-        filters={
-          <>
-            <InlineFilterSelect
-              label={t('marketing.position', 'Position')}
-              value={positionFilter === 'all' ? '' : positionFilter}
-              onChange={(val) => { setPositionFilter(val || 'all'); setPage(1); }}
-              allLabel="All positions"
-              options={[
-                { label: 'Home Slider', value: 'home_slider' },
-                { label: 'Top Promo', value: 'top_promo' },
-                { label: 'Category Header', value: 'category_header' },
-                { label: 'Popup Modal', value: 'popup_modal' },
-              ]}
-            />
-            <InlineFilterSelect
-              label={t('marketing.activeStatus', 'Status')}
-              value={statusFilter === 'all' ? '' : statusFilter}
-              onChange={(val) => { setStatusFilter(val || 'all'); setPage(1); }}
-              allLabel={t('common.allStatus', 'All status')}
-              options={[
-                { label: t('common.active', 'Active'), value: 'active' },
-                { label: t('common.inactive', 'Inactive'), value: 'inactive' },
-              ]}
-            />
-          </>
-        }
-        columns={[
-          { key: 'preview', label: t('marketing.preview', 'Preview') },
-          { key: 'title', label: t('marketing.bannerTitle', 'Banner Title & Target') },
-          { key: 'position', label: t('marketing.position', 'Target Screen / Channel') },
-          { key: 'performance', label: 'Performance (Views / CTR)' },
-          { key: 'sortOrder', label: t('marketing.sortOrder', 'Sort Order') },
-          { key: 'status', label: t('marketing.activeStatus', 'Status') },
-          { key: 'activePeriod', label: t('marketing.activePeriod', 'Active Period') },
-        ]}
-        visibleColumns={visibleColumns}
-        onColumnChange={setVisibleColumns}
       />
 
       {/* ── 6. DATA TABLE SECTION ───────────────────────────────────────────── */}
@@ -397,7 +435,9 @@ const BannersPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab
         perPage={perPage}
         onPageChange={setPage}
         onPerPageChange={setPerPage}
-        onOpenDetailDrawer={setDetailDrawerBanner}
+        onOpenDetailDrawer={(banner) => {
+          setDetailDrawerBanner(banner)
+        }}
         onEdit={(banner) => navigate(`/marketing/banners/${banner.id}/edit`)}
         onDuplicate={handleDuplicate}
         onToggleStatus={(banner) =>
@@ -412,7 +452,7 @@ const BannersPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab
       {/* ── 7. BANNER DETAIL DRAWER ─────────────────────────────────────────── */}
       <BannerDetailDrawer
         banner={detailDrawerBanner}
-        onClose={() => setDetailDrawerBanner(null)}
+        onClose={handleCloseDetail}
         onEdit={(banner) => navigate(`/marketing/banners/${banner.id}/edit`)}
         onDuplicate={handleDuplicate}
       />

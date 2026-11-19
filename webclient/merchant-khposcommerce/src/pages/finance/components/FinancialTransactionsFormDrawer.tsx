@@ -1,6 +1,5 @@
 import React from 'react'
-import { Modal } from '@/components/common'
-import { ModalFooter } from '@/components/common'
+import { Modal, ModalFooter, FormField, getFieldClass } from '@/components/common'
 import { DollarSign } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { TransactionForm } from '../types/finance.types'
@@ -20,6 +19,8 @@ export interface FinancialTransactionsFormDrawerProps {
   isPending: boolean
   transactionForm: TransactionForm
   setTransactionForm: React.Dispatch<React.SetStateAction<TransactionForm>>
+  errors?: Record<string, string>
+  onClearError?: (key: string) => void
 }
 
 export type TransactionFormDrawerProps = FinancialTransactionsFormDrawerProps
@@ -32,6 +33,8 @@ export const FinancialTransactionsFormDrawer: React.FC<FinancialTransactionsForm
   isPending,
   transactionForm,
   setTransactionForm,
+  errors = {},
+  onClearError,
 }) => {
   const { t } = useTranslation(['finance', 'common'])
   const isEdit = Boolean(editingItem)
@@ -65,6 +68,7 @@ export const FinancialTransactionsFormDrawer: React.FC<FinancialTransactionsForm
           e.preventDefault()
           onSubmit()
         }}
+        noValidate
         className="p-5 sm:p-6 space-y-4"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -83,19 +87,26 @@ export const FinancialTransactionsFormDrawer: React.FC<FinancialTransactionsForm
           </div>
 
           <div>
-            <label className={labelCls}>
-              {t('finance.amount_col', 'Amount ($)')} <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
+            <FormField
+              label={t('finance.amount_col', 'Amount ($)')}
               required
-              value={transactionForm.amount}
-              onChange={(e) => setTransactionForm((p) => ({ ...p, amount: e.target.value }))}
-              placeholder="0.00"
-              className={`${inputCls} font-mono font-bold`}
-            />
+              error={errors.amount}
+            >
+              <input
+                id="transaction-amount"
+                name="amount"
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={transactionForm.amount}
+                onChange={(e) => {
+                  setTransactionForm((p) => ({ ...p, amount: e.target.value }))
+                  onClearError?.('amount')
+                }}
+                placeholder="0.00"
+                className={`${getFieldClass(errors.amount)} font-mono font-bold`}
+              />
+            </FormField>
           </div>
         </div>
 
