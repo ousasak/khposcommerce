@@ -10,7 +10,7 @@ import { getAbsoluteImageUrl, getCustomerAvatarUrl, DEFAULT_AVATAR_IMAGE } from 
 import { Image } from '@/components/ui/image'
 import { Banknote } from 'lucide-react'
 import { formatCurrency, GlobalFormat } from '@/utils/formatters'
-import { getCustomerGroupDisplayName } from '../utils/customerGroupFormatters'
+import { getCustomerGroupDisplayName } from '@/utils/customerGroupFormatters'
 
 import type { Customer } from '../types/customer.types'
 
@@ -291,7 +291,8 @@ export const CustomerTableSection: React.FC<CustomerTableSectionProps> = ({
                       {visibleColumns.actions !== false && (
                         <td className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
                           <TableActionMenu
-                            variant="inline"
+                            variant="hybrid"
+                            maxInline={2}
                             buttonSize="sm"
                             align="right"
                             onView={() => navigate(`/customers/${cust.id}`)}

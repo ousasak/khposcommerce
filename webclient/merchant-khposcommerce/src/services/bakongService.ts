@@ -114,6 +114,7 @@ export const generateKHQR = async (params: {
 
   // Client-side fallback using bakong-khqr SDK
   try {
+    // @ts-ignore - bakong-khqr is a pure JS library without bundled types
     const { BakongKHQR, IndividualInfo, khqrData } = await import('bakong-khqr')
     const khqr = new BakongKHQR()
     const billNo = params.billNumber || `KHQR-${Date.now().toString().slice(-6)}`

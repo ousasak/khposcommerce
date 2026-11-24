@@ -48,6 +48,10 @@ export class GlobalFormat {
     return formatCurrency(val, optionsOrCurr)
   }
 
+  public static khr(val?: number | string | null): string {
+    return formatCurrency(val, 'KHR')
+  }
+
   // ─── 2. Numbers & Percentage ──────────────────────────────────────
   public static number(val?: number | string | null, options?: FormatNumberOptions): string {
     return formatNumber(val, options)

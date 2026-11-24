@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Calendar,
   Eye,
-  Edit2,
+  Pencil,
   Trash2,
   FileText,
   User,
@@ -261,7 +261,7 @@ export const BlogArticlesGrid: React.FC<BlogArticlesGridProps> = ({
                       title={t('common.edit', 'កែសម្រួល')}
                       className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-800 bg-card hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-700 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                     >
-                      <Edit2 size={13} />
+                      <Pencil size={13} />
                     </button>
 
                     {/* Delete Button */}

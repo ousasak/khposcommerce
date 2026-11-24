@@ -19,7 +19,7 @@ import CustomErrorMessage from '@/components/ui/CustomErrorMessage'
 import { focusFirstInvalidField } from '@/utils/formValidation'
 import { getAbsoluteImageUrl } from '@/utils/image'
 import { formatPhoneNumber } from '@/utils/formatters'
-import { getCustomerGroupDisplayName } from './utils/customerGroupFormatters'
+import { getCustomerGroupDisplayName } from '@/utils/customerGroupFormatters'
 import type { CustomerFormData } from './types/customer.types'
 
 const BLANK_CUSTOMER_FORM: CustomerFormData = {

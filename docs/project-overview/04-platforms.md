@@ -6,7 +6,7 @@ This document outlines the 4 interconnected applications operating against the O
 
 ## 1. Admin Dashboard (`admin-dashboard`)
 * **Technology**: React 19, Vite 8, Ant Design 5, TypeScript 5.7, TanStack Query v5, Zustand, Axios.
-* **Port**: `5173` (Production: `https://enterprise-pos-admin.vercel.app`)
+* **Port**: `5171` (Production: `https://enterprise-pos-admin.vercel.app`)
 * **Scope**: 258 Management Pages.
 * **Key Capabilities**:
   - Multi-branch and multi-warehouse operational management.
@@ -20,7 +20,7 @@ This document outlines the 4 interconnected applications operating against the O
 
 ## 2. Customer Storefront (`customer-website`)
 * **Technology**: React 19, Vite 8, Tailwind CSS 3.4, React Router v7, Zustand, React Helmet Async.
-* **Port**: `5174` (Production: `https://enterprise-customer-store.vercel.app`)
+* **Port**: `5172` (Production: `https://enterprise-customer-store.vercel.app`)
 * **Scope**: 28 Public Customer Pages.
 * **Key Capabilities**:
   - E-Commerce product catalog with variant filtering (color, size, storage).

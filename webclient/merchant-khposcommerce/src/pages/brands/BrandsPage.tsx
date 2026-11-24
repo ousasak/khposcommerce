@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Modal as EnterpriseModal, ModalFooter, ModalHeader, EmptyState, ResetButton } from '@/components/common'
 import { 
-  Plus, Edit2, X, Tag, ToggleLeft, ToggleRight, Loader2, 
+  Plus, Pencil, X, Tag, ToggleLeft, ToggleRight, Loader2, 
   ChevronUp, ChevronDown, Download, Upload, Trash, AlertCircle, 
   Image as ImageIcon, Package, Sparkles, Save, LayoutGrid, Table as TableIcon
 } from 'lucide-react'
@@ -66,7 +66,7 @@ const getBrandVisuals = (name: string) => {
 
 const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, triggerAdd }) => {
   const { language } = useThemeStore()
-  const { t } = useTranslation(['products', 'common'])
+  const { t } = useTranslation(['products', 'common', 'nav', 'buttons', 'tables', 'toast', 'pageContent', 'errors'])
   const navigate = useNavigate()
   const qc = useQueryClient()
   const toast = useToast()
@@ -551,17 +551,23 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
                           <div className="flex items-center gap-3.5">
                             {/* Logo Avatar */}
                             <div className="relative w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-border/80 overflow-hidden shrink-0 shadow-2xs group-hover:border-primary/50 group-hover:shadow-md transition-all duration-300 flex items-center justify-center p-1">
-                              <img 
-                                src={getAbsoluteImageUrl(brand.logo) || DEFAULT_BRAND_IMAGE} 
-                                alt={brand.name} 
-                                className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                                onError={(e) => {
-                                  const target = e.currentTarget
-                                  if (!target.src.endsWith(DEFAULT_BRAND_IMAGE)) {
-                                    target.src = DEFAULT_BRAND_IMAGE
-                                  }
-                                }}
-                              />
+                              {brand.logo ? (
+                                <img 
+                                  src={getAbsoluteImageUrl(brand.logo)} 
+                                  alt={brand.name} 
+                                  className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                    const fallback = e.currentTarget.parentElement?.querySelector('.brand-initial-fallback')
+                                    if (fallback) (fallback as HTMLElement).style.display = 'flex'
+                                  }}
+                                />
+                              ) : null}
+                              <div
+                                className={`brand-initial-fallback w-full h-full rounded-xl flex items-center justify-center font-bold text-xs uppercase ${getBrandVisuals(brand.name).style} ${brand.logo ? 'hidden' : 'flex'}`}
+                              >
+                                {getBrandVisuals(brand.name).initial}
+                              </div>
                             </div>
 
                             {/* Brand Info */}
@@ -620,6 +626,8 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
                       {/* Actions */}
                       <td className="py-3.5 pr-4 text-right">
                         <TableActionMenu
+                          variant="inline"
+                          buttonSize="sm"
                           onEdit={canUpdateBrand ? () => openEditModal(brand) : undefined}
                           onDelete={canDeleteBrand ? () => setDeleteTarget(brand) : undefined}
                         />
@@ -712,17 +720,14 @@ const BrandsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab,
                 {logoPreview ? (
                   <Image
                     src={logoPreview}
-                    alt="Preview"
+                    alt={t('preview', 'មើលជាមុន')}
                     className="w-full h-full object-contain"
                     rootClassName="w-full h-full flex items-center justify-center cursor-pointer"
-                    fallback={DEFAULT_BRAND_IMAGE}
                   />
                 ) : (
-                  <img
-                    src={DEFAULT_BRAND_IMAGE}
-                    alt="Default Brand"
-                    className="w-full h-full object-contain opacity-70"
-                  />
+                  <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/35 bg-muted/20 rounded-xl">
+                    <ImageIcon size={22} className="stroke-[1.5]" />
+                  </div>
                 )}
               </div>
 

@@ -5,7 +5,7 @@ import {
   Package,
   MapPin,
   Scale,
-  Edit2,
+  Pencil,
   Copy,
   Check,
 } from 'lucide-react'
@@ -393,7 +393,7 @@ export const ShippingDetailDrawer: React.FC<ShippingDetailDrawerProps> = ({
 
                 <div>
                   <p className="text-muted-foreground text-[11px] font-medium">{t('shipping.zoneCode', 'Zone Code')}</p>
-                  <p className="font-semibold font-mono text-purple-600 dark:text-purple-400 mt-0.5 uppercase">{item.code || '—'}</p>
+                  <p className="font-semibold font-mono text-purple-600 dark:text-purple-400 mt-0.5 uppercase">{item.code || (item.id ? `ZONE-${String(item.id).padStart(3, '0')}` : '—')}</p>
                 </div>
 
                 <div>
@@ -514,7 +514,7 @@ export const ShippingDetailDrawer: React.FC<ShippingDetailDrawerProps> = ({
         rightActions={
           <ActionButton
             variant="primary"
-            icon={<Edit2 size={14} />}
+            icon={<Pencil size={14} />}
             label={t('common.edit', 'កែប្រែ')}
             onClick={() => {
               onClose()

@@ -11,7 +11,7 @@ import {
   Filter,
   RotateCcw,
   Eye,
-  Edit2,
+  Pencil,
   Trash2,
   Copy,
   Printer,
@@ -715,7 +715,7 @@ export const RowActionButton: React.FC<RowActionButtonProps> = ({
     view:
       'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800',
     edit:
-      'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/60 dark:hover:bg-blue-950/20',
+      'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800',
     danger:
       'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 hover:border-rose-300 dark:hover:border-rose-800 hover:bg-rose-50/60 dark:hover:bg-rose-950/20',
     success:
@@ -775,16 +775,16 @@ export const EditRowButton: React.FC<EditRowButtonProps> = ({
   icon,
   title = 'Edit',
   size = 'md',
-  color = 'blue',
+  color = 'slate' as any,
   className = '',
   ...props
 }) => (
   <RowActionButton
-    icon={icon || <Edit2 size={size === 'sm' ? 13 : 14} className="stroke-[1.9]" />}
+    icon={icon || <Pencil size={size === 'sm' ? 14 : 15} className="stroke-[1.8]" />}
     title={title}
     variant="edit"
     size={size}
-    className={cn(color && color !== 'blue' && ROW_ACTION_COLOR_MAP[color], className)}
+    className={cn(color && color !== 'blue' && color !== 'slate' && ROW_ACTION_COLOR_MAP[color], className)}
     {...props}
   />
 )

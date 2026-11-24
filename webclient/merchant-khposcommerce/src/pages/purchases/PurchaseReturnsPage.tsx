@@ -32,7 +32,7 @@ import { PurchaseReturnsStatsCards } from './components/PurchaseReturnsStatsCard
 import { PurchaseReturnsFilterDrawer } from './components/PurchaseReturnsFilterDrawer'
 import { PurchaseReturnPrintVoucher } from './components/PurchaseReturnPrintVoucher'
 import { ShippingCarrierSelect } from './components/ShippingCarrierSelect'
-import { formatCurrency } from './utils/purchaseCurrency'
+import { formatCurrency } from '@/utils/purchaseCurrency'
 
 const PurchaseReturnsPage: React.FC = () => {
   const { t } = useTranslation(['purchases', 'common', 'nav'])
@@ -574,8 +574,12 @@ const PurchaseReturnsPage: React.FC = () => {
                         </span>
                       </td>
                     )}
-                    <td className="sticky right-0 z-10 bg-card dark:bg-slate-900 group-hover:bg-muted/40 dark:group-hover:bg-slate-800/60 transition-colors border-l border-border dark:border-slate-800 py-3 px-4 text-center whitespace-nowrap min-w-[96px]" onClick={(e) => e.stopPropagation()}>
+                    <td className="sticky right-0 z-10 bg-card dark:bg-slate-900 group-hover:bg-muted/40 dark:group-hover:bg-slate-800/60 transition-colors border-l border-border dark:border-slate-800 py-3 px-4 text-center whitespace-nowrap min-w-[124px]" onClick={(e) => e.stopPropagation()}>
                       <TableActionMenu
+                        variant="hybrid"
+                        maxInline={2}
+                        buttonSize="sm"
+                        align="right"
                         onView={() => navigate(`/purchases/returns/${ret.id}`)}
                         onEdit={ret.status === 'draft' ? () => navigate(`/purchases/returns/${ret.id}/edit`) : undefined}
                         onPrint={() => handlePrint(ret)}

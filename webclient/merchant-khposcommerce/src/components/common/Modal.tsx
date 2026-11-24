@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ModalHeader, { type ModalHeaderIconVariant } from './ModalHeader'
 
-export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | 'full'
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | 'full'
 
 export interface ModalProps {
   /** Whether the modal is open */
@@ -50,6 +50,7 @@ const sizeClasses: Record<ModalSize, string> = {
   '2xl': 'max-w-2xl',
   '3xl': 'max-w-3xl',
   '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
   full: 'max-w-[calc(100vw-2rem)] sm:max-w-6xl',
 }
 
@@ -121,7 +122,7 @@ export const Modal: React.FC<ModalProps> = ({
             exit={{ scale: 0.96, opacity: 0, y: 12 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
             onClick={(e) => e.stopPropagation()}
-            className={`relative w-full ${sizeClasses[size]} bg-card dark:bg-slate-900 border border-border/80 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh] z-10 ${className}`}
+            className={`relative w-full ${sizeClasses[size]} bg-card text-card-foreground border border-border/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh] z-10 ${className}`}
           >
             {/* Header Slot */}
             {header !== undefined ? (

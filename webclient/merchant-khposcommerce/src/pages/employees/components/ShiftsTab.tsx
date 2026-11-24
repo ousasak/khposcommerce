@@ -6,7 +6,7 @@ import { employeeService } from '@/services/employeeService'
 import { useToast } from '@/hooks/useToast'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { EmptyState, EnterpriseTimePicker, EnterpriseModal, ModalFooter, TableActionMenu } from '@/components/common'
-import { formatShiftName, matchesShiftDay } from '../utils/shiftFormatters'
+import { formatShiftName, matchesShiftDay } from '@/utils/shiftFormatters'
 
 interface Shift {
   id: number

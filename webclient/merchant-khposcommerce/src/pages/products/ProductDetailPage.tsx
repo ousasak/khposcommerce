@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
-  Edit2, Copy, Check, Printer, Warehouse, Tag, Box, DollarSign,
+  Pencil, Copy, Check, Printer, Warehouse, Tag, Box, DollarSign,
   Package, CheckCircle2, AlertTriangle, ArrowLeft, ExternalLink,
   Sparkles, Star, Eye, ShoppingCart, Barcode, Scale, Truck, Globe,
   Info, RefreshCw, ChevronRight, Layers, Trash2
@@ -349,7 +349,7 @@ export const ProductDetailPage: React.FC = () => {
 
             <FormHeaderButton
               variant="primary"
-              icon={<Edit2 size={14} />}
+              icon={<Pencil size={14} />}
               onClick={() => navigate(`/products/${product.id}/edit`)}
             >
               {t('editProduct', 'Edit Product')}
@@ -805,7 +805,7 @@ export const ProductDetailPage: React.FC = () => {
                   onClick={() => navigate(`/products/${product.id}/edit`)}
                   className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors cursor-pointer"
                 >
-                  <Edit2 size={13} />
+                  <Pencil size={13} />
                   <span>{t('addVariants', 'Configure Variants')}</span>
                 </button>
               </div>

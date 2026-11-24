@@ -35,6 +35,7 @@ export interface ShippingSearchBarProps {
  * - Controlled Search input with clear button (X)
  * - Tab-specific inline filter dropdowns (Courier, Status, Method, Zone) defaulting to 'all'
  * - Standard Apply (អនុវត្ត) & Reset (កំណត់ឡើងវិញ) buttons
+ * - View Mode Toggle (Grid Cards vs Table)
  * - Column Settings Popover (គ្រប់គ្រងតារាង)
  */
 export const ShippingSearchBar: React.FC<ShippingSearchBarProps> = ({
@@ -287,9 +288,9 @@ export const ShippingSearchBar: React.FC<ShippingSearchBarProps> = ({
           <span>{t('buttons.reset', 'កំណត់ឡើងវិញ')}</span>
         </button>
 
-        {/* ─── 5. Manage Column Table ─── */}
-        {columns.length > 0 && onColumnChange && (
-          <div className="ml-auto shrink-0">
+        {/* ─── 5. Column Settings (for table tabs) ─── */}
+        {columns.length > 0 && onColumnChange && (activeTab === 'shipments' || activeTab === 'shipping-rates') && (
+          <div className="ml-auto shrink-0 flex items-center gap-2">
             <ColumnSettingsPopover
               columns={columns}
               visibleColumns={visibleColumns}

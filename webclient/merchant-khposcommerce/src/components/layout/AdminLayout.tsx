@@ -1175,7 +1175,7 @@ const AdminLayout: React.FC = () => {
                   onClick={() => setMobileOpen(false)}
                   style={{ color: sidebarConfig?.textColor || undefined }}
                   className="p-2 rounded-xl hover:bg-foreground/10 opacity-70 hover:opacity-100 transition-colors cursor-pointer"
-                  aria-label="Close Sidebar"
+                  aria-label={t('common.closeSidebar', 'បិទរបារចំហៀង')}
                 >
                   <X size={18} />
                 </button>

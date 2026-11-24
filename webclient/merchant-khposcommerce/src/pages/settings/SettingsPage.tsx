@@ -7,7 +7,7 @@ import {
   CheckCircle,
   HelpCircle,
   Plus,
-  Edit2,
+  Pencil,
   Trash2,
   Globe,
   FileText,

@@ -15,7 +15,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip'
-import { getPaymentMethodMeta, formatFeeDisplay } from '../utils/paymentMethodHelpers'
+import { getPaymentMethodMeta, formatFeeDisplay } from '@/utils/paymentMethodHelpers'
 import { useToast } from '@/hooks/useToast'
 import { cn } from '@/lib/utils'
 

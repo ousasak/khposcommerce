@@ -18,7 +18,7 @@ import {
   analyzeVoiceSpeech,
   type AIMatchResult,
   type AISpeechAnalysis,
-} from '../utils/aiProductMatcher'
+} from '@/utils/aiProductMatcher'
 import type { Product } from '../types/pos.types'
 import { sound } from '../../../utils/sound'
 

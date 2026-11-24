@@ -1,6 +1,13 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, StatusBadge, ActionButton } from '@/components/common'
+import {
+  EnterpriseModal,
+  DetailDrawerCard,
+  DetailDrawerRow,
+  StatusBadge,
+  ActionButton,
+  CloseButton,
+} from '@/components/common'
 import { EmployeeAvatar } from './EmployeeAvatar'
 import {
   Calendar,
@@ -63,20 +70,40 @@ export const LeaveDetailDrawer: React.FC<LeaveDetailDrawerProps> = ({
   const isPending = record.status === 'pending'
 
   return (
-    <DetailDrawer isOpen={isOpen} onClose={onClose} size="lg">
-      {/* ─── Drawer Header ─── */}
-      <DetailDrawerHeader
-        title={
-          <div className="flex items-center gap-3">
+    <EnterpriseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="2xl"
+      header={
+        <div className="relative flex items-center justify-between px-5 sm:px-6 py-4 border-b border-border/80 bg-muted/20 shrink-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1 pr-12">
             <EmployeeAvatar
               name={record.employee?.name || t('employees.staff_fallback', 'Staff')}
               photo={record.employee?.photo}
               size={44}
             />
-            <div>
-              <h3 className="text-base font-bold text-foreground">
-                {record.employee?.name || t('employees.employee_num_fallback', `Employee #${record.employee_id}`, { id: record.employee_id })}
-              </h3>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-bold text-foreground truncate">
+                  {record.employee?.name || t('employees.employee_num_fallback', `Employee #${record.employee_id}`, { id: record.employee_id })}
+                </h3>
+                <StatusBadge
+                  status={
+                    record.status === 'approved'
+                      ? 'active'
+                      : record.status === 'rejected'
+                      ? 'inactive'
+                      : 'pending'
+                  }
+                  customLabel={
+                    record.status === 'approved'
+                      ? t('employees.approved', 'Approved')
+                      : record.status === 'rejected'
+                      ? t('employees.rejected', 'Rejected')
+                      : t('employees.pending', 'Pending Approval')
+                  }
+                />
+              </div>
               <p className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
                 <span>{record.employee?.department?.name || t('employees.departments', 'Department')}</span>
                 <span>•</span>
@@ -84,30 +111,45 @@ export const LeaveDetailDrawer: React.FC<LeaveDetailDrawerProps> = ({
               </p>
             </div>
           </div>
-        }
-        statusBadge={
-          <StatusBadge
-            status={
-              record.status === 'approved'
-                ? 'active'
-                : record.status === 'rejected'
-                ? 'inactive'
-                : 'pending'
-            }
-            customLabel={
-              record.status === 'approved'
-                ? t('employees.approved', 'Approved')
-                : record.status === 'rejected'
-                ? t('employees.rejected', 'Rejected')
-                : t('employees.pending', 'Pending Approval')
-            }
-          />
-        }
-      />
-
-      {/* ─── Drawer Body ─── */}
-      <DetailDrawerBody>
-        <div className="space-y-4">
+          <div className="absolute top-3.5 right-4 flex items-center z-10">
+            <CloseButton onClose={onClose} size="md" />
+          </div>
+        </div>
+      }
+      footer={
+        <div className="flex items-center justify-between p-4 border-t border-border/80 bg-muted/20 w-full shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          >
+            {t('common.close', 'Close')}
+          </button>
+          {isPending && onApprove && onReject && (
+            <div className="flex items-center gap-2">
+              <ActionButton
+                variant="emerald"
+                disabled={isApproving}
+                loading={isApproving}
+                icon={<Check size={14} />}
+                label={t('employees.approve', 'Approve')}
+                onClick={() => onApprove(record.id)}
+              />
+              <ActionButton
+                variant="danger"
+                icon={<X size={14} />}
+                label={t('employees.reject', 'Reject')}
+                onClick={() => {
+                  onClose()
+                  onReject(record)
+                }}
+              />
+            </div>
+          )}
+        </div>
+      }
+    >
+      <div className="p-5 sm:p-6 space-y-4">
           {/* 4 Quick Stat Metric Tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {/* 1. Leave Type */}
@@ -267,37 +309,9 @@ export const LeaveDetailDrawer: React.FC<LeaveDetailDrawerProps> = ({
             )}
           </DetailDrawerCard>
         </div>
-      </DetailDrawerBody>
-
-      {/* ─── Drawer Footer ─── */}
-      <DetailDrawerFooter
-        onClose={onClose}
-        rightActions={
-          isPending && onApprove && onReject ? (
-            <div className="flex items-center gap-2">
-              <ActionButton
-                variant="emerald"
-                disabled={isApproving}
-                loading={isApproving}
-                icon={<Check size={14} />}
-                label={t('employees.approve', 'Approve')}
-                onClick={() => onApprove(record.id)}
-              />
-              <ActionButton
-                variant="danger"
-                icon={<X size={14} />}
-                label={t('employees.reject', 'Reject')}
-                onClick={() => {
-                  onClose()
-                  onReject(record)
-                }}
-              />
-            </div>
-          ) : undefined
-        }
-      />
-    </DetailDrawer>
+    </EnterpriseModal>
   )
 }
 
+export { LeaveDetailDrawer as LeaveDetailModal }
 export default LeaveDetailDrawer

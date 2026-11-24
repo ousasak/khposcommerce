@@ -1,4 +1,5 @@
 import api from '@/api/client'
+import type { PaginatedResponse } from '@/types'
 import type {
   NotificationItem,
   NotificationTemplateItem,
@@ -8,13 +9,7 @@ import type {
   NotificationLogsResponse,
 } from '@/pages/notifications/types/notification.types'
 
-export interface PaginatedResponse<T> {
-  data: T[]
-  current_page: number
-  last_page: number
-  per_page: number
-  total: number
-}
+export type { PaginatedResponse }
 
 export const notificationService = {
   // Notifications

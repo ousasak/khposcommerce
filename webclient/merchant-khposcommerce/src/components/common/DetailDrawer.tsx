@@ -174,10 +174,32 @@ export const DetailDrawer: React.FC<DetailDrawerProps> = ({
           className
         )}
         onEscapeKeyDown={(e) => {
-          if (!closeOnEsc) e.preventDefault()
+          // If a modal or lightbox is active on top, prevent closing this drawer
+          const hasActiveOverlay = Boolean(
+            document.querySelector('[data-lightbox="true"], .image-lightbox-modal, [data-state="open"][role="dialog"]')
+          )
+          if (!closeOnEsc || hasActiveOverlay) {
+            e.preventDefault()
+          }
         }}
         onPointerDownOutside={(e) => {
-          if (!closeOnBackdropClick) e.preventDefault()
+          if (!closeOnBackdropClick) {
+            e.preventDefault()
+            return
+          }
+          // Do not close drawer if clicking on a lightbox, image preview, or active portal dialog
+          const target = e.target as HTMLElement | null
+          const hasActiveLightbox = Boolean(
+            document.querySelector('[data-lightbox="true"], .image-lightbox-modal')
+          )
+          if (
+            hasActiveLightbox ||
+            target?.closest?.('[data-lightbox]') ||
+            target?.closest?.('.image-lightbox-modal') ||
+            target?.closest?.('[role="dialog"]')
+          ) {
+            e.preventDefault()
+          }
         }}
       >
         <SheetTitle className="sr-only">ព័ត៌មានលម្អិត</SheetTitle>

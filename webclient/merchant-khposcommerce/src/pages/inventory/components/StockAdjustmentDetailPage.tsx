@@ -1,11 +1,10 @@
 import React from 'react'
-import { X, Sliders, AlertCircle, RefreshCw, Edit } from 'lucide-react'
+import { X, Sliders, AlertCircle, RefreshCw, Pencil } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { inventoryService } from '@/services/inventoryService'
 import { useTranslation } from 'react-i18next'
-import { LoadingSpinner } from '@/components/common'
-import { StatusBadge } from '@/components/common'
+import { LoadingSpinner, StatusBadge, CloseButton, CancelButton, ActionButton } from '@/components/common'
 import { formatShortDate } from '@/utils/formatters'
 
 interface StockAdjustmentDetailPageProps {
@@ -50,25 +49,22 @@ export const StockAdjustmentDetailPage: React.FC<StockAdjustmentDetailPageProps>
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-card">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Sliders size={18} />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-foreground">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground">
                 {t('inventory.adjustment_card', 'Adjustment Card')}
               </h2>
-              <p className="text-[11px] text-muted-foreground font-mono">
-                REF: #{detail?.reference_number || `ADJ-${adjustmentId}`}
-              </p>
+              <span className="font-mono text-xs font-bold text-primary px-2.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                #{detail?.reference_number || `ADJ-${adjustmentId}`}
+              </span>
             </div>
+            {detail?.warehouse?.name && (
+              <p className="text-xs text-muted-foreground">
+                {detail.warehouse.name}
+              </p>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <CloseButton onClose={onClose} size="md" />
         </div>
 
         {isLoading ? (
@@ -210,26 +206,19 @@ export const StockAdjustmentDetailPage: React.FC<StockAdjustmentDetailPageProps>
             {/* Footer */}
             <div className="p-4 border-t border-border bg-muted/20 flex items-center justify-between gap-3">
               {!isApproved && onEdit ? (
-                <button
-                  type="button"
+                <ActionButton
                   onClick={() => {
                     onClose()
                     onEdit()
                   }}
-                  className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl border border-primary/30 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                  variant="secondary"
+                  size="md"
                 >
-                  <Edit size={14} />
-                  {t('editAdjustment', t('inventory.editAdjustment', 'Edit Adjustment'))}
-                </button>
+                  {t('editAdjustment', t('inventory.editAdjustment', 'Pencil Adjustment'))}
+                </ActionButton>
               ) : <div />}
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="py-2 px-4 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              >
-                {t('buttons.close', t('common.close', 'Close'))}
-              </button>
+              <CancelButton onClick={onClose} label={t('buttons.close', t('common.close', 'Close'))} />
             </div>
           </>
         )}

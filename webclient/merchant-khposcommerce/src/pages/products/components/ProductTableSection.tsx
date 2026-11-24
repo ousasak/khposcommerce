@@ -1,6 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowUp, ArrowDown, ArrowUpDown, Copy, Printer, Warehouse, Edit3 } from 'lucide-react'
+import { ArrowUp, ArrowDown, ArrowUpDown, Copy, Printer, Warehouse, Pencil } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
@@ -267,7 +267,7 @@ export const ProductTableSection: React.FC<ProductTableSectionProps> = ({
                               }`}>
                                 {isOutOfStock ? t('stockOut', 'Out') : isLowStock ? t('stockLow', 'Low') : t('stockHigh', 'High')}
                               </span>
-                              <Edit3 size={11} className="opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
+                              <Pencil size={11} className="opacity-0 group-hover:opacity-100 text-muted-foreground transition-opacity" />
                             </div>
 
                             {/* Micro Progress Bar (Pixel-aligned with Shadcn Product List 1) */}
@@ -302,6 +302,9 @@ export const ProductTableSection: React.FC<ProductTableSectionProps> = ({
                       )}
                       <td className="text-right" onClick={(e) => e.stopPropagation()}>
                         <TableActionMenu
+                          variant="hybrid"
+                          maxInline={2}
+                          buttonSize="sm"
                           onView={() => onView(p)}
                           onEdit={onEdit ? () => onEdit(p) : undefined}
                           onDelete={onDelete ? () => onDelete(p) : undefined}
@@ -312,12 +315,6 @@ export const ProductTableSection: React.FC<ProductTableSectionProps> = ({
                               label: t('duplicateProduct', 'Duplicate Product (Clone)'),
                               icon: Copy,
                               onClick: () => onDuplicate(p),
-                              variant: 'default' as const,
-                            }] : []),
-                            ...(onQuickStockAdjust ? [{
-                              label: t('quickStockAdjust', 'Quick Stock Adjust'),
-                              icon: Warehouse,
-                              onClick: () => onQuickStockAdjust(p),
                               variant: 'default' as const,
                             }] : []),
                           ]}

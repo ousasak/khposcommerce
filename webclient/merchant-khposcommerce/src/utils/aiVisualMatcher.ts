@@ -1,4 +1,4 @@
-import type { Product } from '../types/pos.types'
+import type { Product } from '@/types'
 import { posService } from '@/services/posService'
 
 export interface AIVisualMatchResult {

@@ -4,7 +4,7 @@ import {
   Plus, Minus, Loader2, ExternalLink, Check, SlidersHorizontal
 } from 'lucide-react'
 import { FormHeader, FormFooter, FieldError, getFieldClass, EnterpriseDatePicker } from '@/components/common'
-import { formatCurrency } from '../utils/purchaseCurrency'
+import { formatCurrency } from '@/utils/purchaseCurrency'
 
 interface PurchaseReturnFormSectionProps {
   isEdit?: boolean

@@ -8,7 +8,7 @@ import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, Search, Edit2, Trash2, RefreshCw, X, Building2,
+  Plus, Search, Pencil, Trash2, RefreshCw, X, Building2,
   ToggleLeft, ToggleRight, Eye, Mail, Phone, MapPin, Loader2, Star, Check
 } from 'lucide-react'
 import { companyService } from '@/services/companyService'
@@ -652,85 +652,86 @@ const BranchesPage = React.forwardRef<CompanyTabHandle, { isTab?: boolean }>(({ 
         </form>
       </EnterpriseModal>
 
-      {/* Detail Drawer */}
-      <AnimatePresence>
-        {viewBranch && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end">
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="bg-card w-full max-w-md border-l border-border h-full flex flex-col shadow-2xl"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <h3 className="font-semibold text-lg text-foreground">{t('company.branchDetail', 'Branch Details')}</h3>
-                <CloseButton onClose={() => setViewBranch(null)} size="md" color="rose" />
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.basicInfo', 'Basic Information')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblCode', 'Code:')}</span>
-                      <span className="font-mono font-medium">{viewBranch.code}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblName', 'Name:')}</span>
-                      <span className="font-medium">{viewBranch.name}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblMainOffice', 'Main Office:')}</span>
-                      <span className="font-medium">{viewBranch.is_main ? t('company.yes', 'Yes') : t('company.no', 'No')}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">{t('company.lblStatus', 'Status:')}</span>
-                      <StatusBadge status={viewBranch.is_active} />
-                    </div>
-                  </div>
+      {/* Detail Modal */}
+      {viewBranch && (
+        <EnterpriseModal
+          isOpen={!!viewBranch}
+          onClose={() => setViewBranch(null)}
+          size="lg"
+          title={t('company.branchDetail', 'Branch Details')}
+          subtitle={viewBranch.name}
+          icon={<Building2 size={20} />}
+          iconVariant="emerald"
+          badge={<StatusBadge status={viewBranch.is_active} />}
+          footer={
+            <ModalFooter
+              onCancel={() => setViewBranch(null)}
+              cancelLabel={t('common.close', 'Close')}
+              showSubmit={false}
+            />
+          }
+        >
+          <div className="p-5 sm:p-6 space-y-5">
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.basicInfo', 'Basic Information')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblCode', 'Code:')}</span>
+                  <span className="font-mono font-medium">{viewBranch.code}</span>
                 </div>
-
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.contactDetails', 'Contact Details')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblEmail', 'Email:')}</span>
-                      <span className="font-medium">{viewBranch.email ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblPhone', 'Phone:')}</span>
-                      <span className="font-medium">{viewBranch.phone ?? '—'}</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblName', 'Name:')}</span>
+                  <span className="font-medium">{viewBranch.name}</span>
                 </div>
-
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.locationAddress', 'Location & Coordinates')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-start gap-1"><MapPin size={14} className="mt-0.5" /> {t('company.lblAddress', 'Address:')}</span>
-                      <span className="font-medium text-right max-w-[200px] break-words">{viewBranch.address ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblCity', 'City:')}</span>
-                      <span className="font-medium">{viewBranch.city ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblProvince', 'Province:')}</span>
-                      <span className="font-medium">{viewBranch.province ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblPostalCode', 'Postal Code:')}</span>
-                      <span className="font-medium">{viewBranch.postal_code ?? '—'}</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblMainOffice', 'Main Office:')}</span>
+                  <span className="font-medium">{viewBranch.is_main ? t('company.yes', 'Yes') : t('company.no', 'No')}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">{t('company.lblStatus', 'Status:')}</span>
+                  <StatusBadge status={viewBranch.is_active} />
                 </div>
               </div>
-            </motion.div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.contactDetails', 'Contact Details')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblEmail', 'Email:')}</span>
+                  <span className="font-medium">{viewBranch.email ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblPhone', 'Phone:')}</span>
+                  <span className="font-medium">{viewBranch.phone ?? '—'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.locationAddress', 'Location & Coordinates')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground flex items-start gap-1"><MapPin size={14} className="mt-0.5" /> {t('company.lblAddress', 'Address:')}</span>
+                  <span className="font-medium text-right max-w-[200px] break-words">{viewBranch.address ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblCity', 'City:')}</span>
+                  <span className="font-medium">{viewBranch.city ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblProvince', 'Province:')}</span>
+                  <span className="font-medium">{viewBranch.province ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblPostalCode', 'Postal Code:')}</span>
+                  <span className="font-medium">{viewBranch.postal_code ?? '—'}</span>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </EnterpriseModal>
+      )}
 
       {/* Global Delete Confirmation Dialog */}
       <DeleteConfirmDialog

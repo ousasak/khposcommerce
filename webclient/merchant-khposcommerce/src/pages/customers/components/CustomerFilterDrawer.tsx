@@ -3,7 +3,7 @@ import ModernSelect from '@/components/shared/ModernSelect'
 import FilterDrawerShell from '@/components/shared/FilterDrawerShell'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
-import { getCustomerGroupDisplayName } from '../utils/customerGroupFormatters'
+import { getCustomerGroupDisplayName } from '@/utils/customerGroupFormatters'
 
 interface CustomerFilterDrawerProps {
   isOpen: boolean

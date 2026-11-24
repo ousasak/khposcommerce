@@ -68,17 +68,26 @@ export const ProductThumbnail: React.FC<ProductThumbnailProps> = ({
 
   const activeSrc = currentSrc || DEFAULT_PRODUCT_IMAGE
 
+  // Only allow preview if there is an authentic image source and it has not errored out to fallback
+  const hasValidImage = Boolean(
+    primaryUrl &&
+    primaryUrl !== DEFAULT_PRODUCT_IMAGE &&
+    primaryUrl !== DEFAULT_PRODUCT_DATA_URI &&
+    errorAttempts === 0
+  )
+  const canPreview = Boolean(preview && hasValidImage)
+
   return (
     <div
-      className={`${sizeClass} ${rounded} bg-muted border border-border/80 overflow-hidden flex items-center justify-center shrink-0 relative select-none ${className}`}
+      className={`${sizeClass} ${rounded} bg-muted border border-border/80 overflow-hidden flex items-center justify-center shrink-0 relative select-none ${canPreview ? 'cursor-pointer' : 'cursor-default'} ${className}`}
       title={name}
       onClick={(e) => {
-        if (preview && activeSrc) {
+        if (canPreview) {
           e.stopPropagation()
         }
       }}
     >
-      {preview ? (
+      {canPreview ? (
         <Image
           src={activeSrc}
           alt={alt || name}
@@ -98,7 +107,7 @@ export const ProductThumbnail: React.FC<ProductThumbnailProps> = ({
         <img
           src={activeSrc}
           alt={alt || name}
-          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          className="w-full h-full object-cover select-none pointer-events-none"
           loading="lazy"
           onError={handleError}
         />

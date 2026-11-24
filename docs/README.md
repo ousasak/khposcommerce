@@ -14,11 +14,11 @@ Welcome to the official developer and engineering documentation for **OptaPOS (P
 |                                      OPTAPOS 4 CONNECTED CLIENT PLATFORMS                                     |
 +---------------------------------------------------------------------------------------------------------------+
 |  1. 🛡️ Admin Dashboard (React 19)   | 2. 🛍️ Customer Storefront (React 19) | 3. 📱 Mobile POS (Flutter 3.24)  |
-|     Port 5173 • 258 Management Pages |    Port 5174 • 28 Customer Pages    |    iOS / Android • Offline-First |
+|     Port 5171 • 258 Management Pages |    Port 5172 • 28 Customer Pages    |    iOS / Android • Offline-First |
 +---------------------------------------------------------------------------------------------------------------+
 |                                            ▼ (759 REST APIs via HTTPS/WSS)                                    |
 +---------------------------------------------------------------------------------------------------------------+
-|  4. ⚙️ Central Backend Hub (Laravel 12 on PHP 8.2 • Port 8000)                                                |
+|  4. ⚙️ Central Backend Hub (Laravel 12 on PHP 8.2 • Port 8001)                                                |
 |     Dual JWT Auth • Spatie RBAC (169 Nodes) • Atomic Transactions • Service-Repository Pattern                |
 +---------------------------------------------------------------------------------------------------------------+
 |                                            ▼ (PostgreSQL Wire Protocol & Redis IPC)                           |
@@ -80,20 +80,19 @@ cd Project-Enterprise-E-Commerce-POS-System
 # 2. Launch PostgreSQL 18 & Redis 7 via Docker
 docker-compose up -d postgres redis
 
-# 3. Start Laravel 12 Backend API
-cd backend
+# 3. Start Laravel Backend API
+cd backend-khposcommerce
 composer install
 cp .env.example .env
 php artisan key:generate
-php artisan jwt:secret
 php artisan migrate --seed
-php artisan serve --port=8000
+php artisan serve --port=8001
 
-# 4. Start React 19 Admin Dashboard (Port 5173)
-cd ../admin-dashboard && npm install && npm run dev
+# 4. Start React 19 Admin Dashboard (Port 5171)
+cd ../webclient/merchant-khposcommerce && npm install && npm run dev
 
-# 5. Start React 19 Customer Website (Port 5174)
-cd ../customer-website && npm install && npm run dev
+# 5. Start React 19 Customer Website (Port 5172)
+cd ../webclient/storefront-khposcommerce && npm install && npm run dev
 
 # 6. Start Documentation Portal (Port 5175)
 cd ../docs-website && npm install && npm run dev

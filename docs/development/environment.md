@@ -8,8 +8,8 @@
 
 | ប៉ារ៉ាម៉ែត្រ (Parameter) | Development (Local) | Staging | Production |
 | :--- | :--- | :--- | :--- |
-| **Customer Website** | `http://localhost:5173` | `https://staging.example.com` | `https://www.example.com` |
-| **Admin Dashboard** | `http://localhost:5174` | `https://admin-staging.example.com` | `https://admin.example.com` |
+| **Customer Website** | `http://localhost:5172` | `https://staging.example.com` | `https://www.example.com` |
+| **Admin Dashboard** | `http://localhost:5171` | `https://admin-staging.example.com` | `https://admin.example.com` |
 | **Backend API URL** | `http://127.0.0.1:8001/api/v1` | `https://api-staging.example.com/api/v1` | `https://api.example.com/api/v1` |
 | **Flutter Mobile API** | `http://10.0.2.2:8000/api/v1` (Emulator) | `https://api-staging.example.com/api/v1` | `https://api.example.com/api/v1` |
 | **APP_ENV** | `local` | `staging` | `production` |

@@ -6,7 +6,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { EnterpriseModal, ModalFooter, EnterpriseDatePicker } from '@/components/common'
 import { formatPhoneNumber } from '@/utils/formatters'
-import { getCustomerGroupDisplayName } from '../utils/customerGroupI18n'
+import { getCustomerGroupDisplayName } from '@/utils/customerGroupI18n'
 import type { Customer } from '../types/customer.types'
 
 interface CustomerFormModalProps {

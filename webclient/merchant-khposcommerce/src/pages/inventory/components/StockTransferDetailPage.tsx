@@ -1,12 +1,12 @@
 import React from 'react'
-import { X, ArrowLeftRight, Package, Warehouse, User, Clock, AlertCircle, RefreshCw, Truck, CheckCircle2, Edit, Printer, ArrowRight, FileText } from 'lucide-react'
+import { X, ArrowLeftRight, Package, Warehouse, User, Clock, AlertCircle, RefreshCw, Truck, CheckCircle2, Pencil,
+Printer, ArrowRight, FileText } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { inventoryService } from '@/services/inventoryService'
 import { useTranslation } from 'react-i18next'
-import { LoadingSpinner } from '@/components/common'
+import { LoadingSpinner, StatusBadge, CloseButton, CancelButton, ActionButton } from '@/components/common'
 import StockTransferPrintVoucher from './StockTransferPrintVoucher'
-import { StatusBadge } from '@/components/common'
 import { formatShortDate } from '@/utils/formatters'
 
 interface StockTransferDetailPageProps {
@@ -70,35 +70,30 @@ export const StockTransferDetailPage: React.FC<StockTransferDetailPageProps> = (
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-card/95 backdrop-blur-md sticky top-0 z-20 print:hidden">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20 shadow-2xs">
-              <ArrowLeftRight size={20} />
-            </div>
-            <div>
-              <h2 className="text-base font-extrabold text-foreground tracking-tight">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground tracking-tight">
                 {t('inventory.transfer_card', 'Transfer Card')}
               </h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[11px] font-mono text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/60">
-                  REF: #{detail?.reference_number || `TRF-${transferId}`}
-                </span>
-              </div>
+              <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-md border border-primary/20">
+                #{detail?.reference_number || `TRF-${transferId}`}
+              </span>
             </div>
+            {detail?.source_warehouse?.name && detail?.destination_warehouse?.name && (
+              <p className="text-xs text-muted-foreground">
+                {detail.source_warehouse.name} ➔ {detail.destination_warehouse.name}
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
               title={t('inventory.printTransferNote', 'Print Note')}
               className="p-2 text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer"
             >
-              <Printer size={18} />
+              <Printer size={16} />
             </button>
-            <button
-              onClick={onClose}
-              className="p-2 text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer"
-            >
-              <X size={18} />
-            </button>
+            <CloseButton onClose={onClose} size="md" />
           </div>
         </div>
 
@@ -344,38 +339,32 @@ export const StockTransferDetailPage: React.FC<StockTransferDetailPageProps> = (
             {/* Footer */}
             <div className="p-4 border-t border-border bg-card/95 backdrop-blur-md flex items-center justify-between gap-3 sticky bottom-0 z-20 print:hidden">
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
+                <ActionButton
+                  variant="secondary"
+                  size="md"
                   onClick={handlePrint}
-                  className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
+                  icon={<Printer size={14} />}
                 >
-                  <Printer size={14} />
                   {t('inventory.printTransferNote', 'Print Note')}
-                </button>
+                </ActionButton>
               </div>
 
               <div className="flex items-center gap-2">
                 {isDraft && onEdit && (
-                  <button
-                    type="button"
+                  <ActionButton
+                    variant="primary"
+                    size="md"
                     onClick={() => {
                       onClose()
                       onEdit()
                     }}
-                    className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-2xs"
+                    icon={<Pencil size={14} />}
                   >
-                    <Edit size={14} />
                     {t('inventory.editTransfer', 'Edit Transfer')}
-                  </button>
+                  </ActionButton>
                 )}
 
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="py-2 px-4 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                >
-                  {t('buttons.close', 'Close')}
-                </button>
+                <CancelButton onClick={onClose} label={t('buttons.close', 'Close')} />
               </div>
             </div>
           </>

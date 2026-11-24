@@ -2,7 +2,7 @@ import React from 'react'
 import {
   Smartphone, Laptop, Monitor, Watch, Keyboard, Headphones, Camera, Zap, Footprints, Shirt
 } from 'lucide-react'
-import type { SizePresetConfig } from '../types/productForm.types'
+import type { SizePresetConfig } from '@/pages/products/types/productForm.types'
 
 export const SIZE_PRESET_MAP: Record<string, SizePresetConfig> = {
   smartphones: {

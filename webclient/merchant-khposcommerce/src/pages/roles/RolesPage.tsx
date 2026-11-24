@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Shield, Key, Activity, Plus, Search, Filter,
-  Edit2, Trash2, RefreshCw, X, Loader2, Download, Upload, Printer,
+  Pencil, Trash2, RefreshCw, X, Loader2, Download, Upload, Printer,
   Settings, Eye, Clock, UserCheck, AlertTriangle, Sliders,
   Lock, Unlock, ArrowUpRight, ShieldCheck, Zap, Globe, CheckCircle2,
   Users, Copy, Check, ShieldAlert, Award, FileText, Layers, RefreshCcw,
@@ -38,6 +38,7 @@ import {
   AddButton,
   ActionButton,
   ResetButton,
+  EnterpriseModal,
 } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import CsvImportModal from '@/components/shared/CsvImportModal'
@@ -1221,7 +1222,7 @@ const RolesPage: React.FC = () => {
                             title={t('roles.editRole', 'Edit role')}
                             className="text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors cursor-pointer"
                           >
-                            <Edit2 size={16} />
+                            <Pencil size={16} />
                           </button>
                         )}
                       </div>
@@ -1278,77 +1279,68 @@ const RolesPage: React.FC = () => {
         {t('roles.notice', 'These checks gate what the interface offers, not what the data allows. This template exports as static files with no server, so every fixture under /api is publicly readable regardless of role — enforce permissions in your backend as well. Roles you create are held in memory for the session, like every other change in this demo — see the data-provider docs for where to swap in a real backend.')}
       </div>
 
-      {/* ── 8. VIEW ROLE DETAILS DRAWER ───────────────────────────────────────── */}
-      <AnimatePresence>
-        {viewRole && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex justify-end print:hidden">
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="bg-card w-full max-w-sm border-l border-border h-full flex flex-col justify-between shadow-2xl"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-                <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-primary" />
-                  <span>{t('roles.roleDetailsTitle', 'Role Specification Details')}</span>
-                </h3>
-                <button onClick={() => setViewRole(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">
-                  <X size={18} />
+      {/* ── 8. VIEW ROLE DETAILS MODAL ────────────────────────────────────────── */}
+      {viewRole && (
+        <EnterpriseModal
+          isOpen={!!viewRole}
+          onClose={() => setViewRole(null)}
+          size="md"
+          title={t('roles.roleDetailsTitle', 'Role Specification Details')}
+          subtitle={formatRoleTitle(viewRole, isKhmer)}
+          icon={<Shield className="h-5 w-5 text-primary" />}
+          iconVariant="indigo"
+          footer={
+            canEdit ? (
+              <div className="p-4 border-t border-border bg-muted/20 flex gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={() => { const r = viewRole; setViewRole(null); openEditModal(r) }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold bg-primary text-white rounded-xl hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
+                >
+                  <Pencil size={14} /> {t('roles.editRoleBtn', 'Edit Role')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { const r = viewRole; setViewRole(null); openPermissionDrawer(r) }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
+                >
+                  <Shield size={14} /> {t('roles.permissionsBtn', 'Permissions')}
                 </button>
               </div>
-
-              <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                <div className="flex flex-col items-center gap-3 py-4 bg-muted/30 rounded-2xl border border-border/60">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold shadow-xs">
-                    <ShieldAlert size={32} />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-foreground text-base">{formatRoleTitle(viewRole, isKhmer)}</p>
-                    <p className="text-muted-foreground text-xs font-mono">{t('roles.guardScope', 'Guard Scope')}: {viewRole.guard_name}</p>
-                    <span className="mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
-                      {isBuiltInRole(viewRole) ? t('roles.systemRole', 'System Role') : t('roles.customRole', 'Custom Role')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  {[
-                    { label: t('roles.roleName', 'Role Name'), value: formatRoleTitle(viewRole, isKhmer) },
-                    { label: t('roles.guardScope', 'Guard Scope'), value: viewRole.guard_name || 'api' },
-                    { label: t('roles.permissionsCountLabel', 'Permissions Count'), value: t('roles.permissionsGranted', { count: viewRole.permissions_count ?? 12, defaultValue: `${viewRole.permissions_count ?? 12} Granted` }) },
-                    { label: t('roles.assignedUsersLabel', 'Assigned Users'), value: t('roles.activeUsersCount', { count: viewRole.users_count ?? 15, defaultValue: `${viewRole.users_count ?? 15} Active Users` }) },
-                    { label: t('roles.securityLevel', 'Security Level'), value: t('roles.highPrivilege', 'High Privilege') },
-                  ].map((row) => (
-                    <div key={row.label} className="flex items-center justify-between py-2.5 border-b border-border/60">
-                      <span className="text-muted-foreground font-medium">{row.label}</span>
-                      <span className="font-semibold text-foreground truncate max-w-[200px]">{row.value}</span>
-                    </div>
-                  ))}
-                </div>
+            ) : undefined
+          }
+        >
+          <div className="p-5 sm:p-6 space-y-5">
+            <div className="flex flex-col items-center gap-3 py-4 bg-muted/30 rounded-2xl border border-border/60">
+              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold shadow-xs">
+                <ShieldAlert size={32} />
               </div>
+              <div className="text-center">
+                <p className="font-bold text-foreground text-base">{formatRoleTitle(viewRole, isKhmer)}</p>
+                <p className="text-muted-foreground text-xs font-mono">{t('roles.guardScope', 'Guard Scope')}: {viewRole.guard_name}</p>
+                <span className="mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                  {isBuiltInRole(viewRole) ? t('roles.systemRole', 'System Role') : t('roles.customRole', 'Custom Role')}
+                </span>
+              </div>
+            </div>
 
-              {canEdit && (
-                <div className="p-4 border-t border-border bg-muted/20 flex gap-2">
-                  <button
-                    onClick={() => { setViewRole(null); openEditModal(viewRole) }}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold bg-primary text-white rounded-xl hover:opacity-90 transition-opacity shadow-sm cursor-pointer"
-                  >
-                    <Edit2 size={14} /> {t('roles.editRoleBtn', 'Edit Role')}
-                  </button>
-                  <button
-                    onClick={() => { setViewRole(null); openPermissionDrawer(viewRole) }}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
-                  >
-                    <Shield size={14} /> {t('roles.permissionsBtn', 'Permissions')}
-                  </button>
+            <div className="space-y-3 text-xs">
+              {[
+                { label: t('roles.roleName', 'Role Name'), value: formatRoleTitle(viewRole, isKhmer) },
+                { label: t('roles.guardScope', 'Guard Scope'), value: viewRole.guard_name || 'api' },
+                { label: t('roles.permissionsCountLabel', 'Permissions Count'), value: t('roles.permissionsGranted', { count: viewRole.permissions_count ?? 12, defaultValue: `${viewRole.permissions_count ?? 12} Granted` }) },
+                { label: t('roles.assignedUsersLabel', 'Assigned Users'), value: t('roles.activeUsersCount', { count: viewRole.users_count ?? 15, defaultValue: `${viewRole.users_count ?? 15} Active Users` }) },
+                { label: t('roles.securityLevel', 'Security Level'), value: t('roles.highPrivilege', 'High Privilege') },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between py-2.5 border-b border-border/60">
+                  <span className="text-muted-foreground font-medium">{row.label}</span>
+                  <span className="font-semibold text-foreground truncate max-w-[200px]">{row.value}</span>
                 </div>
-              )}
-            </motion.div>
+              ))}
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </EnterpriseModal>
+      )}
 
       {/* ── 10. MANAGE PERMISSIONS DRAWER (SLIDE FROM RIGHT) ─────────────────── */}
       <AnimatePresence>

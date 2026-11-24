@@ -8,7 +8,7 @@ import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, Search, Edit2, Trash2, RefreshCw, X, Warehouse,
+  Plus, Search, Pencil, Trash2, RefreshCw, X, Warehouse,
   ToggleLeft, ToggleRight, Eye, Phone, User, MapPin, Loader2, Star, Check
 } from 'lucide-react'
 import { companyService } from '@/services/companyService'
@@ -668,85 +668,86 @@ const WarehousesPage = React.forwardRef<CompanyTabHandle, { isTab?: boolean }>((
         </form>
       </EnterpriseModal>
 
-      {/* Detail Drawer */}
-      <AnimatePresence>
-        {viewWarehouse && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end">
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="bg-card w-full max-w-md border-l border-border h-full flex flex-col shadow-2xl"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <h3 className="font-semibold text-lg text-foreground">{t('company.warehouseDetail', 'Warehouse Details')}</h3>
-                <CloseButton onClose={() => setViewWarehouse(null)} size="md" color="rose" />
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.basicInfo', 'Basic Information')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblCode', 'Code:')}</span>
-                      <span className="font-mono font-medium">{viewWarehouse.code}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblName', 'Name:')}</span>
-                      <span className="font-medium">{viewWarehouse.name}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblAssociatedBranch', 'Associated Branch:')}</span>
-                      <span className="font-medium">{viewWarehouse.branch?.name ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblMainStorageUnit', 'Main Depot:')}</span>
-                      <span className="font-medium">{viewWarehouse.is_main ? t('company.yes', 'Yes') : t('company.no', 'No')}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">{t('company.lblStatus', 'Status:')}</span>
-                      <StatusBadge status={viewWarehouse.is_active} />
-                    </div>
-                  </div>
+      {/* Detail Modal */}
+      {viewWarehouse && (
+        <EnterpriseModal
+          isOpen={!!viewWarehouse}
+          onClose={() => setViewWarehouse(null)}
+          size="lg"
+          title={t('company.warehouseDetail', 'Warehouse Details')}
+          subtitle={viewWarehouse.name}
+          icon={<Warehouse size={20} />}
+          iconVariant="amber"
+          badge={<StatusBadge status={viewWarehouse.is_active} />}
+          footer={
+            <ModalFooter
+              onCancel={() => setViewWarehouse(null)}
+              cancelLabel={t('common.close', 'Close')}
+              showSubmit={false}
+            />
+          }
+        >
+          <div className="p-5 sm:p-6 space-y-5">
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.basicInfo', 'Basic Information')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblCode', 'Code:')}</span>
+                  <span className="font-mono font-medium">{viewWarehouse.code}</span>
                 </div>
-
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.contactPic', 'Contact & PIC')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><User size={12} /> {t('company.lblPicName', 'PIC Name:')}</span>
-                      <span className="font-medium">{viewWarehouse.pic_name ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-center gap-1"><Phone size={12} /> {t('company.lblPicPhone', 'PIC Phone:')}</span>
-                      <span className="font-medium">{viewWarehouse.phone ?? '—'}</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblName', 'Name:')}</span>
+                  <span className="font-medium">{viewWarehouse.name}</span>
                 </div>
-
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.locationAddress', 'Location & Coordinates')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-start gap-1"><MapPin size={14} className="mt-0.5" /> {t('company.lblAddress', 'Address:')}</span>
-                      <span className="font-medium text-right max-w-[200px] break-words">{viewWarehouse.address ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblCity', 'City:')}</span>
-                      <span className="font-medium">{viewWarehouse.city ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblProvince', 'Province:')}</span>
-                      <span className="font-medium">{viewWarehouse.province ?? '—'}</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblAssociatedBranch', 'Associated Branch:')}</span>
+                  <span className="font-medium">{viewWarehouse.branch?.name ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblMainStorageUnit', 'Main Depot:')}</span>
+                  <span className="font-medium">{viewWarehouse.is_main ? t('company.yes', 'Yes') : t('company.no', 'No')}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">{t('company.lblStatus', 'Status:')}</span>
+                  <StatusBadge status={viewWarehouse.is_active} />
                 </div>
               </div>
-            </motion.div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.contactPic', 'Contact & PIC')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-1"><User size={12} /> {t('company.lblPicName', 'PIC Name:')}</span>
+                  <span className="font-medium">{viewWarehouse.pic_name ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-1"><Phone size={12} /> {t('company.lblPicPhone', 'PIC Phone:')}</span>
+                  <span className="font-medium">{viewWarehouse.phone ?? '—'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.locationAddress', 'Location & Coordinates')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground flex items-start gap-1"><MapPin size={14} className="mt-0.5" /> {t('company.lblAddress', 'Address:')}</span>
+                  <span className="font-medium text-right max-w-[200px] break-words">{viewWarehouse.address ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblCity', 'City:')}</span>
+                  <span className="font-medium">{viewWarehouse.city ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblProvince', 'Province:')}</span>
+                  <span className="font-medium">{viewWarehouse.province ?? '—'}</span>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </EnterpriseModal>
+      )}
 
       {/* Global Delete Confirmation Dialog */}
       <DeleteConfirmDialog

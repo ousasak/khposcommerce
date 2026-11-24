@@ -19,7 +19,7 @@ import { usePageTab } from '@/hooks/usePageTab'
 import TableWrapper from '@/components/shared/TableWrapper'
 import SearchInput from '@/components/shared/SearchInput'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
-import { Breadcrumb, ResetButton } from '@/components/common'
+import { Breadcrumb, ResetButton, EnterpriseModal } from '@/components/common'
 import { CloseButton, CancelButton, TableToolbar, EnterpriseDatePicker, HeaderActionsGroup, ExportButton } from '@/components/common'
 import { useTranslation } from 'react-i18next'
 import { useThemeStore } from '@/stores/themeStore'
@@ -1280,83 +1280,78 @@ const RecycleBinPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* ── 9. VIEW DELETED RECORD DETAILS DRAWER ─────────────────────────────── */}
-      <AnimatePresence>
-        {viewItem && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex justify-end print:hidden">
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="bg-card w-full max-w-sm border-l border-border h-full flex flex-col justify-between shadow-2xl"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
-                <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                  <Trash2 className="h-5 w-5 text-rose-500" />
-                  <span>Deleted Record Metadata</span>
-                </h3>
-                <CloseButton onClose={() => setViewItem(null)} size="md" color="rose" />
+      {/* ── 9. VIEW DELETED RECORD DETAILS MODAL ──────────────────────────────── */}
+      {viewItem && (
+        <EnterpriseModal
+          isOpen={!!viewItem}
+          onClose={() => setViewItem(null)}
+          size="md"
+          title="Deleted Record Metadata"
+          subtitle={getItemDisplayName(viewItem)}
+          icon={<Trash2 className="h-5 w-5 text-rose-500" />}
+          iconVariant="rose"
+          footer={
+            <div className="p-4 border-t border-border bg-muted/20 flex gap-2 w-full">
+              <button
+                type="button"
+                onClick={() => {
+                  const it = viewItem
+                  setViewItem(null)
+                  setSelectedItem(it)
+                  setConfirmAction('restore')
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-extrabold bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:opacity-95 transition-all shadow-sm active:scale-95 cursor-pointer"
+              >
+                <RotateCcw size={14} /> Restore Record
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const it = viewItem
+                  setViewItem(null)
+                  setSelectedItem(it)
+                  setConfirmAction('force_delete')
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-extrabold bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl hover:opacity-95 transition-all shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Trash2 size={14} /> Permanent Delete
+              </button>
+            </div>
+          }
+        >
+          <div className="p-5 sm:p-6 space-y-5">
+            <div className="flex flex-col items-center gap-3 py-4 bg-muted/30 rounded-2xl border border-border/60">
+              <div className={`w-16 h-16 rounded-full ${currentModuleConfig.bgColor} ${currentModuleConfig.color} flex items-center justify-center text-2xl font-bold shadow-xs`}>
+                <ActiveTabIcon size={30} />
               </div>
+              <div className="text-center">
+                <p className="font-bold text-foreground text-sm">{getItemDisplayName(viewItem)}</p>
+                <p className="text-muted-foreground text-xs font-mono">Module: {activeTab.toUpperCase()}</p>
+                <span className="mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                  Soft Deleted
+                </span>
+              </div>
+            </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                <div className="flex flex-col items-center gap-3 py-4 bg-muted/30 rounded-2xl border border-border/60">
-                  <div className={`w-16 h-16 rounded-full ${currentModuleConfig.bgColor} ${currentModuleConfig.color} flex items-center justify-center text-2xl font-bold shadow-xs`}>
-                    <ActiveTabIcon size={30} />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-foreground text-sm">{getItemDisplayName(viewItem)}</p>
-                    <p className="text-muted-foreground text-xs font-mono">Module: {activeTab.toUpperCase()}</p>
-                    <span className="mt-2 inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-600 border border-rose-500/20">
-                      Soft Deleted
-                    </span>
-                  </div>
+            <div className="space-y-3 text-xs">
+              {[
+                { label: 'Record ID', value: `#${viewItem.id}` },
+                { label: 'Display Name', value: getItemDisplayName(viewItem) },
+                { label: 'Module Scope', value: activeTab.toUpperCase() },
+                { label: 'Deleted At', value: viewItem.deleted_at ? new Date(viewItem.deleted_at).toLocaleString() : 'N/A' },
+                { label: 'Deleted By User', value: viewItem.deleted_by || 'System Admin' },
+                { label: 'Retention Days Left', value: `${getDaysLeft(viewItem.deleted_at)} Days` },
+                { label: 'Restorable Status', value: 'Restorable' },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between py-2.5 border-b border-border/60">
+                  <span className="text-muted-foreground font-medium">{row.label}</span>
+                  <span className="font-semibold text-foreground truncate max-w-[200px]">{row.value}</span>
                 </div>
-
-                <div className="space-y-3 text-xs">
-                  {[
-                    { label: 'Record ID', value: `#${viewItem.id}` },
-                    { label: 'Display Name', value: getItemDisplayName(viewItem) },
-                    { label: 'Module Scope', value: activeTab.toUpperCase() },
-                    { label: 'Deleted At', value: viewItem.deleted_at ? new Date(viewItem.deleted_at).toLocaleString() : 'N/A' },
-                    { label: 'Deleted By User', value: viewItem.deleted_by || 'System Admin' },
-                    { label: 'Retention Days Left', value: `${getDaysLeft(viewItem.deleted_at)} Days` },
-                    { label: 'Restorable Status', value: 'Restorable' },
-                  ].map((row) => (
-                    <div key={row.label} className="flex items-center justify-between py-2.5 border-b border-border/60">
-                      <span className="text-muted-foreground font-medium">{row.label}</span>
-                      <span className="font-semibold text-foreground truncate max-w-[200px]">{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4 border-t border-border bg-muted/20 flex gap-2">
-                <button
-                  onClick={() => {
-                    setViewItem(null)
-                    setSelectedItem(viewItem)
-                    setConfirmAction('restore')
-                  }}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-extrabold bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl hover:opacity-95 transition-all shadow-sm active:scale-95 cursor-pointer"
-                >
-                  <RotateCcw size={14} /> Restore Record
-                </button>
-                <button
-                  onClick={() => {
-                    setViewItem(null)
-                    setSelectedItem(viewItem)
-                    setConfirmAction('force_delete')
-                  }}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-extrabold bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl hover:opacity-95 transition-all shadow-sm active:scale-95 cursor-pointer"
-                >
-                  <Trash2 size={14} /> Permanent Delete
-                </button>
-              </div>
-            </motion.div>
+              ))}
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </EnterpriseModal>
+      )}
 
       {/* ── 10. RESTORE & FORCE DELETE CONFIRM DIALOG ──────────────────────────── */}
       <ConfirmDialog

@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-  Edit2, Trash2, Eye, Copy, Store, Globe, Smartphone, MousePointerClick, TrendingUp, Lock, Unlock
+  Pencil, Trash2, Eye, Copy, Store, Globe, Smartphone, MousePointerClick, TrendingUp, Lock, Unlock
 } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import LoadingSkeleton from '@/components/shared/LoadingSkeleton'

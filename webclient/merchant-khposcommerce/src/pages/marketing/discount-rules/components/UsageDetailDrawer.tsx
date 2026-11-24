@@ -2,10 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Receipt, DollarSign, Store, Globe, Smartphone, Calendar, User, Building2, Copy, Check } from 'lucide-react'
 import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerBody,
-  DetailDrawerFooter,
+  EnterpriseModal,
   StatusBadge,
 } from '@/components/common'
 
@@ -89,53 +86,63 @@ export const UsageDetailDrawer: React.FC<UsageDetailDrawerProps> = ({ usage, onC
   }
 
   return (
-    <DetailDrawer isOpen={Boolean(usage)} onClose={onClose} size="2xl">
-      {/* ─── 1. GLOBAL DRAWER HEADER ─── */}
-      <DetailDrawerHeader
-        title={t('marketing.usageDetailsTitle', 'Promotion Redemption Details')}
-        subtitle={usage.sale_number}
-        badge={
-          <span className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-mono font-bold border border-primary/20">
-            {usage.sale_number}
-          </span>
-        }
-        onClose={onClose}
-      />
-
-      {/* ─── 2. PROFILE OVERVIEW CARD (Matching Employee Detail Drawer) ─── */}
-      <div className="px-6 py-4 bg-muted/30 border-b border-border/80">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-card border border-border/80 flex items-center justify-center shrink-0 text-primary shadow-2xs">
-            <Receipt size={28} className="text-primary" />
-          </div>
-          <div className="space-y-1 min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground truncate">
-                {usage.campaign_name}
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                -${usage.discount_amount.toFixed(2)} OFF
-              </span>
+    <EnterpriseModal
+      isOpen={Boolean(usage)}
+      onClose={onClose}
+      size="xl"
+      title={t('marketing.usageDetailsTitle', 'Promotion Redemption Details')}
+      subtitle={usage.sale_number}
+      icon={<Receipt size={20} />}
+      iconVariant="indigo"
+      badge={
+        <span className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-mono font-bold border border-primary/20">
+          {usage.sale_number}
+        </span>
+      }
+      footer={
+        <div className="flex items-center justify-end p-4 border-t border-border/80 bg-muted/20 w-full shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 text-xs font-semibold rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          >
+            {t('buttons.close', 'Close')}
+          </button>
+        </div>
+      }
+    >
+      <div className="p-5 sm:p-6 space-y-4">
+        {/* Profile Overview Card */}
+        <div className="p-4 bg-muted/30 rounded-2xl border border-border/80">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-card border border-border/80 flex items-center justify-center shrink-0 text-primary shadow-2xs">
+              <Receipt size={28} className="text-primary" />
             </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-              <span>{usage.branch_name || 'Phnom Penh HQ'}</span>
-              <span>•</span>
-              <span className="font-semibold text-foreground/80">{usage.customer_name || 'Walk-in Customer'}</span>
-              <span>•</span>
-              <span>{usage.used_at}</span>
-            </p>
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
-                {usage.campaign_code}
-              </span>
-              {renderChannelBadge(usage.channel)}
+            <div className="space-y-1 min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground truncate">
+                  {usage.campaign_name}
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  -${usage.discount_amount.toFixed(2)} OFF
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                <span>{usage.branch_name || 'Phnom Penh HQ'}</span>
+                <span>•</span>
+                <span className="font-semibold text-foreground/80">{usage.customer_name || 'Walk-in Customer'}</span>
+                <span>•</span>
+                <span>{usage.used_at}</span>
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
+                  {usage.campaign_code}
+                </span>
+                {renderChannelBadge(usage.channel)}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ─── 3. DRAWER BODY WITH GROUPED 2-COLUMN CARDS ─── */}
-      <DetailDrawerBody className="space-y-4">
         {/* Card 1: Order & Transaction */}
         <div className="p-4 rounded-2xl bg-card border border-border/70 shadow-2xs space-y-3">
           <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
@@ -216,15 +223,10 @@ export const UsageDetailDrawer: React.FC<UsageDetailDrawerProps> = ({ usage, onC
             </div>
           </div>
         </div>
-      </DetailDrawerBody>
-
-      {/* ─── 4. GLOBAL DRAWER FOOTER (Matching Employee Detail Drawer) ─── */}
-      <DetailDrawerFooter
-        onClose={onClose}
-        closeLabel={t('buttons.close', 'Close')}
-      />
-    </DetailDrawer>
+      </div>
+    </EnterpriseModal>
   )
 }
 
+export { UsageDetailDrawer as UsageDetailModal }
 export default UsageDetailDrawer

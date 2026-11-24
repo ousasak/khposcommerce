@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { DollarSign, Loader2, CreditCard, Receipt, Building2, CheckCircle } from 'lucide-react'
 import { CloseButton } from '@/components/common'
 import type { Purchase } from '../types/purchase.types'
-import { formatCurrency, getDetailDualValues } from '../utils/purchaseCurrency'
+import { formatCurrency, getDetailDualValues } from '@/utils/purchaseCurrency'
 
 interface RecordPaymentModalProps {
   isOpen: boolean

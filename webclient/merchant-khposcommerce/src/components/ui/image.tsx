@@ -5,7 +5,7 @@ import React, {
   createContext,
   useCallback,
 } from 'react'
-import { createPortal } from 'react-dom'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
 import {
   Eye,
   X,
@@ -106,19 +106,29 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   const [zoom, setZoom] = useState(1)
   const [rotation, setRotation] = useState(0)
 
+  // Keep currentIndex updated if initialUrl changes
+  useEffect(() => {
+    if (initialUrl) {
+      const idx = allImages.indexOf(initialUrl)
+      setCurrentIndex(idx >= 0 ? idx : 0)
+      setZoom(1)
+      setRotation(0)
+    }
+  }, [initialUrl])
+
   const currentImageUrl = allImages[currentIndex] || initialUrl
 
-  // Keyboard navigation
+  // Keyboard navigation for Arrows
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      } else if (e.key === 'ArrowLeft') {
+      if (e.key === 'ArrowLeft') {
+        e.stopPropagation()
         setCurrentIndex((i) => (i > 0 ? i - 1 : allImages.length - 1))
         setZoom(1)
         setRotation(0)
       } else if (e.key === 'ArrowRight') {
+        e.stopPropagation()
         setCurrentIndex((i) => (i < allImages.length - 1 ? i + 1 : 0))
         setZoom(1)
         setRotation(0)
@@ -126,13 +136,22 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, allImages.length, onClose])
+  }, [isOpen, allImages.length])
 
   if (!isOpen) return null
 
-  const handleZoomIn = () => setZoom((z) => Math.min(z + 0.25, 3))
-  const handleZoomOut = () => setZoom((z) => Math.max(z - 0.25, 0.5))
-  const handleRotate = () => setRotation((r) => (r + 90) % 360)
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setZoom((z) => Math.min(z + 0.25, 3))
+  }
+  const handleZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setZoom((z) => Math.max(z - 0.25, 0.5))
+  }
+  const handleRotate = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setRotation((r) => (r + 90) % 360)
+  }
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation()
     setCurrentIndex((i) => (i > 0 ? i - 1 : allImages.length - 1))
@@ -146,7 +165,8 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
     setRotation(0)
   }
 
-  const handleDownload = () => {
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (!currentImageUrl) return
     const link = document.createElement('a')
     link.href = currentImageUrl
@@ -157,115 +177,157 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
     document.body.removeChild(link)
   }
 
-  return createPortal(
-    <div
-      style={{ zIndex }}
-      className="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200 select-none"
-      onClick={onClose}
+  const handleClose = (e?: React.MouseEvent | React.SyntheticEvent) => {
+    e?.stopPropagation()
+    onClose()
+  }
+
+  return (
+    <DialogPrimitive.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
     >
-      {/* Top Floating Toolbar */}
-      <div
-        className="absolute top-4 inset-x-0 mx-auto max-w-fit px-4 py-2 rounded-full bg-zinc-900/90 border border-zinc-700/60 shadow-2xl flex items-center gap-2 text-white z-50 backdrop-blur-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {allImages.length > 1 && (
-          <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 mr-1">
-            {currentIndex + 1} / {allImages.length}
-          </span>
-        )}
-
-        <button
-          type="button"
-          onClick={handleZoomIn}
-          className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title="Zoom In"
-        >
-          <ZoomIn size={17} />
-        </button>
-        <button
-          type="button"
-          onClick={handleZoomOut}
-          className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title="Zoom Out"
-        >
-          <ZoomOut size={17} />
-        </button>
-        <button
-          type="button"
-          onClick={handleRotate}
-          className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title="Rotate"
-        >
-          <RotateCw size={17} />
-        </button>
-        <button
-          type="button"
-          onClick={handleDownload}
-          className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title="Download"
-        >
-          <Download size={17} />
-        </button>
-        <a
-          href={currentImageUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title="Open Original"
-        >
-          <ExternalLink size={17} />
-        </a>
-
-        <div className="w-px h-4 bg-zinc-700/80 mx-1" />
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-1.5 rounded-lg hover:bg-red-500/20 text-zinc-300 hover:text-red-400 transition-colors cursor-pointer"
-          title="Close (Esc)"
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      {/* Navigation Arrows for Multiple Images */}
-      {allImages.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={handlePrev}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white border border-zinc-700/60 shadow-lg flex items-center justify-center transition-all cursor-pointer z-50 backdrop-blur-xs"
-            title="Previous (Left Arrow)"
-          >
-            <ChevronLeft size={22} />
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white border border-zinc-700/60 shadow-lg flex items-center justify-center transition-all cursor-pointer z-50 backdrop-blur-xs"
-            title="Next (Right Arrow)"
-          >
-            <ChevronRight size={22} />
-          </button>
-        </>
-      )}
-
-      {/* Image Container with Zoom & Rotate */}
-      <div
-        className="max-w-[90vw] max-h-[85vh] flex items-center justify-center p-2 transition-transform duration-200"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          transform: `scale(${zoom}) rotate(${rotation}deg)`,
-        }}
-      >
-        <img
-          src={currentImageUrl}
-          alt={alt}
-          className="max-w-full max-h-[82vh] object-contain rounded-xl shadow-2xl pointer-events-auto"
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          style={{ zIndex }}
+          className="fixed inset-0 bg-black/85 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 pointer-events-auto"
         />
-      </div>
-    </div>,
-    document.body
+        <DialogPrimitive.Content
+          data-lightbox="true"
+          style={{ zIndex: zIndex + 1 }}
+          className="image-lightbox-modal fixed inset-0 flex items-center justify-center p-0 border-none bg-transparent shadow-none select-none outline-none focus:outline-none pointer-events-auto"
+          onPointerDownOutside={(e) => {
+            e.preventDefault()
+            onClose()
+          }}
+          onEscapeKeyDown={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            onClose()
+          }}
+        >
+          <DialogPrimitive.Title className="sr-only">
+            {alt || 'Image Preview'}
+          </DialogPrimitive.Title>
+          <DialogPrimitive.Description className="sr-only">
+            Fullscreen image preview modal
+          </DialogPrimitive.Description>
+
+          {/* Backdrop Click Area */}
+          <div
+            className="absolute inset-0 cursor-zoom-out pointer-events-auto"
+            onClick={handleClose}
+          />
+
+          {/* Top Floating Toolbar */}
+          <div
+            className="absolute top-4 inset-x-0 mx-auto max-w-fit px-4 py-2 rounded-full bg-zinc-900/90 border border-zinc-700/60 shadow-2xl flex items-center gap-2 text-white z-50 backdrop-blur-lg pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {allImages.length > 1 && (
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 mr-1">
+                {currentIndex + 1} / {allImages.length}
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={handleZoomIn}
+              className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              title="Zoom In"
+            >
+              <ZoomIn size={17} />
+            </button>
+            <button
+              type="button"
+              onClick={handleZoomOut}
+              className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              title="Zoom Out"
+            >
+              <ZoomOut size={17} />
+            </button>
+            <button
+              type="button"
+              onClick={handleRotate}
+              className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              title="Rotate"
+            >
+              <RotateCw size={17} />
+            </button>
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              title="Download"
+            >
+              <Download size={17} />
+            </button>
+            <a
+              href={currentImageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="p-1.5 rounded-lg hover:bg-white/15 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              title="Open Original"
+            >
+              <ExternalLink size={17} />
+            </a>
+
+            <div className="w-px h-4 bg-zinc-700/80 mx-1" />
+
+            <button
+              type="button"
+              onClick={handleClose}
+              className="p-1.5 rounded-lg hover:bg-red-500/20 text-zinc-300 hover:text-red-400 transition-colors cursor-pointer"
+              title="Close (Esc)"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Navigation Arrows for Multiple Images */}
+          {allImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white border border-zinc-700/60 shadow-lg flex items-center justify-center transition-all cursor-pointer z-50 backdrop-blur-xs pointer-events-auto"
+                title="Previous (Left Arrow)"
+              >
+                <ChevronLeft size={22} />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-white border border-zinc-700/60 shadow-lg flex items-center justify-center transition-all cursor-pointer z-50 backdrop-blur-xs pointer-events-auto"
+                title="Next (Right Arrow)"
+              >
+                <ChevronRight size={22} />
+              </button>
+            </>
+          )}
+
+          {/* Image Container with Zoom & Rotate */}
+          <div
+            className="relative z-40 max-w-[90vw] max-h-[85vh] flex items-center justify-center p-2 transition-transform duration-200 pointer-events-auto cursor-default"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{
+              transform: `scale(${zoom}) rotate(${rotation}deg)`,
+            }}
+          >
+            <img
+              src={currentImageUrl}
+              alt={alt}
+              className="max-w-full max-h-[82vh] object-contain rounded-xl shadow-2xl pointer-events-auto select-none"
+            />
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   )
 }
 

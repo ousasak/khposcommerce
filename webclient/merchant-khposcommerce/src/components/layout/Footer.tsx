@@ -19,7 +19,7 @@ export const Footer: React.FC = () => {
           <span>{t('dashboard.allSystemsOperational', 'All Systems Operational')}</span>
         </div>
         <span className="text-muted-foreground/40">•</span>
-        <span className="font-mono text-muted-foreground/70">v1.0.0</span>
+        <span className="font-mono text-muted-foreground/70">v1.1.0-beta.1</span>
       </div>
     </footer>
   )

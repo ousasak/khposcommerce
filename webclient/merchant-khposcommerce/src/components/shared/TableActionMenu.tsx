@@ -1,5 +1,5 @@
 import React from 'react'
-import { MoreVertical, Edit2, Trash2, Eye, Printer } from 'lucide-react'
+import { MoreVertical, Pencil, Trash2, Eye, Printer, FileText } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import {
   DropdownMenu,
@@ -19,7 +19,7 @@ export type TableActionVariant =
   | 'primary'
   | 'edit'
 
-export type TableActionEditColor = 'blue' | 'amber' | 'teal' | 'indigo' | 'emerald'
+export type TableActionEditColor = 'slate' | 'blue' | 'amber' | 'teal' | 'indigo' | 'emerald'
 
 export interface TableActionItem {
   label: string
@@ -57,6 +57,8 @@ export interface TableActionMenuProps {
   buttonSize?: 'sm' | 'md'
   /** Custom accent color for edit action button (default: 'blue') */
   editColor?: TableActionEditColor
+  /** Force dropdown menu even if only 1 action exists (default: false) */
+  forceDropdown?: boolean
 }
 
 export const TableActionMenu: React.FC<TableActionMenuProps> = ({
@@ -72,10 +74,11 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
   align = 'right',
   className = '',
   triggerSize = 16,
-  variant = 'dropdown',
+  variant = 'hybrid',
   maxInline = 2,
-  buttonSize = 'md',
-  editColor = 'blue',
+  buttonSize = 'sm',
+  editColor = 'slate',
+  forceDropdown = false,
 }) => {
   const { t } = useTranslation(['common', 'buttons', 'inventory', 'purchases'])
 
@@ -132,25 +135,25 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
     })
   }
 
-  if (onPrint && !finalItems.some((i) => i.label === resolvedPrintLabel)) {
+  if (onEdit && !finalItems.some((i) => i.label === resolvedEditLabel)) {
     const viewIdx = finalItems.findIndex((i) => i.label === resolvedViewLabel)
     const insertIdx = viewIdx >= 0 ? viewIdx + 1 : 0
+    finalItems.splice(insertIdx, 0, {
+      label: resolvedEditLabel,
+      icon: Pencil,
+      onClick: onEdit,
+      variant: 'edit',
+    })
+  }
+
+  if (onPrint && !finalItems.some((i) => i.label === resolvedPrintLabel)) {
+    const editIdx = finalItems.findIndex((i) => i.label === resolvedEditLabel)
+    const insertIdx = editIdx >= 0 ? editIdx + 1 : finalItems.length
     finalItems.splice(insertIdx, 0, {
       label: resolvedPrintLabel,
       icon: Printer,
       onClick: onPrint,
       variant: 'default',
-    })
-  }
-
-  if (onEdit && !finalItems.some((i) => i.label === resolvedEditLabel)) {
-    const lastNonDangerIdx = finalItems.findLastIndex((i) => i.variant !== 'danger')
-    const insertIdx = lastNonDangerIdx >= 0 ? lastNonDangerIdx + 1 : 0
-    finalItems.splice(insertIdx, 0, {
-      label: resolvedEditLabel,
-      icon: Edit2,
-      onClick: onEdit,
-      variant: 'edit',
     })
   }
 
@@ -163,6 +166,19 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
     })
   }
 
+  // Auto standardize edit icon to Pencil and edit variant (Harmonized with Product table)
+  finalItems.forEach((item) => {
+    if (
+      item.variant === 'edit' ||
+      /edit|update|modify|កែប្រែ|កែ/i.test(item.label)
+    ) {
+      if (!item.variant) item.variant = 'edit'
+      if (!React.isValidElement(item.icon)) {
+        item.icon = Pencil
+      }
+    }
+  })
+
   const resolveItemVariant = (item: TableActionItem): TableActionVariant => {
     if (item.variant && item.variant !== 'default') {
       return item.variant
@@ -170,7 +186,7 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
     // Auto-detect dangerous/delete actions
     if (item.icon === Trash2 || /delete|remove|លុប/i.test(item.label)) return 'danger'
     // Auto-detect edit/modify actions
-    if (item.icon === Edit2 || /edit|update|modify|កែប្រែ|កែ/i.test(item.label)) return 'edit'
+    if (item.icon === Pencil || (item.icon as any) === 'Pencil' || /edit|update|modify|កែប្រែ|កែ/i.test(item.label)) return 'edit'
     return 'default'
   }
 
@@ -185,45 +201,51 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
     const isDanger = itemVariant === 'danger'
     const isWarning = itemVariant === 'warning'
     const isSuccess = itemVariant === 'success'
+    const isView = item.icon === Eye || /view|detail|មើល/i.test(item.label)
 
     const editColorClasses: Record<TableActionEditColor, string> = {
+      slate:
+        'border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs',
       blue:
-        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/60 dark:hover:bg-blue-950/20',
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/60 dark:hover:bg-blue-950/20 shadow-2xs',
       amber:
-        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 hover:border-amber-300 dark:hover:border-amber-800 hover:bg-amber-50/60 dark:hover:bg-amber-950/20',
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 hover:border-amber-300 dark:hover:border-amber-800 hover:bg-amber-50/60 dark:hover:bg-amber-950/20 shadow-2xs',
       teal:
-        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 hover:border-teal-300 dark:hover:border-teal-800 hover:bg-teal-50/60 dark:hover:bg-teal-950/20',
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 hover:border-teal-300 dark:hover:border-teal-800 hover:bg-teal-50/60 dark:hover:bg-teal-950/20 shadow-2xs',
       indigo:
-        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-800 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20',
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 hover:border-indigo-300 dark:hover:border-indigo-800 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20 shadow-2xs',
       emerald:
-        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/20',
+        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/20 shadow-2xs',
     }
 
-    // SmartHR-style white card action button with clean soft drop shadow
+    // TheManStore cloned styling: clean white card action button with soft drop shadow
     let colorClasses =
-      'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+      'border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs'
 
     if (isDanger) {
       colorClasses =
-        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 hover:border-rose-300 dark:hover:border-rose-700 hover:bg-rose-50/60 dark:hover:bg-rose-950/20'
+        'border border-rose-200 dark:border-rose-300/50 bg-white dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/20 hover:border-rose-300 dark:hover:border-rose-300 shadow-2xs'
     } else if (itemVariant === 'edit') {
-      colorClasses = editColorClasses[editColor] || editColorClasses.blue
+      colorClasses = editColorClasses[editColor] || editColorClasses.slate
     } else if (isWarning) {
       colorClasses =
-        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:border-amber-300 hover:bg-amber-50/50'
+        'border border-amber-200 dark:border-amber-800 bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:border-amber-300 hover:bg-amber-50/50 shadow-2xs'
     } else if (isSuccess) {
       colorClasses =
-        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50/50'
+        'border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50/50 shadow-2xs'
+    } else if (isView) {
+      colorClasses =
+        'border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-2xs'
     } else if (itemVariant === 'primary' || itemVariant === 'info') {
       colorClasses =
-        'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 text-primary hover:text-primary/90 hover:border-primary/40 hover:bg-primary/5'
+        'border border-amber-500 dark:border-amber-600 bg-amber-500 hover:bg-amber-600 text-white shadow-2xs'
     }
 
     const sizeClasses =
       buttonSize === 'sm'
-        ? 'h-7 w-7 min-w-[28px] min-h-[28px] rounded-md'
-        : 'h-8 w-8 min-w-[32px] min-h-[32px] rounded-lg'
-    const iconDimension = buttonSize === 'sm' ? 13 : 14
+        ? 'h-8 w-8 min-w-[32px] min-h-[32px] rounded-lg'
+        : 'h-8.5 w-8.5 min-w-[34px] min-h-[34px] rounded-lg'
+    const iconDimension = buttonSize === 'sm' ? 15 : 16
 
     return (
       <button
@@ -248,21 +270,39 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
       >
         {React.isValidElement(item.icon) ? (
           item.icon
+        ) : itemVariant === 'edit' ? (
+          <Pencil size={iconDimension} className="shrink-0 stroke-[1.8]" />
         ) : Icon ? (
-          <Icon size={iconDimension} className="shrink-0 stroke-[1.9]" />
+          <Icon size={iconDimension} className="shrink-0 stroke-[1.8]" />
         ) : null}
       </button>
     )
   }
 
   // MODE 1: INLINE (Clean icon buttons in a row)
-  if (variant === 'inline') {
+  // If more than maxInline items exist (e.g. 3, 4, 5), gracefully switch to hybrid so extra actions collapse into '...'
+  if (variant === 'inline' && visibleItems.length <= maxInline) {
     return (
       <div
         className={cn('inline-flex items-center justify-end gap-1.5', className)}
         onClick={(e) => e.stopPropagation()}
       >
         {visibleItems.map((item, idx) => renderInlineButton(item, idx))}
+      </div>
+    )
+  }
+
+  // AUTO-INLINE SINGLE ACTION:
+  // When a table row only has 1 visible action (e.g. only View, or only Edit/Print),
+  // directly show that action button rather than requiring the user to click
+  // a redundant 3-dots '...' menu just to trigger a single action!
+  if (visibleItems.length === 1 && !forceDropdown) {
+    return (
+      <div
+        className={cn('inline-flex items-center justify-end gap-1.5', className)}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {renderInlineButton(visibleItems[0], 0)}
       </div>
     )
   }
@@ -321,6 +361,8 @@ export const TableActionMenu: React.FC<TableActionMenuProps> = ({
                 >
                   {React.isValidElement(item.icon) ? (
                     item.icon
+                  ) : itemVariant === 'edit' ? (
+                    <Pencil size={14} className="shrink-0" />
                   ) : Icon ? (
                     <Icon size={14} className="shrink-0" />
                   ) : null}

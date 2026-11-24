@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   Copy, Check, ExternalLink,
-  ShoppingCart, Plus, Eye, Edit2, Edit3,
+  ShoppingCart, Plus, Eye, Pencil,
   Phone, Mail, Globe
 } from 'lucide-react'
 import { supplierService } from '@/services/supplierService'
@@ -218,7 +218,7 @@ export const SupplierDetailPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <FormHeaderButton
               variant="primary"
-              icon={<Edit2 size={14} />}
+              icon={<Pencil size={14} />}
               onClick={() => navigate(`/suppliers/${supp.id}/edit`)}
             >
               {t('suppliers.editSupplier', 'Edit Supplier')}
@@ -1064,7 +1064,7 @@ export const SupplierDetailPage: React.FC = () => {
                   onClick={() => navigate(`/suppliers/${supp.id}/edit`)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-all active:scale-95 shadow-2xs cursor-pointer"
                 >
-                  <Edit3 size={13} />
+                  <Pencil size={13} />
                   <span>{t('suppliers.editAction', 'Edit')}</span>
                 </button>
               </div>

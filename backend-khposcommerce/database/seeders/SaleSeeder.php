@@ -84,16 +84,16 @@ class SaleSeeder extends Seeder
 
         // 3. Shipping Zones (10 Authentic Cambodian Geo Zones)
         $shippingZones = [
-            ['id' => 1,  'name' => 'Phnom Penh Metropolitan Area',      'provs' => ['Phnom Penh'], 'cities' => ['Khan Sen Sok', 'Khan Tuol Kouk', 'Khan Daun Penh', 'Khan Chamkarmon', 'Khan Boeng Keng Kang']],
-            ['id' => 2,  'name' => 'Kandal Greater Capital Belt',       'provs' => ['Kandal'],     'cities' => ['Krong Ta Khmau', 'Kien Svay', 'Ang Snuol']],
-            ['id' => 3,  'name' => 'Siem Reap Tourism & Business Zone', 'provs' => ['Siem Reap'],  'cities' => ['Krong Siem Reap', 'Prasat Bakong']],
-            ['id' => 4,  'name' => 'Battambang Northwestern Trade Zone', 'provs' => ['Battambang'], 'cities' => ['Krong Battambang', 'Moung Ruessei']],
-            ['id' => 5,  'name' => 'Sihanoukville Deep Sea Port Hub',   'provs' => ['Sihanoukville (Preah Sihanouk)'], 'cities' => ['Krong Preah Sihanouk', 'Preah Sihanouk Port']],
-            ['id' => 6,  'name' => 'Kampong Cham & Mekong Basin',       'provs' => ['Kampong Cham', 'Tbong Khmum'], 'cities' => ['Krong Kampong Cham', 'Krong Suong']],
-            ['id' => 7,  'name' => 'Kampot & Kep Southern Coastal Corridor','provs' => ['Kampot', 'Kep'], 'cities' => ['Krong Kampot', 'Krong Kep']],
-            ['id' => 8,  'name' => 'Banteay Meanchey & Poipet Gateway', 'provs' => ['Banteay Meanchey'], 'cities' => ['Krong Poipet', 'Krong Serei Saophoan']],
-            ['id' => 9,  'name' => 'Svay Rieng & Bavet SEZ Border Hub', 'provs' => ['Svay Rieng'], 'cities' => ['Krong Bavet', 'Krong Svay Rieng']],
-            ['id' => 10, 'name' => 'Northeastern Eco & Mining Zone',     'provs' => ['Ratanakiri', 'Mondulkiri', 'Kratie', 'Stung Treng'], 'cities' => ['Krong Banlung', 'Krong Senmonorom', 'Krong Kratie', 'Krong Stung Treng']],
+            ['id' => 1,  'code' => 'ZONE_PP_METRO',   'name' => 'Phnom Penh Metropolitan Area',      'provs' => ['Phnom Penh'], 'cities' => ['Khan Sen Sok', 'Khan Tuol Kouk', 'Khan Daun Penh', 'Khan Chamkarmon', 'Khan Boeng Keng Kang']],
+            ['id' => 2,  'code' => 'ZONE_KDL_BELT',   'name' => 'Kandal Greater Capital Belt',       'provs' => ['Kandal'],     'cities' => ['Krong Ta Khmau', 'Kien Svay', 'Ang Snuol']],
+            ['id' => 3,  'code' => 'ZONE_SRP_TOURISM','name' => 'Siem Reap Tourism & Business Zone', 'provs' => ['Siem Reap'],  'cities' => ['Krong Siem Reap', 'Prasat Bakong']],
+            ['id' => 4,  'code' => 'ZONE_BTB_TRADE',  'name' => 'Battambang Northwestern Trade Zone', 'provs' => ['Battambang'], 'cities' => ['Krong Battambang', 'Moung Ruessei']],
+            ['id' => 5,  'code' => 'ZONE_SHV_PORT',   'name' => 'Sihanoukville Deep Sea Port Hub',   'provs' => ['Sihanoukville (Preah Sihanouk)'], 'cities' => ['Krong Preah Sihanouk', 'Preah Sihanouk Port']],
+            ['id' => 6,  'code' => 'ZONE_KPC_MEKONG', 'name' => 'Kampong Cham & Mekong Basin',       'provs' => ['Kampong Cham', 'Tbong Khmum'], 'cities' => ['Krong Kampong Cham', 'Krong Suong']],
+            ['id' => 7,  'code' => 'ZONE_KPT_COASTAL','name' => 'Kampot & Kep Southern Coastal Corridor','provs' => ['Kampot', 'Kep'], 'cities' => ['Krong Kampot', 'Krong Kep']],
+            ['id' => 8,  'code' => 'ZONE_BMC_POIPET', 'name' => 'Banteay Meanchey & Poipet Gateway', 'provs' => ['Banteay Meanchey'], 'cities' => ['Krong Poipet', 'Krong Serei Saophoan']],
+            ['id' => 9,  'code' => 'ZONE_SVR_BAVET',  'name' => 'Svay Rieng & Bavet SEZ Border Hub', 'provs' => ['Svay Rieng'], 'cities' => ['Krong Bavet', 'Krong Svay Rieng']],
+            ['id' => 10, 'code' => 'ZONE_NE_MINING',  'name' => 'Northeastern Eco & Mining Zone',     'provs' => ['Ratanakiri', 'Mondulkiri', 'Kratie', 'Stung Treng'], 'cities' => ['Krong Banlung', 'Krong Senmonorom', 'Krong Kratie', 'Krong Stung Treng']],
         ];
 
         DB::table('shipping_zones')->truncate();
@@ -103,9 +103,11 @@ class SaleSeeder extends Seeder
                 'id'         => $z['id'],
                 'company_id' => $companyId,
                 'name'       => $z['name'],
+                'code'       => $z['code'],
                 'countries'  => json_encode(['Cambodia']),
                 'provinces'  => json_encode($z['provs']),
                 'cities'     => json_encode($z['cities']),
+                'is_active'  => true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];

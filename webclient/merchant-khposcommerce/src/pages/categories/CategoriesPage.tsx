@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Modal as EnterpriseModal, ModalFooter, ModalHeader, EmptyState, ResetButton } from '@/components/common'
 import { 
-  Plus, X, Folder, FolderTree, ToggleLeft, ToggleRight, Loader2, Edit2, 
+  Plus, X, Folder, FolderTree, ToggleLeft, ToggleRight, Loader2, Pencil, 
   ChevronUp, ChevronDown, ChevronRight, Download, Upload, Trash, 
   AlertCircle, CheckCircle2, Image as ImageIcon, Settings, Package, Eye,
   Smartphone, Laptop, Monitor, Watch, Keyboard, Headphones, Camera, Zap, 
@@ -91,7 +91,7 @@ const getCategoryVisuals = (name: string) => {
 }
 
 const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, triggerAdd }) => {
-  const { t } = useTranslation(['products', 'common'])
+  const { t } = useTranslation(['products', 'common', 'nav', 'buttons', 'tables', 'toast', 'pageContent', 'errors'])
   const navigate = useNavigate()
   const qc = useQueryClient()
   const toast = useToast()
@@ -479,17 +479,21 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
 
               {/* Category Image Avatar */}
               <div className="relative w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-border/80 overflow-hidden shrink-0 shadow-2xs group-hover:border-primary/50 group-hover:shadow-md transition-all duration-300 p-1 flex items-center justify-center">
-                <img
-                  src={getAbsoluteImageUrl(node.image) || DEFAULT_CATEGORY_IMAGE}
-                  alt={node.name}
-                  className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-115"
-                  onError={(e) => {
-                    const target = e.currentTarget
-                    if (!target.src.endsWith(DEFAULT_CATEGORY_IMAGE)) {
-                      target.src = DEFAULT_CATEGORY_IMAGE
-                    }
-                  }}
-                />
+                {node.image ? (
+                  <img
+                    src={getAbsoluteImageUrl(node.image)}
+                    alt={node.name}
+                    className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-115"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                      const fallback = e.currentTarget.parentElement?.querySelector('.category-fallback-icon')
+                      if (fallback) (fallback as HTMLElement).style.display = 'flex'
+                    }}
+                  />
+                ) : null}
+                <div className={`category-fallback-icon w-full h-full rounded-xl flex items-center justify-center text-muted-foreground/60 bg-muted/40 ${node.image ? 'hidden' : 'flex'}`}>
+                  <Folder size={18} className="stroke-[1.8] text-primary/70" />
+                </div>
               </div>
 
               {/* Category Name */}
@@ -574,6 +578,8 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
         {/* Actions */}
         <td className="py-3.5 pr-4 text-right">
           <TableActionMenu
+            variant="inline"
+            buttonSize="sm"
             onEdit={canUpdateCategory ? () => openEditModal(node) : undefined}
             onDelete={canDeleteCategory ? () => setDeleteTarget(node) : undefined}
           />
@@ -943,17 +949,14 @@ const CategoriesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
                 {imagePreview ? (
                   <Image
                     src={imagePreview}
-                    alt="Preview"
+                    alt={t('preview', 'មើលជាមុន')}
                     className="w-full h-full object-contain"
                     rootClassName="w-full h-full flex items-center justify-center cursor-pointer"
-                    fallback={DEFAULT_CATEGORY_IMAGE}
                   />
                 ) : (
-                  <img
-                    src={DEFAULT_CATEGORY_IMAGE}
-                    alt="Default Category"
-                    className="w-full h-full object-contain opacity-70"
-                  />
+                  <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground/35 bg-muted/20 rounded-xl">
+                    <ImageIcon size={22} className="stroke-[1.5]" />
+                  </div>
                 )}
               </div>
 

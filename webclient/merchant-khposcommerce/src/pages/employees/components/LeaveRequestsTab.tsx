@@ -12,7 +12,7 @@ import {
   AlertCircle,
   FileText,
   Building2,
-  Edit2,
+  Pencil,
   Eye,
   X,
   Check,

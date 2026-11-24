@@ -6,7 +6,7 @@ import {
   ShieldCheck, AlertTriangle, UserCheck, CheckCircle2,
   Clock, Globe, Monitor, Copy, Check, X, ShieldAlert,
   Calendar, Layers, Database, ArrowUpRight, FileCode,
-  LogIn, LogOut, Plus, Edit3, Shield, Info, ArrowRight, User
+  LogIn, LogOut, Plus, Pencil, Shield, Info, ArrowRight, User
 } from 'lucide-react'
 import { useToast } from '@/hooks/useToast'
 import { useServerPagination } from '@/hooks/useServerPagination'
@@ -69,7 +69,7 @@ const getEventBadge = (event?: string | null, description?: string) => {
   if (evt === 'updated' || desc.includes('update') || desc.includes('edit') || desc.includes('modify')) {
     return {
       label: 'Updated',
-      icon: Edit3,
+      icon: Pencil,
       color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
       dotColor: 'bg-blue-500',
     }
@@ -204,7 +204,7 @@ const DetailDrawer: React.FC<DetailDrawerProps> = ({ log, onClose }) => {
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Edit3 size={14} />
+              <Pencil size={14} />
               {t('activityLogs.detail.changes', 'Attribute Changes')}
             </button>
           )}

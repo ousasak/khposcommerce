@@ -5,8 +5,8 @@ import {
   Clock,
   XCircle,
   Printer,
-  Edit,
-  ExternalLink,
+  Pencil,
+ExternalLink,
   Copy,
   Check,
   Eye,
@@ -18,7 +18,13 @@ import { formatCurrency } from '@/utils/formatters'
 import { getStorageFileUrl } from '@/utils/image'
 import { useToast } from '@/hooks/useToast'
 import { Image } from '@/components/ui/image'
-import { DetailDrawer, DetailDrawerHeader, DetailDrawerBody, DetailDrawerFooter, DetailDrawerCard, DetailDrawerRow, ActionButton } from '@/components/common'
+import {
+  EnterpriseModal,
+  ModalHeader,
+  DetailDrawerCard,
+  DetailDrawerRow,
+  ActionButton,
+} from '@/components/common'
 
 export interface ExpensesSpendingDetailModalProps {
   expense: any | null
@@ -134,32 +140,94 @@ export const ExpensesSpendingDetailModal: React.FC<ExpensesSpendingDetailModalPr
 
   return (
     <>
-      <DetailDrawer
+      <EnterpriseModal
         isOpen={isOpen && !!expense}
         onClose={onClose}
-        size="xl"
-      >
-        {/* Global Header */}
-        <DetailDrawerHeader
-          icon={<Receipt size={20} />}
-          iconVariant="rose"
-          title={t('finance.expense_details', 'Expense Voucher Details')}
-          subtitle={t('finance.recorded_financial_outlay', 'Recorded financial operational outlay')}
-          badge={getStatusBadge()}
-          actions={
-            <button
-              onClick={handlePrint}
-              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              title={t('finance.print_voucher', 'Print Voucher')}
-            >
-              <Printer size={17} />
-            </button>
-          }
-          onClose={onClose}
-        />
+        size="3xl"
+        header={
+          <ModalHeader
+            icon={<Receipt size={20} />}
+            iconVariant="rose"
+            title={t('finance.expense_details', 'Expense Voucher Details')}
+            subtitle={t('finance.recorded_financial_outlay', 'Recorded financial operational outlay')}
+            badge={getStatusBadge()}
+            actions={
+              <button
+                onClick={handlePrint}
+                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                title={t('finance.print_voucher', 'Print Voucher')}
+              >
+                <Printer size={17} />
+              </button>
+            }
+            onClose={onClose}
+          />
+        }
+        footer={
+          <div className="flex items-center justify-between p-4 border-t border-border/80 bg-muted/20 w-full">
+            <div>
+              <ActionButton
+                icon={<Printer size={14} />}
+                variant="secondary"
+                onClick={handlePrint}
+              >
+                {t('finance.print_voucher', 'Voucher')}
+              </ActionButton>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-semibold rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                {t('common.close', 'Close')}
+              </button>
 
-        {/* Global Body */}
-        <DetailDrawerBody>
+              {status === 'pending' && onReject && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose()
+                    onReject(expense.id)
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-colors cursor-pointer"
+                >
+                  <XCircle size={14} />
+                  <span>{t('finance.reject_btn', 'Reject')}</span>
+                </button>
+              )}
+
+              {status === 'pending' && onApprove && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose()
+                    onApprove(expense.id)
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition-all cursor-pointer shadow-xs"
+                >
+                  <CheckCircle2 size={14} />
+                  <span>{t('finance.approve_btn', 'Approve')}</span>
+                </button>
+              )}
+
+              {onEdit && (
+                <ActionButton
+                  icon={<Pencil size={14} />}
+                  variant="primary"
+                  onClick={() => {
+                    onClose()
+                    onEdit(expense)
+                  }}
+                >
+                  {t('finance.edit_expense_btn', 'Edit Voucher')}
+                </ActionButton>
+              )}
+            </div>
+          </div>
+        }
+      >
+        <div className="p-5 sm:p-6 space-y-5">
           {/* Spotlight Amount Card */}
           <div className="bg-gradient-to-br from-rose-500/[0.07] via-card to-amber-500/[0.04] border border-rose-500/20 rounded-2xl p-5 shadow-xs relative overflow-hidden">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-border/50">
@@ -317,67 +385,8 @@ export const ExpensesSpendingDetailModal: React.FC<ExpensesSpendingDetailModalPr
               {referenceNo}
             </div>
           </div>
-        </DetailDrawerBody>
-
-        {/* Global Footer */}
-        <DetailDrawerFooter
-          onClose={onClose}
-          closeLabel={t('common.close', 'Close')}
-          leftActions={
-            <ActionButton
-              icon={<Printer size={14} />}
-              variant="secondary"
-              onClick={handlePrint}
-            >
-              {t('finance.print_voucher', 'Voucher')}
-            </ActionButton>
-          }
-          rightActions={
-            <>
-              {status === 'pending' && onReject && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose()
-                    onReject(expense.id)
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-colors cursor-pointer"
-                >
-                  <XCircle size={14} />
-                  <span>{t('finance.reject_btn', 'Reject')}</span>
-                </button>
-              )}
-
-              {status === 'pending' && onApprove && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose()
-                    onApprove(expense.id)
-                  }}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition-all cursor-pointer shadow-xs"
-                >
-                  <CheckCircle2 size={14} />
-                  <span>{t('finance.approve_btn', 'Approve')}</span>
-                </button>
-              )}
-
-              {onEdit && (
-                <ActionButton
-                  icon={<Edit size={14} />}
-                  variant="primary"
-                  onClick={() => {
-                    onClose()
-                    onEdit(expense)
-                  }}
-                >
-                  {t('finance.edit_expense_btn', 'Edit Voucher')}
-                </ActionButton>
-              )}
-            </>
-          }
-        />
-      </DetailDrawer>
+        </div>
+      </EnterpriseModal>
 
       {/* Lightbox / Fullscreen Modal */}
       {lightboxOpen && (

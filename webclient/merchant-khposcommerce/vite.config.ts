@@ -15,7 +15,8 @@ export default defineConfig(() => ({
     dedupe: ['react', 'react-dom'],
   },
   server: {
-    port: 5174,
+    port: 5171,
+    strictPort: true,
     host: '0.0.0.0',
     cors: true,
     proxy: {

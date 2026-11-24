@@ -1,25 +1,11 @@
-export interface User {
-  id: number
-  name: string
-  email: string
-  phone?: string
-  avatar?: string
-  gender?: string
-  address?: string
-  city?: string
-  province?: string
-  country?: string
-  is_active: boolean
-  status?: 'active' | 'inactive' | 'blocked' | 'suspended'
-  roles?: { name: string }[]
-  permissions?: string[]
-  created_at?: string
-  last_login?: string
-  is_verified?: boolean
-  two_factor?: boolean
-}
+/**
+ * Users Page Domain Types
+ * Re-exports canonical User contracts from global types suite with local UI helpers.
+ */
 
 import { getAbsoluteImageUrl } from '@/utils/image'
+
+export * from '@/types/user'
 
 export const getAvatarUrl = (avatar?: string | null): string | null => {
   if (!avatar) return null

@@ -4,7 +4,7 @@ import {
   Trash, Loader2, Plus, Minus, ShoppingCart
 } from 'lucide-react'
 import { FormHeader, FormFooter, FieldLabel, FieldError, getFieldClass, EnterpriseDatePicker } from '@/components/common'
-import { formatCurrency, getDualValues } from '../utils/purchaseCurrency'
+import { formatCurrency, getDualValues } from '@/utils/purchaseCurrency'
 
 interface PurchaseFormSectionProps {
   editPurchaseId: number | null

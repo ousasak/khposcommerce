@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Search, Eye, RefreshCw, X, ShoppingBag, CheckCircle, Trash2, Loader2,
   Printer, Download, DollarSign, Calendar, Landmark, Warehouse as WarehouseIcon,
-  Tag, Percent, PlusCircle, ArrowLeft, Trash, Save, Edit, RefreshCw as ResetIcon,
+  Tag, Percent, PlusCircle, ArrowLeft, Trash, Save, RefreshCw as ResetIcon,
   ChevronUp, ChevronDown, Wallet, FileCheck, Truck, ShoppingCart,
   Settings, Filter, AlertCircle, ShieldAlert, Sliders,
-  EditIcon, Edit2, Copy, FileSpreadsheet, RotateCcw, PackageCheck, Ban, ExternalLink
+  EditIcon, Pencil, Copy, FileSpreadsheet, RotateCcw, PackageCheck, Ban, ExternalLink
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
@@ -34,7 +34,7 @@ import { downloadCsv, getDateRangeBounds } from '@/utils/export'
 
 // Modular Components & Helpers
 import { STATUS_BADGE, PAYMENT_BADGE, getDeliveryStatusLabel, getPaymentStatusLabel, type Purchase, type PurchaseItem } from './types/purchase.types'
-import { formatCurrency, getDualValues, getDetailDualValues, formatListDualCurrency } from './utils/purchaseCurrency'
+import { formatCurrency, getDualValues, getDetailDualValues, formatListDualCurrency } from '@/utils/purchaseCurrency'
 import { PurchasesStatsCards } from './components/PurchasesStatsCards'
 import { PurchasesFilterDrawer } from './components/PurchasesFilterDrawer'
 import { PurchaseFormSection } from './components/PurchaseFormSection'
@@ -1102,17 +1102,17 @@ const PurchasesPage: React.FC = () => {
                           variant: 'default',
                         },
                         {
+                          label: t('common.edit', 'Edit Order'),
+                          icon: Pencil,
+                          onClick: () => switchToTab('edit', purchase),
+                          variant: 'edit',
+                          hidden: (!isDraft && !isOrdered) || !canEdit,
+                        },
+                        {
                           label: t('common.print', 'Print Voucher'),
                           icon: Printer,
                           onClick: () => handlePrintPurchase(purchase),
                           variant: 'default',
-                        },
-                        {
-                          label: t('common.edit', 'Edit Order'),
-                          icon: Edit2,
-                          onClick: () => switchToTab('edit', purchase),
-                          variant: 'default',
-                          hidden: (!isDraft && !isOrdered) || !canEdit,
                         },
                         {
                           label: t('purchases.receiveShipment', 'Receive Shipment (GRN)'),
@@ -1242,8 +1242,14 @@ const PurchasesPage: React.FC = () => {
                               </span>
                             </td>
                           )}
-                          <td className={`sticky right-0 z-10 ${isRowSelected ? 'bg-primary/10 dark:bg-primary/15' : 'bg-card group-hover:bg-muted/40 dark:group-hover:bg-muted/20'} transition-colors border-l border-border py-3 px-4 text-center whitespace-nowrap min-w-[96px]`} onClick={(e) => e.stopPropagation()}>
-                            <TableActionMenu items={rowActionItems} />
+                          <td className={`sticky right-0 z-10 ${isRowSelected ? 'bg-primary/10 dark:bg-primary/15' : 'bg-card group-hover:bg-muted/40 dark:group-hover:bg-muted/20'} transition-colors border-l border-border py-3 px-4 text-center whitespace-nowrap min-w-[124px]`} onClick={(e) => e.stopPropagation()}>
+                            <TableActionMenu
+                              variant="hybrid"
+                              maxInline={2}
+                              buttonSize="sm"
+                              align="right"
+                              items={rowActionItems}
+                            />
                           </td>
                         </tr>
                       )

@@ -8,7 +8,7 @@ https://api.yourdomain.com/api/v1
 ```
 Local development URL:
 ```text
-http://localhost:8000/api/v1 (or http://localhost:8001/api/v1)
+http://localhost:8001/api/v1
 ```
 
 ---

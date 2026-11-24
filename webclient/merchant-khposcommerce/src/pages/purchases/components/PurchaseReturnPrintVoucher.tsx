@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Building2, Phone, Mail, MapPin, AlertTriangle, FileText, Warehouse, User, Truck, CreditCard } from 'lucide-react'
-import { formatCurrency } from '../utils/purchaseCurrency'
+import { formatCurrency } from '@/utils/purchaseCurrency'
 import type { PurchaseReturn } from '../types/purchaseReturn.types'
 import { GlobalPrintHeader, GlobalPrintFooter } from '@/components/shared/GlobalPrint'
 

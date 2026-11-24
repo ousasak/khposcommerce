@@ -1,4 +1,4 @@
-import type { Purchase } from '../types/purchase.types'
+import type { Purchase } from '@/types'
 import { formatCurrency as formatUnifiedCurrency } from '@/utils/formatters'
 
 export const formatCurrency = (val: number | string, curr: string = 'USD'): string => {

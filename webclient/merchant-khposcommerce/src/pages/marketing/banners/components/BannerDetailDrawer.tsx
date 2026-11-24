@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   Image as ImageIcon,
-  Edit2,
+  Pencil,
   Copy,
   Eye,
   Store,
@@ -112,12 +112,11 @@ export const BannerDetailDrawer: React.FC<BannerDetailDrawerProps> = ({
   }
 
   return (
-    <>
-      <DetailDrawer
-        isOpen={Boolean(banner)}
-        onClose={onClose}
-        size="2xl"
-      >
+    <DetailDrawer
+      isOpen={Boolean(banner)}
+      onClose={onClose}
+      size="2xl"
+    >
         {/* ─── 1. GLOBAL DRAWER HEADER ─── */}
         <DetailDrawerHeader
           title={t('marketing.bannerDetails', 'ព័ត៌មានលម្អិតផ្ទាំងបដា')}
@@ -383,7 +382,7 @@ export const BannerDetailDrawer: React.FC<BannerDetailDrawerProps> = ({
           rightActions={
             <ActionButton
               variant="primary"
-              icon={<Edit2 size={15} />}
+              icon={<Pencil size={15} />}
               label={t('common.edit', 'កែប្រែ')}
               onClick={() => {
                 onClose()
@@ -392,19 +391,18 @@ export const BannerDetailDrawer: React.FC<BannerDetailDrawerProps> = ({
             />
           }
         />
-      </DetailDrawer>
 
-      {/* ─── 6. LIGHTBOX MODAL FOR FULLSCREEN PREVIEW ─── */}
-      {imagePreviewVisible && (
-        <ImageLightboxModal
-          isOpen={imagePreviewVisible}
-          initialUrl={bannerImageSrc}
-          alt={banner.title || 'Banner Preview'}
-          onClose={() => setImagePreviewVisible(false)}
-        />
-      )}
-    </>
-  )
+        {/* ─── 6. LIGHTBOX MODAL FOR FULLSCREEN PREVIEW ─── */}
+        {imagePreviewVisible && (
+          <ImageLightboxModal
+            isOpen={imagePreviewVisible}
+            initialUrl={bannerImageSrc}
+            alt={banner.title || 'Banner Preview'}
+            onClose={() => setImagePreviewVisible(false)}
+          />
+        )}
+      </DetailDrawer>
+    )
 }
 
 export default BannerDetailDrawer

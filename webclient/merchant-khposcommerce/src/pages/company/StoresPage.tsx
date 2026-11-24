@@ -7,7 +7,7 @@ import LoadingSkeleton from '@/components/shared/LoadingSkeleton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, Search, Edit2, Trash2, RefreshCw, X, Store,
+  Plus, Search, Pencil, Trash2, RefreshCw, X, Store,
   ToggleLeft, ToggleRight, Eye, Mail, Phone, MapPin, Globe, Loader2, BookOpen
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -619,93 +619,94 @@ const StoresPage = React.forwardRef<CompanyTabHandle, { isTab?: boolean }>(({ is
         </form>
       </EnterpriseModal>
 
-      {/* Detail Drawer */}
-      <AnimatePresence>
-        {viewStore && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end">
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="bg-card w-full max-w-md border-l border-border h-full flex flex-col shadow-2xl"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <h3 className="font-semibold text-lg text-foreground">{t('company.storeDetail', 'Store Details')}</h3>
-                <CloseButton onClose={() => setViewStore(null)} size="md" color="rose" />
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.basicInfo', 'Basic Information')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblCode', 'Code:')}</span>
-                      <span className="font-mono font-medium">{viewStore.code}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblName', 'Name:')}</span>
-                      <span className="font-medium">{viewStore.name}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblSlug', 'Slug:')}</span>
-                      <span className="font-mono font-medium text-xs">{viewStore.slug}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblType', 'Type:')}</span>
-                      <span className="font-medium capitalize">{viewStore.type}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">{t('company.lblStatus', 'Status:')}</span>
-                      <StatusBadge status={viewStore.is_active} />
-                    </div>
-                  </div>
+      {/* Detail Modal */}
+      {viewStore && (
+        <EnterpriseModal
+          isOpen={!!viewStore}
+          onClose={() => setViewStore(null)}
+          size="lg"
+          title={t('company.storeDetail', 'Store Details')}
+          subtitle={viewStore.name}
+          icon={<Store size={20} />}
+          iconVariant="blue"
+          badge={<StatusBadge status={viewStore.is_active} />}
+          footer={
+            <ModalFooter
+              onCancel={() => setViewStore(null)}
+              cancelLabel={t('common.close', 'Close')}
+              showSubmit={false}
+            />
+          }
+        >
+          <div className="p-5 sm:p-6 space-y-5">
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.basicInfo', 'Basic Information')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblCode', 'Code:')}</span>
+                  <span className="font-mono font-medium">{viewStore.code}</span>
                 </div>
-
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.contactDetails', 'Contact Details')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblEmail', 'Email:')}</span>
-                      <span className="font-medium">{viewStore.email ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblPhone', 'Phone:')}</span>
-                      <span className="font-medium">{viewStore.phone ?? '—'}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('company.lblDomain', 'Custom Domain:')}</span>
-                      <span className="font-mono text-xs">{viewStore.domain ?? '—'}</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblName', 'Name:')}</span>
+                  <span className="font-medium">{viewStore.name}</span>
                 </div>
-
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.locationAddress', 'Location & Coordinates')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground flex items-start gap-1"><MapPin size={14} className="mt-0.5" /> {t('company.lblAddress', 'Address:')}</span>
-                      <span className="font-medium text-right max-w-[200px] break-words">{viewStore.address ?? '—'}</span>
-                    </div>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblSlug', 'Slug:')}</span>
+                  <span className="font-mono font-medium text-xs">{viewStore.slug}</span>
                 </div>
-
-                <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.descriptionNotes', 'Description & Notes')}</h4>
-                  <div className="bg-muted/30 p-3 rounded-lg border border-border text-sm text-muted-foreground leading-relaxed">
-                    {viewStore.description ? (
-                      <div className="flex gap-2">
-                        <BookOpen size={16} className="mt-0.5 text-muted-foreground flex-shrink-0" />
-                        <span>{viewStore.description}</span>
-                      </div>
-                    ) : t('company.noDescription', 'No description provided.')}
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblType', 'Type:')}</span>
+                  <span className="font-medium capitalize">{viewStore.type}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">{t('company.lblStatus', 'Status:')}</span>
+                  <StatusBadge status={viewStore.is_active} />
                 </div>
               </div>
-            </motion.div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.contactDetails', 'Contact Details')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblEmail', 'Email:')}</span>
+                  <span className="font-medium">{viewStore.email ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblPhone', 'Phone:')}</span>
+                  <span className="font-medium">{viewStore.phone ?? '—'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{t('company.lblDomain', 'Custom Domain:')}</span>
+                  <span className="font-mono text-xs">{viewStore.domain ?? '—'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.locationAddress', 'Location & Coordinates')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground flex items-start gap-1"><MapPin size={14} className="mt-0.5" /> {t('company.lblAddress', 'Address:')}</span>
+                  <span className="font-medium text-right max-w-[200px] break-words">{viewStore.address ?? '—'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{t('company.descriptionNotes', 'Description & Notes')}</h4>
+              <div className="bg-muted/30 p-3.5 rounded-2xl border border-border text-sm text-muted-foreground leading-relaxed">
+                {viewStore.description ? (
+                  <div className="flex gap-2">
+                    <BookOpen size={16} className="mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <span>{viewStore.description}</span>
+                  </div>
+                ) : t('company.noDescription', 'No description provided.')}
+              </div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </EnterpriseModal>
+      )}
 
       {/* Global Delete Confirmation Dialog */}
       <DeleteConfirmDialog

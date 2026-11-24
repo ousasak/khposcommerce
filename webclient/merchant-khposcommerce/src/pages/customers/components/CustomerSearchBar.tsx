@@ -12,7 +12,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { ColumnSettingsPopover, type ColumnOption } from '@/components/shared/ColumnSettingsPopover'
 import { sound } from '@/utils/sound'
-import { getCustomerGroupDisplayName } from '../utils/customerGroupFormatters'
+import { getCustomerGroupDisplayName } from '@/utils/customerGroupFormatters'
 import { useThemeStore } from '@/stores/themeStore'
 
 export interface CustomerSearchBarProps {

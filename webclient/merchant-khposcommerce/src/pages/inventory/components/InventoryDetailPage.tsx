@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { inventoryService } from '@/services/inventoryService'
 import { useTranslation } from 'react-i18next'
-import { LoadingSpinner } from '@/components/common'
+import { LoadingSpinner, CloseButton, CancelButton } from '@/components/common'
 import { formatShortDate } from '@/utils/formatters'
 import { ProductThumbnail } from '@/pages/products/components/ProductThumbnail'
 import { getAbsoluteImageUrl } from '@/utils/image'
@@ -97,25 +97,22 @@ export const InventoryDetailPage: React.FC<InventoryDetailPageProps> = ({ itemId
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-card">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Package size={18} />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-foreground">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground">
                 {t('inventory.item_card', 'Item Card')}
               </h2>
-              <p className="text-[11px] text-muted-foreground font-mono">
-                {t('common.id', 'ID')}: #{effectiveId || '—'}
-              </p>
+              <span className="font-mono text-xs font-bold text-primary px-2.5 py-0.5 rounded-md bg-primary/10 border border-primary/20">
+                #{effectiveId || '—'}
+              </span>
             </div>
+            {detail?.product?.name && (
+              <p className="text-xs text-muted-foreground truncate max-w-sm">
+                {detail.product.name}
+              </p>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted transition-colors cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          <CloseButton onClose={onClose} size="md" />
         </div>
 
         {isLoading ? (
@@ -146,18 +143,16 @@ export const InventoryDetailPage: React.FC<InventoryDetailPageProps> = ({ itemId
             <div className="flex border-b border-border bg-muted/20 px-6 gap-6">
               <button
                 onClick={() => setActiveSubTab('info')}
-                className={`flex items-center gap-1.5 py-3 border-b-2 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer
+                className={`py-3 border-b-2 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer
                            ${activeSubTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
               >
-                <Info size={14} />
                 {t('products.general', 'General Info')}
               </button>
               <button
                 onClick={() => setActiveSubTab('movements')}
-                className={`flex items-center gap-1.5 py-3 border-b-2 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer
+                className={`py-3 border-b-2 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer
                            ${activeSubTab === 'movements' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
               >
-                <Activity size={14} />
                 {t('inventory.movements', 'Stock History')}
               </button>
             </div>
@@ -339,13 +334,7 @@ export const InventoryDetailPage: React.FC<InventoryDetailPageProps> = ({ itemId
 
             {/* Footer */}
             <div className="p-4 border-t border-border bg-muted/20 flex items-center justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                className="py-2 px-4 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-              >
-                {t('buttons.close', 'Close')}
-              </button>
+              <CancelButton onClick={onClose} label={t('buttons.close', 'Close')} />
             </div>
           </>
         )}

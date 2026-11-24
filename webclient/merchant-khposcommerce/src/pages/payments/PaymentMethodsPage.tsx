@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Edit2, Trash2, RefreshCw, X, CreditCard, Loader2, DollarSign } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, RefreshCw, X, CreditCard, Loader2, DollarSign } from 'lucide-react'
 import { financeService } from '@/services/financeService'
 import { useToast } from '@/hooks/useToast'
 import Pagination from '@/components/shared/Pagination'

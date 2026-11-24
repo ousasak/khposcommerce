@@ -5,8 +5,8 @@ This configuration consolidates all KHPosCommerce micro-frontends and Laravel ba
 ## Port Mapping
 
 - **Port 8001**: Laravel 12 API (`/api/*`)
-- **Port 5174**: React 19 Admin & Web POS (`/admin/*`)
-- **Port 5173**: React 19 Customer Storefront (`/*`)
+- **Port 5171**: React 19 Admin & Web POS (`/admin/*`)
+- **Port 5172**: React 19 Customer Storefront (`/*`)
 
 ## Usage with Docker or Host Nginx
 

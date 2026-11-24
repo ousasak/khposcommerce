@@ -70,5 +70,7 @@
   "backToHome": "ត្រឡប់ទៅទំព័រដើម",
   "technicalDetails": "ព័ត៌មានលម្អិតបច្ចេកទេស",
   "showErrorDetails": "បង្ហាញព័ត៌មានលម្អិតនៃកំហុស",
-  "hideErrorDetails": "លាក់ព័ត៌មានលម្អិត"
+  "hideErrorDetails": "លាក់ព័ត៌មានលម្អិត",
+  "permissionDenied": "អ្នកមិនមានសិទ្ធិអនុញ្ញាតសម្រាប់សកម្មភាពនេះទេ",
+  "errors.permissionDenied": "អ្នកមិនមានសិទ្ធិអនុញ្ញាតសម្រាប់សកម្មភាពនេះទេ"
 }

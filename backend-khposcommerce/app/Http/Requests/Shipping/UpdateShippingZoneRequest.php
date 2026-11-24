@@ -15,10 +15,12 @@ class UpdateShippingZoneRequest extends FormRequest
     {
         return [
             'company_id' => ['integer', 'exists:companies,id'],
-            'name' => ['string'],
-            'countries' => ['string'],
-            'provinces' => ['string'],
-            'cities' => ['string']
+            'name'       => ['sometimes', 'string', 'max:255'],
+            'code'       => ['nullable', 'string', 'max:50'],
+            'countries'  => ['nullable'],
+            'provinces'  => ['nullable'],
+            'cities'     => ['nullable'],
+            'is_active'  => ['nullable', 'boolean'],
         ];
     }
 }

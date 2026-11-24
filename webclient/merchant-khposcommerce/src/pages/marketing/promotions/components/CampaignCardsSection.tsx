@@ -7,8 +7,8 @@ import {
   Percent,
   MapPin,
   Calendar,
-  Edit,
-  Pause,
+  Pencil,
+Pause,
   Play,
   Trash2,
   ArrowRight,
@@ -297,7 +297,7 @@ export const CampaignCardsSection: React.FC<CampaignCardsSectionProps> = ({
                     className="w-8 h-8 rounded-lg border border-border/80 bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all hover:scale-105 active:scale-95 flex items-center justify-center shadow-2xs"
                     title={t('buttons.edit', 'Edit')}
                   >
-                    <Edit size={13} />
+                    <Pencil size={13} />
                   </button>
                   <button
                     type="button"

@@ -295,7 +295,7 @@ export const FlexibleTierPricingSection: React.FC<FlexibleTierPricingSectionProp
               className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-purple-500/10 hover:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/20 transition-all cursor-pointer flex items-center gap-1"
             >
               <PackageCheck size={12} />
-              <span>Wholesale 5+ (-10%)</span>
+              <span>{t('products.presetWholesale', 'បោះដុំ 5+ (-10%)')}</span>
             </button>
             <button
               type="button"
@@ -303,7 +303,7 @@ export const FlexibleTierPricingSection: React.FC<FlexibleTierPricingSectionProp
               className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 transition-all cursor-pointer flex items-center gap-1"
             >
               <Building2 size={12} />
-              <span>Distributor 20+ (-15%)</span>
+              <span>{t('products.presetDistributor', 'តំណាងចែកចាយ 20+ (-15%)')}</span>
             </button>
             <button
               type="button"
@@ -311,7 +311,7 @@ export const FlexibleTierPricingSection: React.FC<FlexibleTierPricingSectionProp
               className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/20 transition-all cursor-pointer flex items-center gap-1"
             >
               <Zap size={12} />
-              <span>Bulk 50+ (-25%)</span>
+              <span>{t('products.presetBulk', 'បរិមាណច្រើន 50+ (-25%)')}</span>
             </button>
           </div>
         </div>

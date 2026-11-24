@@ -10,7 +10,7 @@ import {
   Globe,
   Copy,
   Check,
-  Edit3,
+  Pencil,
   Eye,
   ExternalLink,
   Sparkles,
@@ -569,7 +569,7 @@ export const BlogDetailDrawer: React.FC<BlogDetailDrawerProps> = ({
             <ActionButton
               variant="primary"
               size="md"
-              icon={<Edit3 size={15} strokeWidth={2.5} />}
+              icon={<Pencil size={15} strokeWidth={2.5} />}
               label={t('cms.editArticle', 'កែសម្រួលអត្ថបទ')}
               onClick={handleEdit}
             />

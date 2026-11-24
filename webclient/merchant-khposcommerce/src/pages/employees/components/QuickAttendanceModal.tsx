@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/useToast'
 import { sound } from '@/utils/sound'
 import { focusFirstInvalidField } from '@/utils/formValidation'
 import { EmployeeAvatar } from './EmployeeAvatar'
-import { formatShiftName } from '../utils/shiftFormatters'
+import { formatShiftName } from '@/utils/shiftFormatters'
 import { EnterpriseModal, ModalFooter, EnterpriseDatePicker, EnterpriseTimePicker, FieldLabel, FieldError } from '@/components/common'
 
 interface QuickAttendanceModalProps {

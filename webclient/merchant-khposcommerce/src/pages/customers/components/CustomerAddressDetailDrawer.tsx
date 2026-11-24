@@ -4,7 +4,7 @@ import {
   Phone,
   Copy,
   Check,
-  Edit2,
+  Pencil,
   User,
   Building,
   Globe,
@@ -14,10 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { Image } from '@/components/ui/image'
 import { getCustomerAvatarUrl, DEFAULT_AVATAR_IMAGE } from '@/utils/image'
 import {
-  DetailDrawer,
-  DetailDrawerHeader,
-  DetailDrawerBody,
-  DetailDrawerFooter,
+  EnterpriseModal,
   ActionButton,
   type CustomerAddress,
 } from '@/components/common'
@@ -92,24 +89,41 @@ export const CustomerAddressDetailDrawer: React.FC<CustomerAddressDetailDrawerPr
     .join(', ')
 
   return (
-    <DetailDrawer
+    <EnterpriseModal
       isOpen={isOpen && !!address}
       onClose={onClose}
-      size="2xl"
+      size="xl"
+      title={t('customers.addressDetails', 'Address Details')}
+      subtitle={fullAddressString}
+      icon={<MapPin size={20} />}
+      iconVariant="blue"
+      badge={
+        <span className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-mono font-bold border border-primary/20">
+          ADDR-#{String(address.id).padStart(4, '0')}
+        </span>
+      }
+      footer={
+        <div className="flex items-center justify-between p-4 border-t border-border/80 bg-muted/20 w-full shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          >
+            {t('common.close', 'Close')}
+          </button>
+          <ActionButton
+            variant="primary"
+            icon={<Pencil size={15} />}
+            label={t('common.edit', 'Edit Address')}
+            onClick={() => {
+              onClose()
+              onEdit(address)
+            }}
+          />
+        </div>
+      }
     >
-      {/* ── 1. DRAWER TOP HEADER ── */}
-      <DetailDrawerHeader
-        title={t('customers.addressDetails', 'Address Details')}
-        subtitle={fullAddressString}
-        badge={
-          <span className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-mono font-bold border border-primary/20">
-            ADDR-#{String(address.id).padStart(4, '0')}
-          </span>
-        }
-        onClose={onClose}
-      />
-
-      {/* ── 2. HERO OVERVIEW CARD (MATCHING EMPLOYEE PROFILE BANNER) ── */}
+      <div className="p-5 sm:p-6 space-y-4">
       <div className="px-6 py-4 bg-muted/30 border-b border-border/80">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg shrink-0 shadow-xs">
@@ -155,7 +169,7 @@ export const CustomerAddressDetailDrawer: React.FC<CustomerAddressDetailDrawerPr
       </div>
 
       {/* ── 3. DRAWER BODY (GROUPED 2-COLUMN CARDS) ── */}
-      <DetailDrawerBody className="p-6 space-y-4">
+      <div className="space-y-4">
         {/* Recipient Information Card */}
         <div className="p-4 rounded-2xl bg-card border border-border/70 shadow-2xs space-y-3">
           <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
@@ -245,25 +259,11 @@ export const CustomerAddressDetailDrawer: React.FC<CustomerAddressDetailDrawerPr
             </div>
           </div>
         </div>
-      </DetailDrawerBody>
-
-      {/* ── 4. DRAWER FOOTER ACTIONS ── */}
-      <DetailDrawerFooter
-        onClose={onClose}
-        rightActions={
-          <ActionButton
-            variant="primary"
-            icon={<Edit2 size={15} />}
-            label={t('common.edit', 'Edit Address')}
-            onClick={() => {
-              onClose()
-              onEdit(address)
-            }}
-          />
-        }
-      />
-    </DetailDrawer>
+      </div>
+      </div>
+    </EnterpriseModal>
   )
 }
 
+export { CustomerAddressDetailDrawer as CustomerAddressDetailModal }
 export default CustomerAddressDetailDrawer

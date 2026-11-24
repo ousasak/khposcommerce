@@ -1326,5 +1326,9 @@
   "allTypes": "All Types",
   "mainHq": "Main HQ",
   "subBranch": "Sub Branch",
-  "searchCompanyPlaceholder": "Search company name, code, NPWP..."
+  "searchCompanyPlaceholder": "Search company name, code, NPWP...",
+  "selectAll": "Select All",
+  "deselectAll": "Deselect All",
+  "livePreview": "Live Preview",
+  "preview": "Preview"
 }

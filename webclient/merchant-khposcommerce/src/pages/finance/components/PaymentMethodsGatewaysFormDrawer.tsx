@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { Modal, ModalFooter, ToggleSwitch, FormField, getFieldClass } from '@/components/common'
 import type { PaymentMethodForm } from '../types/finance.types'
-import { PAYMENT_METHOD_PRESETS } from '../utils/paymentMethodHelpers'
+import { PAYMENT_METHOD_PRESETS } from '@/utils/paymentMethodHelpers'
 import { cn } from '@/lib/utils'
 
 export interface PaymentMethodsGatewaysFormDrawerProps {

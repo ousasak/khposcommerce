@@ -6,7 +6,7 @@ import {
   Sparkles,
   Ticket,
   Layers,
-  Edit2,
+  Pencil,
   Calendar,
   Store,
   Globe,
@@ -283,7 +283,7 @@ export const CouponDetailDrawer: React.FC<CouponDetailDrawerProps> = ({
         rightActions={
           <ActionButton
             variant="primary"
-            icon={<Edit2 size={15} />}
+            icon={<Pencil size={15} />}
             label={t('common.edit', 'Edit')}
             onClick={() => {
               onClose()

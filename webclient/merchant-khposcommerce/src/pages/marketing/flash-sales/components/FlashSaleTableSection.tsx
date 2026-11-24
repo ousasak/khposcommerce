@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-  Zap, Edit2, Trash2, Eye, Copy, Lock, Unlock, Store, Globe, Smartphone, Barcode, Flame, Boxes, Calendar
+  Zap, Pencil, Trash2, Eye, Copy, Lock, Unlock, Store, Globe, Smartphone, Barcode, Flame, Boxes, Calendar
 } from 'lucide-react'
 import TableWrapper from '@/components/shared/TableWrapper'
 import { StatusBadge } from '@/components/common'

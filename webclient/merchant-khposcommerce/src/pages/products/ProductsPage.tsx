@@ -25,7 +25,7 @@ import { QuickStockAdjustModal } from './components/QuickStockAdjustModal'
 import type { Product } from './types/productsPage.types'
 
 const ProductsPage: React.FC = () => {
-  const { t, i18n } = useTranslation(['products', 'common'])
+  const { t, i18n } = useTranslation(['products', 'common', 'nav', 'buttons', 'tables', 'toast', 'errors'])
   const navigate = useNavigate()
   const qc = useQueryClient()
   const toast = useToast()

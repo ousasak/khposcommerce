@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import CloseButton from './CloseButton'
 
 export type ModalHeaderIconVariant =
+  | 'primary'
   | 'emerald'
   | 'blue'
   | 'indigo'
@@ -37,6 +38,7 @@ export interface ModalHeaderProps {
 }
 
 const variantStyles: Record<ModalHeaderIconVariant, string> = {
+  primary: 'bg-primary/10 text-primary border-primary/20',
   emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
   blue: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
   indigo: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20',

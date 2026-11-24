@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Building2, Phone, Mail, MapPin, FileText, Warehouse } from 'lucide-react'
-import { formatCurrency, getDetailDualValues } from '../utils/purchaseCurrency'
+import { formatCurrency, getDetailDualValues } from '@/utils/purchaseCurrency'
 import { getDeliveryStatusLabel, getPaymentStatusLabel, type Purchase } from '../types/purchase.types'
 import {
   GlobalPrintContainer,

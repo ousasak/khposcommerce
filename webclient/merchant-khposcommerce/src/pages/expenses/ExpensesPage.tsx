@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, Search, Edit2, Trash2, RefreshCw, X,
+  Plus, Search, Pencil, Trash2, RefreshCw, X,
   DollarSign, Loader2,
 } from 'lucide-react'
 import { expenseService } from '@/services/expenseService'

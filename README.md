@@ -83,9 +83,9 @@ npm run dev:mobile
 ```
 
 > **Direct Access URLs:**
-> - **Admin Dashboard & Web POS**: [http://localhost:5174](http://localhost:5174)
-> - **Customer Storefront**: [http://localhost:5173](http://localhost:5173)
 > - **Laravel API Backend**: [http://localhost:8001](http://localhost:8001)
+> - **Admin Dashboard & Web POS**: [http://localhost:5171](http://localhost:5171)
+> - **Customer Storefront**: [http://localhost:5172](http://localhost:5172)
 
 ---
 

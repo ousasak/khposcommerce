@@ -6,8 +6,8 @@ import {
   Clock,
   LogOut,
   LogIn,
-  Edit,
-  Eye,
+  Pencil,
+Eye,
   Plus,
   X,
 } from 'lucide-react'

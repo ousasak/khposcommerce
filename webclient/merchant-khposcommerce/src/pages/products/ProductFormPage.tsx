@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Edit2, X, Check, Loader2, Image as ImageIcon, Upload, Eye,
+  Pencil, X, Check, Loader2, Image as ImageIcon, Upload, Eye,
   Package, DollarSign, Layers, Box, Globe, SlidersHorizontal,
   ArrowRight, ArrowLeft, Sparkles, LayoutGrid, CheckCircle2, ChevronRight
 } from 'lucide-react'
@@ -41,8 +41,8 @@ import { BLANK_FORM, type ProductForm, type CreateImagePreview, type CustomColor
 import {
   COLOR_MAP, normalizeColorKey, normalizeColorName,
   getDynamicColorMatchedImage, COLOR_MATCHED_IMAGES, getVariantColorHex
-} from './utils/colorResolver'
-import { SIZE_PRESET_MAP } from './utils/productPresets'
+} from '@/utils/colorResolver'
+import { SIZE_PRESET_MAP } from '@/utils/productPresets'
 
 // Re-export helpers for backwards compatibility
 export { normalizeColorKey, getDynamicColorMatchedImage, COLOR_MATCHED_IMAGES }
@@ -1011,7 +1011,7 @@ const ProductFormPage: React.FC = () => {
                     }}
                     className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-xs hover:bg-primary/90 flex items-center gap-1.5 cursor-pointer transition-colors"
                   >
-                    <Edit2 size={13} />
+                    <Pencil size={13} />
                     <span>{t('common.edit', 'Edit')}</span>
                   </button>
                 </div>

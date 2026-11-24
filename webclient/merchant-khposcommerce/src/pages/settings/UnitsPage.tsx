@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ModalHeader, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter, FormField, getFieldClass } from '@/components/common'
 import { 
-  Plus, Edit2, Trash2, X, Scale, ToggleLeft, ToggleRight, Loader2, 
+  Plus, Pencil, Trash2, X, Scale, ToggleLeft, ToggleRight, Loader2, 
   ChevronUp, ChevronDown, Download, Upload, Trash, RefreshCw, AlertCircle,
   Save, Sparkles
 } from 'lucide-react'
@@ -63,7 +63,7 @@ const POPULAR_UNIT_PRESETS: UnitPreset[] = [
 
 const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, triggerAdd }) => {
   const { language } = useThemeStore()
-  const { t, i18n } = useTranslation(['products', 'common'])
+  const { t, i18n } = useTranslation(['products', 'common', 'nav', 'buttons', 'tables', 'toast', 'errors'])
   const qc = useQueryClient()
   const toast = useToast()
   const { hasPermission } = usePermission()
@@ -546,6 +546,7 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
                     <td className="text-right pr-4">
                       <TableActionMenu
                         variant="inline"
+                        buttonSize="sm"
                         onEdit={canUpdateUnit ? () => openEditModal(unit) : undefined}
                         onDelete={canDeleteUnit ? () => setDeleteTarget(unit) : undefined}
                       />
@@ -743,7 +744,7 @@ const UnitsPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, 
             <label htmlFor="csv-unit-upload" className="cursor-pointer font-bold text-xs text-primary hover:underline block">
               {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to browse CSV / TXT file')}
             </label>
-            <p className="text-[11px] text-muted-foreground mt-1">UTF-8 CSV format (name, symbol, description)</p>
+            <p className="text-[11px] text-muted-foreground mt-1">{t('products.unitsCsvFormat', 'ទម្រង់ឯកសារ UTF-8 CSV (ឈ្មោះ, និមិត្តសញ្ញា, ការពិពណ៌នា)')}</p>
           </div>
         </form>
       </EnterpriseModal>

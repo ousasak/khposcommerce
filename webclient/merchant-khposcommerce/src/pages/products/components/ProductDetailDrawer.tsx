@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  X, Package, Star, Edit2, Barcode, Copy, Check, Warehouse, Layers, Tag,
+  X, Package, Star, Pencil, Barcode, Copy, Check, Warehouse, Layers, Tag,
   ShieldCheck, TrendingUp, Eye, DollarSign, Box,
   Smartphone, Laptop, Monitor, Watch, Keyboard,
   Headphones, Camera, Zap, Footprints, Shirt,
@@ -1071,7 +1071,7 @@ export const ProductDetailDrawer: React.FC<ProductDetailDrawerProps> = ({
               <ActionButton
                 onClick={() => { onClose(); onEdit(product as Product); }}
                 label={t('editProduct', 'Edit Product')}
-                icon={<Edit2 size={15} />}
+                icon={<Pencil size={15} />}
                 variant="primary"
               />
             </>

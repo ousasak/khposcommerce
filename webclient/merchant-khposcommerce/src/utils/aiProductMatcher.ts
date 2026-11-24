@@ -1,4 +1,4 @@
-import type { Product } from '../types/pos.types'
+import type { Product } from '@/types'
 
 export type SupportedLanguageCode = 'km-KH' | 'en-US'
 

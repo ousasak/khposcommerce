@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query'
 import {
   User,
-  Edit,
-  KeyRound,
+  Pencil,
+KeyRound,
   Check,
   X,
   Loader2,

@@ -20,7 +20,7 @@ import {
 import { orderReturnService } from '@/services/orderReturnService'
 import type { OrderReturn, ReturnStatus, ReturnFault, ConditionGrade, InventoryAction } from './types'
 import { useToast } from '@/hooks/useToast'
-import { Breadcrumb, RibbonStatsCard, RibbonStatsGrid, HeaderActionsGroup, AddButton, ExportButton, TableWrapper, TableEmptyState, EnterpriseModal, ModalFooter, TableActionMenu, FormField, ProductThumbnail } from '@/components/common'
+import { Breadcrumb, RibbonStatsCard, RibbonStatsGrid, HeaderActionsGroup, AddButton, ExportButton, TableWrapper, TableEmptyState, EnterpriseModal, ModalFooter, TableActionMenu, FormField, ProductThumbnail, RejectConfirmDialog } from '@/components/common'
 import { OrderReturnSearchBar } from './components/OrderReturnSearchBar'
 import { usePageTab } from '@/hooks/usePageTab'
 import Pagination from '@/components/shared/Pagination'
@@ -28,6 +28,7 @@ import { downloadCsv } from '@/utils/export'
 import { GlobalFormat } from '@/utils/formatters'
 import { OrderReturnPrintModal } from './components/OrderReturnPrintModal'
 import { CreateOrderReturnModal } from './components/CreateOrderReturnModal'
+import { OrderReturnDetailDrawer } from './components/OrderReturnDetailDrawer'
 
 const KHR_RATE = 4100
 
@@ -66,6 +67,8 @@ export const OrderReturnsPage: React.FC = () => {
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [selectedReturn, setSelectedReturn] = useState<OrderReturn | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [rejectingReturn, setRejectingReturn] = useState<OrderReturn | null>(null)
   const [printModalReturn, setPrintModalReturn] = useState<OrderReturn | null>(null)
   const [isInspectionOpen, setIsInspectionOpen] = useState(false)
   const [isRefundOpen, setIsRefundOpen] = useState(false)
@@ -169,6 +172,7 @@ export const OrderReturnsPage: React.FC = () => {
       toast.success(t('inspectionSuccess', 'QC Inspection completed and inventory updated.'))
       queryClient.invalidateQueries({ queryKey: ['order-returns'] })
       setIsInspectionOpen(false)
+      setSelectedReturn(null)
     },
     onError: (err: any) => toast.error(err.response?.data?.message || err.message),
   })
@@ -180,6 +184,7 @@ export const OrderReturnsPage: React.FC = () => {
       toast.success(t('settleSuccess', 'Refund settled and credited successfully.'))
       queryClient.invalidateQueries({ queryKey: ['order-returns'] })
       setIsRefundOpen(false)
+      setSelectedReturn(null)
     },
     onError: (err: any) => toast.error(err.response?.data?.message || err.message),
   })
@@ -191,6 +196,7 @@ export const OrderReturnsPage: React.FC = () => {
       toast.success(t('exchangeSuccess', 'Exchange order generated successfully.'))
       queryClient.invalidateQueries({ queryKey: ['order-returns'] })
       setIsExchangeOpen(false)
+      setSelectedReturn(null)
     },
     onError: (err: any) => toast.error(err.response?.data?.message || err.message),
   })
@@ -269,6 +275,9 @@ export const OrderReturnsPage: React.FC = () => {
   }
 
   const handleOpenQC = (ret: OrderReturn) => {
+    setIsDetailModalOpen(false)
+    setIsRefundOpen(false)
+    setIsExchangeOpen(false)
     setSelectedReturn(ret)
     setInspectionVerdict('pass')
     setSerialMatched(true)
@@ -280,6 +289,9 @@ export const OrderReturnsPage: React.FC = () => {
   }
 
   const handleOpenRefund = (ret: OrderReturn) => {
+    setIsDetailModalOpen(false)
+    setIsInspectionOpen(false)
+    setIsExchangeOpen(false)
     setSelectedReturn(ret)
     setRefundMethod(ret.refund_method || 'original_payment')
     setRefundAmount(Number(ret.total_refund_amount) || 0)
@@ -287,6 +299,9 @@ export const OrderReturnsPage: React.FC = () => {
   }
 
   const handleOpenExchange = (ret: OrderReturn) => {
+    setIsDetailModalOpen(false)
+    setIsInspectionOpen(false)
+    setIsRefundOpen(false)
     setSelectedReturn(ret)
     setNewProductPrice(Number(ret.subtotal_amount) || 0)
     setExchangeFee(0)
@@ -481,7 +496,10 @@ export const OrderReturnsPage: React.FC = () => {
                     <td className="py-3 px-4">
                       <div
                         className="font-semibold text-primary hover:underline cursor-pointer font-mono"
-                        onClick={() => navigate(`/returns/${ret.id}`)}
+                        onClick={() => {
+                          setSelectedReturn(ret)
+                          setIsDetailModalOpen(true)
+                        }}
                       >
                         {ret.return_number}
                       </div>
@@ -574,7 +592,10 @@ export const OrderReturnsPage: React.FC = () => {
                       variant="inline"
                       buttonSize="sm"
                       align="right"
-                      onView={() => navigate(`/returns/${ret.id}`)}
+                      onView={() => {
+                        setSelectedReturn(ret)
+                        setIsDetailModalOpen(true)
+                      }}
                       viewLabel={t('viewDetail', 'View Details')}
                       onPrint={() => setPrintModalReturn(ret)}
                       items={[
@@ -589,10 +610,7 @@ export const OrderReturnsPage: React.FC = () => {
                               {
                                 label: t('reject', 'Reject Request'),
                                 icon: XCircle,
-                                onClick: () => {
-                                  const reason = prompt(t('rejectPrompt', 'Please enter rejection reason:'))
-                                  if (reason) rejectMutation.mutate({ id: ret.id, reason })
-                                },
+                                onClick: () => setRejectingReturn(ret),
                                 variant: 'danger' as const,
                               },
                             ]
@@ -668,7 +686,10 @@ export const OrderReturnsPage: React.FC = () => {
       {/* ─── MODAL: Warehouse QC Inspection ──────────────────────────── */}
       <EnterpriseModal
         isOpen={isInspectionOpen && Boolean(selectedReturn)}
-        onClose={() => setIsInspectionOpen(false)}
+        onClose={() => {
+          setIsInspectionOpen(false)
+          setSelectedReturn(null)
+        }}
         title={`${t('inspection.title', 'Warehouse QC Inspection')} — ${selectedReturn?.return_number || ''}`}
         subtitle={t('inspection.subtitle', 'Verify device condition, accessories, and serial authenticity')}
         icon={<ShieldCheck size={18} />}
@@ -676,7 +697,10 @@ export const OrderReturnsPage: React.FC = () => {
         size="2xl"
         footer={
           <ModalFooter
-            onCancel={() => setIsInspectionOpen(false)}
+            onCancel={() => {
+              setIsInspectionOpen(false)
+              setSelectedReturn(null)
+            }}
             onSubmit={() => {
               if (!selectedReturn) return
               inspectionMutation.mutate({
@@ -857,7 +881,10 @@ export const OrderReturnsPage: React.FC = () => {
       {/* ─── MODAL: Settle Refund ────────────────────────────────────── */}
       <EnterpriseModal
         isOpen={isRefundOpen && Boolean(selectedReturn)}
-        onClose={() => setIsRefundOpen(false)}
+        onClose={() => {
+          setIsRefundOpen(false)
+          setSelectedReturn(null)
+        }}
         title={t('financials.settleRefundTitle', 'Settle Refund')}
         subtitle={t('financials.settleRefundSubtitle', 'Select payout channel or credit to customer wallet')}
         icon={<DollarSign size={18} />}
@@ -865,7 +892,10 @@ export const OrderReturnsPage: React.FC = () => {
         size="md"
         footer={
           <ModalFooter
-            onCancel={() => setIsRefundOpen(false)}
+            onCancel={() => {
+              setIsRefundOpen(false)
+              setSelectedReturn(null)
+            }}
             onSubmit={() => {
               if (!selectedReturn) return
               settleMutation.mutate({
@@ -937,7 +967,10 @@ export const OrderReturnsPage: React.FC = () => {
       {/* ─── MODAL: Exchange Settlement ──────────────────────────────── */}
       <EnterpriseModal
         isOpen={isExchangeOpen && Boolean(selectedReturn)}
-        onClose={() => setIsExchangeOpen(false)}
+        onClose={() => {
+          setIsExchangeOpen(false)
+          setSelectedReturn(null)
+        }}
         title={t('financials.processExchangeTitle', 'Process Exchange Settlement')}
         subtitle={t('financials.processExchangeSubtitle', 'Calculate price difference and create replacement order')}
         icon={<ArrowRightLeft size={18} />}
@@ -945,7 +978,10 @@ export const OrderReturnsPage: React.FC = () => {
         size="md"
         footer={
           <ModalFooter
-            onCancel={() => setIsExchangeOpen(false)}
+            onCancel={() => {
+              setIsExchangeOpen(false)
+              setSelectedReturn(null)
+            }}
             onSubmit={() => {
               if (!selectedReturn) return
               exchangeMutation.mutate({
@@ -1013,6 +1049,42 @@ export const OrderReturnsPage: React.FC = () => {
         </div>
       </EnterpriseModal>
 
+      {/* ── Order Return / Replacement Detail Center Modal ─────────────────── */}
+      <OrderReturnDetailDrawer
+        isOpen={isDetailModalOpen && Boolean(selectedReturn)}
+        onClose={() => {
+          setIsDetailModalOpen(false)
+          setSelectedReturn(null)
+        }}
+        orderReturn={selectedReturn}
+        onApprove={(id) => {
+          approveMutation.mutate(id)
+          setIsDetailModalOpen(false)
+          setSelectedReturn(null)
+        }}
+        onReject={() => {
+          setRejectingReturn(selectedReturn)
+        }}
+        onReceive={(id) => {
+          receiveMutation.mutate({ id, warehouseId: 1 })
+          setIsDetailModalOpen(false)
+          setSelectedReturn(null)
+        }}
+        onQC={(ret) => {
+          setIsDetailModalOpen(false)
+          handleOpenQC(ret)
+        }}
+        onRefund={(ret) => {
+          setIsDetailModalOpen(false)
+          handleOpenRefund(ret)
+        }}
+        onExchange={(ret) => {
+          setIsDetailModalOpen(false)
+          handleOpenExchange(ret)
+        }}
+        onPrint={(ret) => setPrintModalReturn(ret)}
+      />
+
       {/* ── Print RMA Voucher Modal (Global Print) ─────────────────────────── */}
       {printModalReturn && (
         <OrderReturnPrintModal
@@ -1021,6 +1093,27 @@ export const OrderReturnsPage: React.FC = () => {
           orderReturn={printModalReturn}
         />
       )}
+
+      {/* ── Reject Reason Confirmation Dialog (Global Modal) ────────────────── */}
+      <RejectConfirmDialog
+        isOpen={Boolean(rejectingReturn)}
+        onClose={() => setRejectingReturn(null)}
+        itemName={rejectingReturn?.return_number}
+        isPending={rejectMutation.isPending}
+        onConfirm={(reason) => {
+          if (!rejectingReturn) return
+          rejectMutation.mutate(
+            { id: rejectingReturn.id, reason },
+            {
+              onSuccess: () => {
+                setRejectingReturn(null)
+                setIsDetailModalOpen(false)
+                setSelectedReturn(null)
+              },
+            }
+          )
+        }}
+      />
 
     </div>
   )

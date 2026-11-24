@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { NotificationItem, NotificationFilters } from '@/pages/notifications/types/notification.types'
+import type { NotificationItem, NotificationFilters } from '@/types'
 import notificationService from '@/services/notificationService'
 import { sound } from '@/utils/sound'
 

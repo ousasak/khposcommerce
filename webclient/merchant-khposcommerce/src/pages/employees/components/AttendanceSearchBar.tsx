@@ -10,7 +10,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { ColumnSettingsPopover, type ColumnOption } from '@/components/shared/ColumnSettingsPopover'
 import { sound } from '@/utils/sound'
-import { formatShiftName } from '../utils/shiftFormatters'
+import { formatShiftName } from '@/utils/shiftFormatters'
 
 export interface AttendanceSearchBarProps {
   selectedDate: string

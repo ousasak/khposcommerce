@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, Search, Eye, RefreshCw, Package, ArrowLeftRight, CheckCircle,
-  AlertTriangle, Loader2, Filter, Download, Upload, Columns, Edit, Trash2,
+  AlertTriangle, Loader2, Filter, Download, Upload, Columns, Pencil,
+Trash2,
   X, Layers, Tag, Percent, Calendar, Activity, Coins, TrendingUp,
   Settings, ChevronUp, ChevronDown, Printer, Warehouse, DollarSign, AlertCircle,
   Building, Clock, CheckCircle2, ArrowUpRight, Sliders, Zap, ShieldCheck, Send
@@ -20,9 +21,10 @@ import { sound } from '@/utils/sound'
 import { useToast } from '@/hooks/useToast'
 import { useTranslation } from 'react-i18next'
 import { Breadcrumb, ResetButton } from '@/components/common'
-import { HeaderActionsGroup, AddButton, ActionButton, FilterButton, RefreshButton } from '@/components/common'
+import { HeaderActionsGroup, AddButton, ActionButton, FilterButton, RefreshButton, InlineFilterSelect } from '@/components/common'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import SearchInput from '@/components/shared/SearchInput'
+import { ModernSelect } from '@/components/shared/ModernSelect'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { ColumnSettingsPopover } from '@/components/shared/ColumnSettingsPopover'
 import { usePermission } from '@/hooks/usePermission'
@@ -333,9 +335,9 @@ const InventoryPage: React.FC<{ tab?: string }> = ({ tab }) => {
   })
 
   // Tab Queries
-  const { data: statsData, isLoading: loadingStats } = useQuery({
-    queryKey: ['inventory-dashboard-stats'],
-    queryFn: () => inventoryService.stats(),
+  const { data: statsData, isLoading: loadingStats, refetch: refetchStats } = useQuery({
+    queryKey: ['inventory-dashboard-stats', selectedWarehouse],
+    queryFn: () => inventoryService.stats(selectedWarehouse ? { warehouse_id: selectedWarehouse } : {}),
     staleTime: 30000,
   })
 
@@ -719,6 +721,35 @@ const InventoryPage: React.FC<{ tab?: string }> = ({ tab }) => {
         </div>
 
         <HeaderActionsGroup>
+          {activeTab === 'dashboard' && (
+            <div className="flex items-center gap-2">
+              {warehouses && warehouses.length > 0 && (
+                <InlineFilterSelect
+                  label={t('inventory.allWarehouses', 'All Warehouses')}
+                  value={selectedWarehouse}
+                  onChange={(val) => {
+                    setSelectedWarehouse(String(val))
+                    qc.invalidateQueries({ queryKey: ['inventory-dashboard-stats'] })
+                  }}
+                  options={warehouses.map((wh: any) => ({
+                    value: String(wh.id),
+                    label: wh.name,
+                  }))}
+                  allLabel={t('inventory.allWarehouses', 'All Warehouses')}
+                  clearable={true}
+                  widthClassName="w-auto min-w-[180px] sm:min-w-[210px]"
+                />
+              )}
+              <RefreshButton
+                onClick={() => {
+                  qc.invalidateQueries({ queryKey: ['inventory-dashboard-stats'] })
+                  refetchStats()
+                }}
+                loading={loadingStats}
+                title={t('common.refresh', 'Refresh')}
+              />
+            </div>
+          )}
           {activeTab === 'levels' && (
             <button
               type="button"
@@ -932,6 +963,16 @@ const InventoryPage: React.FC<{ tab?: string }> = ({ tab }) => {
           statsData={statsData}
           loadingStats={loadingStats}
           onTabChange={handleTabChange}
+          warehouses={warehouses || []}
+          selectedWarehouseId={selectedWarehouse || 'all'}
+          onWarehouseChange={(val) => {
+            setSelectedWarehouse(val === 'all' ? '' : val)
+            qc.invalidateQueries({ queryKey: ['inventory-dashboard-stats'] })
+          }}
+          onRefresh={() => {
+            qc.invalidateQueries({ queryKey: ['inventory-dashboard-stats'] })
+            refetchStats()
+          }}
         />
       )}
 

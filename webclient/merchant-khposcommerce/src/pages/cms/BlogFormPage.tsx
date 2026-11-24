@@ -129,8 +129,8 @@ export const BlogFormPage: React.FC = () => {
     setIsBroadcasting(true)
     try {
       const storefrontOrigin =
-        window.location.port === '5174'
-          ? `${window.location.protocol}//${window.location.hostname}:5173`
+        window.location.port === '5171'
+          ? `${window.location.protocol}//${window.location.hostname}:5172`
           : window.location.origin
       const articleLink = `${storefrontOrigin}/blog/${slug || generateSlug(title)}`
 

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Edit2,
+  Pencil,
   Trash2,
   ShieldCheck,
   RefreshCw,

@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next'
 import { CustomerGroupModal, type CustomerGroup } from './components/CustomerGroupModal'
 import { PercentBadge, StatusBadge, HeaderActionsGroup, AddButton, ExportButton } from '@/components/common'
 import { CustomerGroupSearchBar } from './components/CustomerGroupSearchBar'
-import { getCustomerGroupDisplayName, getCustomerGroupDisplayDescription } from './utils/customerGroupFormatters'
+import { getCustomerGroupDisplayName, getCustomerGroupDisplayDescription } from '@/utils/customerGroupFormatters'
 
 interface CustomerGroupsPageProps {
   isTab?: boolean

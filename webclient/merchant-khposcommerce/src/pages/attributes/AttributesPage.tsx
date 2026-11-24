@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ModalHeader, EmptyState, ResetButton, Modal as EnterpriseModal, ModalFooter } from '@/components/common'
 import { 
-  Plus, Edit2, Trash2, X, Tag, ToggleLeft, ToggleRight, Loader2, 
+  Plus, Pencil, Trash2, X, Tag, ToggleLeft, ToggleRight, Loader2, 
   ChevronUp, ChevronDown, Download, Upload, Trash, RefreshCw, AlertCircle, 
   Sliders, Paintbrush, ListPlus, Settings, Save
 } from 'lucide-react'
@@ -51,7 +51,7 @@ interface Attribute {
 
 const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ isTab, triggerAdd }) => {
   const { language } = useThemeStore()
-  const { t, i18n } = useTranslation(['products', 'common'])
+  const { t, i18n } = useTranslation(['products', 'common', 'nav', 'buttons', 'tables', 'toast', 'errors'])
   const qc = useQueryClient()
   const toast = useToast()
 
@@ -567,6 +567,8 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
                     )}
                     <td className="text-right pr-4">
                       <TableActionMenu
+                        variant="inline"
+                        buttonSize="sm"
                         onEdit={() => openEditModal(attr)}
                         onDelete={() => setDeleteTarget(attr)}
                       />
@@ -812,7 +814,7 @@ const AttributesPage: React.FC<{ isTab?: boolean; triggerAdd?: number }> = ({ is
             <label htmlFor="csv-attribute-upload" className="cursor-pointer font-bold text-xs text-primary hover:underline block">
               {importFile ? importFile.name : t('products.clickToUploadCSV', 'Click to browse CSV / TXT file')}
             </label>
-            <p className="text-[11px] text-muted-foreground mt-1">UTF-8 CSV format (name, type, values)</p>
+            <p className="text-[11px] text-muted-foreground mt-1">{t('products.attributesCsvFormat', 'ទម្រង់ឯកសារ UTF-8 CSV (ឈ្មោះ, ប្រភេទ, តម្លៃជម្រើស)')}</p>
           </div>
         </form>
       </EnterpriseModal>

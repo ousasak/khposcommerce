@@ -20,7 +20,7 @@ import {
   AlertCircle,
   Copy,
   ExternalLink,
-  Edit3,
+  Pencil,
   FileText,
   Plus,
   PhoneCall,
@@ -52,7 +52,7 @@ import { CustomerDebtModal } from './components/CustomerDebtModal'
 import { CustomerStatementPrintModal } from './components/CustomerStatementPrintModal'
 import WorkspaceTabs, { type WorkspaceTabItem } from '@/components/shared/WorkspaceTabs'
 import { usePageTab } from '@/hooks/usePageTab'
-import { getCustomerGroupDisplayName } from './utils/customerGroupFormatters'
+import { getCustomerGroupDisplayName } from '@/utils/customerGroupFormatters'
 import type { Customer } from './types/customer.types'
 
 const KHR_RATE = 4100
@@ -1501,7 +1501,7 @@ export const CustomerDetailPage: React.FC = () => {
                   onClick={() => navigate(`/customers/${customer.id}/edit`)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-border bg-card hover:bg-muted text-foreground transition-all active:scale-95 shadow-2xs cursor-pointer"
                 >
-                  <Edit3 size={13} />
+                  <Pencil size={13} />
                   <span>{t('customers.edit', 'Edit')}</span>
                 </button>
               </div>

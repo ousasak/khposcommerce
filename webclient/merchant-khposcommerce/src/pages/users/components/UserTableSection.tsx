@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-  User as UserIcon, Key, Lock, Edit2, Trash2
+  User as UserIcon, Key, Lock, Pencil, Trash2
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import TableWrapper from '@/components/shared/TableWrapper'

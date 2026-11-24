@@ -6,7 +6,7 @@ import {
   RotateCcw, Copy, Check, Building2, Phone, Mail,
   FileText, Ban, AlertCircle, Printer, ArrowLeft,
   Truck, Wallet, Package, CreditCard, ExternalLink,
-  CheckCircle, Warehouse, Calendar, Tag, Edit2
+  CheckCircle, Warehouse, Calendar, Tag, Pencil
 } from 'lucide-react'
 
 import { purchaseService } from '@/services/purchaseService'
@@ -17,7 +17,7 @@ import { LoadingSpinner } from '@/components/common'
 import { EnterpriseModal, ModalFooter } from '@/components/common'
 import ConfirmDialog from '@/components/shared/ConfirmDialog'
 import { RETURN_STATUS_BADGE, REFUND_STATUS_BADGE, type PurchaseReturn } from './types/purchaseReturn.types'
-import { formatCurrency } from './utils/purchaseCurrency'
+import { formatCurrency } from '@/utils/purchaseCurrency'
 import { PurchaseReturnPrintVoucher } from './components/PurchaseReturnPrintVoucher'
 import { ShippingCarrierSelect } from './components/ShippingCarrierSelect'
 
@@ -298,7 +298,7 @@ export const PurchaseReturnDetailPage: React.FC = () => {
               {isDraft && (
                 <FormHeaderButton
                   onClick={() => navigate(`/purchases/returns/${id}/edit`)}
-                  icon={<Edit2 size={14} />}
+                  icon={<Pencil size={14} />}
                   variant="outline"
                 >
                   {t('common.edit', 'Edit')}

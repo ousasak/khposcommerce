@@ -20,7 +20,7 @@ import TableWrapper from '@/components/shared/TableWrapper'
 import Pagination from '@/components/shared/Pagination'
 import type { ColumnOption } from '@/components/shared/ColumnSettingsPopover'
 import { EmployeeAvatar } from './EmployeeAvatar'
-import { formatShiftName } from '../utils/shiftFormatters'
+import { formatShiftName } from '@/utils/shiftFormatters'
 import WeeklyShiftRosterPrintModal from './WeeklyShiftRosterPrintModal'
 import RosterSearchBar from './RosterSearchBar'
 

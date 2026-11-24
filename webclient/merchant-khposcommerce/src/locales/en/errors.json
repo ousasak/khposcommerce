@@ -70,5 +70,7 @@
   "backToHome": "Back to Home",
   "technicalDetails": "Technical Error Details",
   "showErrorDetails": "Show Diagnostics",
-  "hideErrorDetails": "Hide Diagnostics"
+  "hideErrorDetails": "Hide Diagnostics",
+  "permissionDenied": "Permission denied for this action",
+  "errors.permissionDenied": "Permission denied for this action"
 }

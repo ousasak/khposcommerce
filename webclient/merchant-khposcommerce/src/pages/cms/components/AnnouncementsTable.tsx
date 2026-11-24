@@ -10,7 +10,7 @@ import {
   Check,
   RefreshCw,
   Plus,
-  Edit2,
+  Pencil,
   Trash2,
   Power,
   Layers,
@@ -326,7 +326,7 @@ export const AnnouncementsTable: React.FC<AnnouncementsTableProps> = ({
             )}
 
             <a
-              href="http://localhost:5173"
+              href="http://localhost:5172"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-primary/10 text-foreground hover:text-primary border border-border text-xs font-semibold transition-all"
@@ -566,7 +566,7 @@ export const AnnouncementsTable: React.FC<AnnouncementsTableProps> = ({
                         className="p-1.5 rounded-lg bg-muted hover:bg-primary/10 text-foreground hover:text-primary transition-colors cursor-pointer"
                         title={t('common.edit', 'កែសម្រួល')}
                       >
-                        <Edit2 size={13} />
+                        <Pencil size={13} />
                       </button>
 
                       <button

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   Zap,
-  Edit2,
+  Pencil,
   Copy,
   Clock,
   Store,
@@ -511,7 +511,7 @@ export const FlashSaleDetailDrawer: React.FC<FlashSaleDetailDrawerProps> = ({
           rightActions={
             <ActionButton
               variant="primary"
-              icon={<Edit2 size={15} />}
+              icon={<Pencil size={15} />}
               label={t('common.edit', 'Edit')}
               onClick={() => {
                 onEdit(sale)

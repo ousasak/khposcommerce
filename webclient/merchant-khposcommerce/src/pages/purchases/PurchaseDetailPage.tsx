@@ -23,7 +23,7 @@ import {
   getPaymentStatusLabel,
   type Purchase
 } from './types/purchase.types'
-import { getDetailDualValues } from './utils/purchaseCurrency'
+import { getDetailDualValues } from '@/utils/purchaseCurrency'
 import { ReceiveShipmentModal } from './components/ReceiveShipmentModal'
 import { RecordPaymentModal } from './components/RecordPaymentModal'
 import { PurchasePrintVoucher } from './components/PurchasePrintVoucher'

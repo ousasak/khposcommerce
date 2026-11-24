@@ -27,7 +27,7 @@ import {
   performAIVisionSearch,
   classifyCanvasImageFeatures,
   type AIVisualMatchResult,
-} from '../utils/aiVisualMatcher'
+} from '@/utils/aiVisualMatcher'
 import {
   MultiFormatReader,
   BarcodeFormat,

@@ -9,58 +9,12 @@ import {
   FileText,
 } from 'lucide-react'
 import { useThemeStore } from '@/stores/themeStore'
-import { DataTable, type Column, StatusBadge, ProductThumbnail, AvatarImage, TableActionMenu } from '@/components/common'
+import { DataTable, type Column, StatusBadge, ProductThumbnail, AvatarImage, TableActionMenu, AdminRowActions } from '@/components/common'
 import { formatCurrency, GlobalFormat } from '@/utils/formatters'
+import type { Order, OrderItem } from '../types/order.types'
+export type { Order, OrderItem }
 
 const KHR_RATE = 4100
-
-export interface OrderItem {
-  id: number
-  product_id: number
-  product_name: string
-  product_image?: string
-  quantity: number
-  unit_price: number
-  subtotal: number
-  product?: {
-    name?: string
-    image?: string
-    primary_image?: string
-    category?: { name?: string }
-  }
-}
-
-export interface Order {
-  id: number
-  order_number: string
-  customer_name?: string
-  customer?: any
-  shipping_name?: string
-  customer_phone?: string
-  customer_email?: string
-  status: 'pending' | 'processing' | 'completed' | 'cancelled' | string
-  payment_status: 'paid' | 'unpaid' | 'refunded' | string
-  payment_method?: string
-  fulfillment_status?: 'unfulfilled' | 'fulfilled' | 'partial' | string
-  shipping_address?: string
-  shipping_city?: string
-  shipping_province?: string
-  shipping_method?: any
-  shippingMethod?: any
-  payments?: any[]
-  shipment?: any
-  total_amount?: number
-  grand_total?: number
-  subtotal?: number
-  tax_amount?: number
-  discount_amount?: number
-  shipping_fee?: number
-  shipping_cost?: number
-  notes?: string
-  created_at: string
-  items?: OrderItem[]
-  [key: string]: any
-}
 
 interface OrdersTableSectionProps {
   orders: Order[]
@@ -75,6 +29,7 @@ interface OrdersTableSectionProps {
   onPrintWaybill?: (order: Order) => void
   onUpdateStatus?: (order: Order) => void
   onQuickStatusChange?: (order: Order, newStatus: string) => void
+  onDelete?: (order: Order) => void
 }
 
 export const OrdersTableSection: React.FC<OrdersTableSectionProps> = ({
@@ -90,6 +45,7 @@ export const OrdersTableSection: React.FC<OrdersTableSectionProps> = ({
   onPrintWaybill,
   onUpdateStatus,
   onQuickStatusChange,
+  onDelete,
 }) => {
   const { language } = useThemeStore()
   const { t } = useTranslation(['orders', 'sales', 'common'])
@@ -496,20 +452,22 @@ export const OrdersTableSection: React.FC<OrdersTableSectionProps> = ({
               className="flex items-center justify-end"
               onClick={(e) => e.stopPropagation()}
             >
-              <TableActionMenu
-                variant="inline"
-                buttonSize="sm"
-                align="right"
+              <AdminRowActions
+                size="sm"
+                align="end"
                 onView={onView ? () => onView(order) : undefined}
-                viewLabel={t('common:viewDetails', 'View Details')}
-                onPrint={onPrintReceipt ? () => onPrintReceipt(order) : undefined}
-                printLabel={t('printReceipt', 'Print Receipt')}
-                items={[
-                  ...(onPrintWaybill
+                onInvoice={onPrintReceipt ? () => onPrintReceipt(order) : onPrintWaybill ? () => onPrintWaybill(order) : undefined}
+                onDelete={onDelete ? () => onDelete(order) : undefined}
+                viewTitle={t('common:viewDetails', 'View Details')}
+                invoiceTitle={t('printReceipt', 'Invoice / Receipt')}
+                deleteTitle={t('common:delete', 'Delete')}
+                extraActions={[
+                  ...(onPrintWaybill && onPrintReceipt
                     ? [
                         {
-                          label: t('printWaybillLabel', 'Print Waybill Label'),
-                          icon: FileText,
+                          key: 'waybill',
+                          title: t('printWaybillLabel', 'Print Waybill Label'),
+                          icon: <FileText size={15} className="stroke-[1.8]" />,
                           onClick: () => onPrintWaybill(order),
                         },
                       ]
@@ -517,8 +475,9 @@ export const OrdersTableSection: React.FC<OrdersTableSectionProps> = ({
                   ...(nextTransition && onQuickStatusChange
                     ? [
                         {
-                          label: `${t('moveTo', 'Move to:')} ${nextTransition.label}`,
-                          icon: nextTransition.icon,
+                          key: 'transition',
+                          title: `${t('moveTo', 'Move to:')} ${nextTransition.label}`,
+                          icon: <nextTransition.icon size={15} className="stroke-[1.8]" />,
                           onClick: () => onQuickStatusChange(order, nextTransition!.status),
                           variant: 'success' as const,
                         },
@@ -529,8 +488,9 @@ export const OrdersTableSection: React.FC<OrdersTableSectionProps> = ({
                   order.status !== 'cancelled'
                     ? [
                         {
-                          label: t('updateStatus', 'Update Status'),
-                          icon: CheckCircle2,
+                          key: 'status',
+                          title: t('updateStatus', 'Update Status'),
+                          icon: <CheckCircle2 size={15} className="stroke-[1.8]" />,
                           onClick: () => onUpdateStatus(order),
                         },
                       ]

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ModalHeader, EmptyState, ResetButton } from '@/components/common'
 import { 
-  Plus, Edit2, Trash2, X, Percent, ToggleLeft, ToggleRight, Loader2, 
+  Plus, Pencil, Trash2, X, Percent, ToggleLeft, ToggleRight, Loader2, 
   ChevronUp, ChevronDown, Download, Upload, Trash, RefreshCw, AlertCircle, Settings,
   Save
 } from 'lucide-react'

@@ -41,17 +41,17 @@ php artisan serve --port=8000
 ### Step 4: Launch Admin Dashboard
 In a new terminal window:
 ```bash
-cd admin-dashboard
+cd webclient/merchant-khposcommerce
 npm install
-npm run dev # Runs on http://localhost:5173
+npm run dev # Runs on http://localhost:5171
 ```
 
 ### Step 5: Launch Customer Website
 In a new terminal window:
 ```bash
-cd customer-website
+cd webclient/storefront-khposcommerce
 npm install
-npm run dev # Runs on http://localhost:5174
+npm run dev # Runs on http://localhost:5172
 ```
 
 ### Step 6: Launch Documentation Website
@@ -68,9 +68,9 @@ npm run dev # Runs on http://localhost:5175
 
 | Application | URL | Email / Username | Password |
 |---|---|---|---|
-| **Admin Dashboard** | `http://localhost:5173` | `admin@enterprise.com` | `password123` |
-| **Cashier / POS** | `http://localhost:5173/pos` | `cashier@enterprise.com` | `password123` |
-| **Backend API Hub** | `http://localhost:8000/api/v1` | N/A | Bearer JWT |
+| **Admin Dashboard** | `http://localhost:5171` | `admin@enterprise.com` | `password123` |
+| **Cashier / POS** | `http://localhost:5171/pos` | `cashier@enterprise.com` | `password123` |
+| **Backend API Hub** | `http://localhost:8001/api/v1` | N/A | Bearer JWT |
 
 ---
 *Related Docs:*

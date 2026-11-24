@@ -27,7 +27,7 @@ import type {
 import { useToast } from '@/hooks/useToast'
 import { useThemeStore } from '@/stores/themeStore'
 import { sound } from '@/utils/sound'
-import { Breadcrumb, FormHeader, FormHeaderButton, LoadingSpinner, SecondaryButton, AddButton, ProductThumbnail, EnterpriseModal, ModalFooter } from '@/components/common'
+import { Breadcrumb, FormHeader, FormHeaderButton, LoadingSpinner, SecondaryButton, AddButton, ProductThumbnail, EnterpriseModal, ModalFooter, RejectConfirmDialog } from '@/components/common'
 import { GlobalFormat } from '@/utils/formatters'
 import { OrderReturnPrintModal } from './components/OrderReturnPrintModal'
 
@@ -61,6 +61,7 @@ export const OrderReturnDetailPage: React.FC = () => {
   const [isInspectionOpen, setIsInspectionOpen] = useState(false)
   const [isRefundOpen, setIsRefundOpen] = useState(false)
   const [isExchangeOpen, setIsExchangeOpen] = useState(false)
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
 
   // QC inspection form state
   const [inspectionVerdict, setInspectionVerdict] = useState<'pass' | 'partial_pass' | 'reject' | 'fraud_suspected'>('pass')
@@ -363,10 +364,7 @@ export const OrderReturnDetailPage: React.FC = () => {
               {orderReturn.status === 'requested' && (
                 <>
                   <FormHeaderButton
-                    onClick={() => {
-                      const reason = prompt(t('rejectPrompt', 'Please enter rejection reason:'))
-                      if (reason) rejectMutation.mutate({ returnId: orderReturn.id, reason })
-                    }}
+                    onClick={() => setIsRejectDialogOpen(true)}
                     icon={<XCircle size={14} />}
                     variant="danger"
                     disabled={isActionLoading}
@@ -1173,6 +1171,23 @@ export const OrderReturnDetailPage: React.FC = () => {
           </div>
         </div>
       </EnterpriseModal>
+      {/* ── Reject Reason Confirmation Dialog (Global Modal) ────────────────── */}
+      {orderReturn && (
+        <RejectConfirmDialog
+          isOpen={isRejectDialogOpen}
+          onClose={() => setIsRejectDialogOpen(false)}
+          itemName={orderReturn.return_number}
+          isPending={rejectMutation.isPending}
+          onConfirm={(reason) => {
+            rejectMutation.mutate(
+              { returnId: orderReturn.id, reason },
+              {
+                onSuccess: () => setIsRejectDialogOpen(false),
+              }
+            )
+          }}
+        />
+      )}
     </div>
   )
 }

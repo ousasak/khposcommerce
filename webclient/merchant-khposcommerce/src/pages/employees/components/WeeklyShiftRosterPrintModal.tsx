@@ -5,7 +5,7 @@ import {
   GlobalPrintHeader,
   GlobalPrintFooter,
 } from '@/components/shared/GlobalPrint'
-import { formatShiftName } from '../utils/shiftFormatters'
+import { formatShiftName } from '@/utils/shiftFormatters'
 import type { Shift } from './WeeklyShiftRosterTab'
 
 interface WeeklyShiftRosterPrintModalProps {

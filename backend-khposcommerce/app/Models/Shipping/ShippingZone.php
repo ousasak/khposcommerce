@@ -16,13 +16,22 @@ class ShippingZone extends Model
 {
     use HasFactory, SoftDeletes, BelongsToCompany;
 
-    protected $fillable = ['company_id', 'name', 'countries', 'provinces', 'cities'];
+    protected $fillable = ['company_id', 'name', 'code', 'countries', 'provinces', 'cities', 'is_active'];
 
     protected $casts = [
         'countries' => 'array',
         'provinces' => 'array',
         'cities'    => 'array',
+        'is_active' => 'boolean',
     ];
+
+    public function getCodeAttribute($value): ?string
+    {
+        if (!empty($value)) {
+            return $value;
+        }
+        return 'ZONE_' . str_pad((string)($this->id ?? 1), 3, '0', STR_PAD_LEFT);
+    }
 
     public function setCountriesAttribute($value): void
     {

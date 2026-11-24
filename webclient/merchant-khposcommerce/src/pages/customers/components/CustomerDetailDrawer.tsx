@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   X, User, Mail, Phone, Calendar, Award, DollarSign, MapPin, 
-  CheckCircle2, ShoppingBag, FileText, Tag, Edit3, Shield, 
+  CheckCircle2, ShoppingBag, FileText, Tag, Pencil, Shield, 
   ExternalLink, CreditCard, Clock, Building2, Copy, Check,
   Wallet, AlertTriangle, ShieldAlert, Sparkles, MessageSquare,
   FileCheck2, Plus, PhoneCall, Users2, BadgePercent, ChevronRight,
@@ -1238,7 +1238,7 @@ export const CustomerDetailDrawer: React.FC<CustomerDetailDrawerProps> = ({
               {canEdit && (
                 <ActionButton
                   variant="primary"
-                  icon={<Edit3 size={15} />}
+                  icon={<Pencil size={15} />}
                   onClick={() => openEditModal(cust)}
                 >
                   {t('customers.editProfile', 'Edit Customer Profile')}

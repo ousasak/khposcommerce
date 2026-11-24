@@ -1,7 +1,7 @@
 {
   "name": "merchant-khposcommerce",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0-beta.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -43,6 +43,7 @@
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.81.0",
     "react-i18next": "^17.0.10",
+    "react-is": "^19.3.1",
     "react-loading-indicators": "^1.0.1",
     "react-router-dom": "^7.18.1",
     "recharts": "^3.9.2",

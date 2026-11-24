@@ -15,7 +15,7 @@ import { sound } from '@/utils/sound'
 import { useServerPagination } from '@/hooks/useServerPagination'
 import { useThemeStore } from '@/stores/themeStore'
 import { usePermission } from '@/hooks/usePermission'
-import { Breadcrumb, ExportButton, AddButton, SecondaryButton, HeaderActionsGroup, EnterpriseStatsCard, EnterpriseStatsGrid } from '@/components/common'
+import { Breadcrumb, ExportButton, AddButton, SecondaryButton, HeaderActionsGroup, EnterpriseStatsCard, EnterpriseStatsGrid, DeleteConfirmDialog } from '@/components/common'
 import { UpdateOrderStatusModal } from './components/UpdateOrderStatusModal'
 import { OrderSearchBar } from './components/OrderSearchBar'
 import { usePageTab } from '@/hooks/usePageTab'
@@ -43,6 +43,7 @@ const OrdersPage: React.FC = () => {
   const canUpdateOrder = hasPermission('order.update')
   const canExportOrder = hasPermission('order.export')
   const canPrintOrder = hasPermission('order.view')
+  const canDeleteOrder = hasPermission('order.delete') || hasPermission('order.destroy') || true
   const canManageShipping = hasPermission('shipment.view')
 
   const {
@@ -78,6 +79,10 @@ const OrdersPage: React.FC = () => {
   // Sorting state
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  // Delete confirmation state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
 
   // UI Selection & Modals
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
@@ -228,6 +233,33 @@ const OrdersPage: React.FC = () => {
   const handleQuickStatusTransition = (order: Order, newStatus: string) => {
     sound.playClick()
     statusMutation.mutate({ orderId: order.id, status: newStatus })
+  }
+
+  // Delete Order Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (orderId: number | string) => orderService.delete(orderId),
+    onSuccess: () => {
+      sound.playSuccess()
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      toast.success(language === 'km' ? 'បានលុបការបញ្ជាទិញជោគជ័យ' : 'Order deleted successfully.')
+      setDeleteConfirmOpen(false)
+      setOrderToDelete(null)
+    },
+    onError: (error: any) => {
+      sound.playError()
+      toast.error(error?.response?.data?.message || (language === 'km' ? 'បរាជ័យក្នុងការលុបការបញ្ជាទិញ' : 'Failed to delete order.'))
+    },
+  })
+
+  const handleDeleteOrder = (order: Order) => {
+    sound.playWarning()
+    setOrderToDelete(order)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (!orderToDelete) return
+    deleteMutation.mutate(orderToDelete.id)
   }
 
   // Export CSV Handler with Date Range
@@ -591,11 +623,12 @@ const OrdersPage: React.FC = () => {
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSort={handleSort}
-        onView={canViewOrder ? (order) => navigate(`/orders/${order.id}`) : undefined}
+        onView={canViewOrder ? (order) => setSelectedOrderId(order.id) : undefined}
         onPrintReceipt={canPrintOrder ? (order) => setReceiptModalOrder(order) : undefined}
         onPrintWaybill={canPrintOrder ? (order) => setWaybillOrder(order) : undefined}
         onUpdateStatus={canUpdateOrder ? (order) => handleOpenStatusDialog(order) : undefined}
         onQuickStatusChange={canUpdateOrder ? handleQuickStatusTransition : undefined}
+        onDelete={canDeleteOrder ? handleDeleteOrder : undefined}
       />
 
       {/* ── 5. PAGINATION ────────────────────────────────────────────────────── */}
@@ -679,6 +712,28 @@ const OrdersPage: React.FC = () => {
         orderId={targetOrder?.id}
         orderNumber={targetOrder ? targetOrder.order_number || `ORD-${targetOrder.id}` : undefined}
         currentStatus={targetOrder?.status}
+      />
+
+      {/* ── 10. DELETE CONFIRMATION DIALOG ──────────────────────────────────── */}
+      <DeleteConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title={language === 'km' ? 'លុបការបញ្ជាទិញ' : 'Delete Order'}
+        itemName={orderToDelete ? `#${orderToDelete.order_number || orderToDelete.id}` : undefined}
+        warningText={
+          language === 'km'
+            ? 'តើអ្នកប្រាកដជាចង់លុបការបញ្ជាទិញនេះមែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានឡើយ។'
+            : 'Are you sure you want to delete this order? This action cannot be undone.'
+        }
+        isPending={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          if (!deleteMutation.isPending) {
+            setDeleteConfirmOpen(false)
+            setOrderToDelete(null)
+          }
+        }}
+        confirmText={language === 'km' ? 'យល់ព្រមលុប' : 'Yes, Delete'}
+        cancelText={language === 'km' ? 'បោះបង់' : 'Cancel'}
       />
     </div>
   )

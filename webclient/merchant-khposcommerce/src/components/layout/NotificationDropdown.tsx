@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useNotificationStore } from '@/stores/notificationStore'
 import { useThemeStore } from '@/stores/themeStore'
-import type { NotificationItem, NotificationType } from '@/pages/notifications/types/notification.types'
+import type { NotificationItem, NotificationType } from '@/types'
 import { formatDistanceToNow } from 'date-fns'
 
 

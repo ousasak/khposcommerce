@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Copy, Check, Sparkles, Layers, Tag, Ticket, Edit2, Calendar } from 'lucide-react'
+import { Copy, Check, Sparkles, Layers, Tag, Ticket, Pencil, Calendar } from 'lucide-react'
 import type { PromotionCampaign } from '../types'
 import {
   DetailDrawer,
@@ -377,7 +377,7 @@ export const PromotionDetailDrawer: React.FC<PromotionDetailDrawerProps> = ({
             }}
             label={t('common.edit', 'Edit')}
             variant="primary"
-            icon={<Edit2 size={15} />}
+            icon={<Pencil size={15} />}
           />
         }
       />

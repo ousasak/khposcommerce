@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { Mail, Phone, Shield, Building2, Calendar, Camera, Trash2, Edit3, KeyRound, Clock } from 'lucide-react'
+import { Mail, Phone, Shield, Building2, Calendar, Camera, Trash2, Pencil, KeyRound, Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { UserProfile } from '@/services/profileService'
 import { useThemeStore } from '@/stores/themeStore'
@@ -134,7 +134,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 onClick={onEditClick}
                 className="flex items-center gap-2 px-4 py-2.5 bg-muted/80 hover:bg-muted text-foreground rounded-2xl text-xs font-bold border border-border/80 transition-all cursor-pointer shadow-2xs hover:border-primary/40 active:scale-95"
               >
-                <Edit3 size={14} className="text-primary" />
+                <Pencil size={14} className="text-primary" />
                 <span>{t('personal_information', 'Personal Information')}</span>
               </button>
               <button

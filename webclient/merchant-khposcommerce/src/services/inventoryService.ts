@@ -8,8 +8,8 @@ export const inventoryService = {
   show: (id: number | string) =>
     api.get(`/inventory/${id}`).then(r => r.data.data),
 
-  stats: () =>
-    api.get('/inventory/stats').then(r => r.data.data ?? r.data),
+  stats: (params: Record<string, any> = {}) =>
+    api.get('/inventory/stats', { params }).then(r => r.data.data ?? r.data),
 
   lowStock: (params: Record<string, any> = {}) =>
     api.get('/inventory/low-stock', { params }).then(r => r.data),

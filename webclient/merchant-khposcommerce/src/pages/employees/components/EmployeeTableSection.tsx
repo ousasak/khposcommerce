@@ -11,9 +11,8 @@ import {
   DollarSign,
   Printer,
   Eye,
-  Edit,
-  Edit2,
-  Trash2,
+  Pencil,
+Trash2,
   CalendarCheck,
   CreditCard,
 } from 'lucide-react'

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
-  FileText, Plus, RefreshCw, Search, Eye, Edit2, Trash2, Tag, Copy,
+  FileText, Plus, RefreshCw, Search, Eye, Pencil, Trash2, Tag, Copy,
   CheckCircle2, AlertCircle, ShoppingCart, ShoppingBag, DollarSign,
   ShieldAlert, Settings, Star, Layers, X, Radio, Send, Bell, Code, Mail, Smartphone
 } from 'lucide-react'
@@ -631,7 +631,7 @@ const NotificationTemplateListPage: React.FC = () => {
                       title="Edit Template"
                       className="p-1.5 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition-all duration-200 cursor-pointer"
                     >
-                      <Edit2 size={14} />
+                      <Pencil size={14} />
                     </button>
                     <button
                       onClick={() => handleDuplicate(record.id)}

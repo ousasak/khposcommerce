@@ -67,7 +67,7 @@ export const ProductMediaSection: React.FC<ProductMediaSectionProps> = ({
           <p className="text-xs font-bold text-foreground">
             {t('dragDropText', 'Drag & drop product images here or click to browse')}
           </p>
-          <p className="text-[11px] text-muted-foreground mt-0.5">PNG, JPG, WEBP · Up to 10MB per image</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{t('mediaLimitHint', 'PNG, JPG, WEBP · ទំហំអតិបរមា 10MB ក្នុងមួយរូបភាព')}</p>
         </div>
         <input
           type="file"

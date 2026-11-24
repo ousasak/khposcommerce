@@ -2,7 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { RotateCcw, Wallet, CheckCircle2, Truck, AlertCircle, ShoppingCart } from 'lucide-react'
-import { formatCurrency } from '../utils/purchaseCurrency'
+import { formatCurrency } from '@/utils/purchaseCurrency'
 import type { PurchaseReturn } from '../types/purchaseReturn.types'
 
 interface PurchaseReturnsStatsCardsProps {
